@@ -51,9 +51,12 @@ require __DIR__ . '/_topo.php';
                         <input type="email" name="email" id="instalarEmail" class="form-control" placeholder="seuemail@exemplo.com" required>
                         <label for="instalarEmail">E-mail</label>
                     </div>
-                    <div class="form-floating mb-3">
+                    <div class="form-floating mb-3 tem-toggle-senha">
                         <input type="password" name="senha" id="instalarSenha" class="form-control" placeholder="Senha" minlength="4" required>
                         <label for="instalarSenha">Senha (mín. 4 caracteres)</label>
+                        <button type="button" class="btn-toggle-senha" data-alvo="instalarSenha" aria-label="Mostrar senha">
+                            <i class="bi bi-eye"></i>
+                        </button>
                     </div>
                     <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Criar administrador</button>
                 </form>

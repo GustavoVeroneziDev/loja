@@ -137,6 +137,30 @@ body {
     transform: translateY(-50%) scale(.82);
 }
 
+/* Botão de mostrar/ocultar senha embutido no próprio campo */
+.tem-toggle-senha .form-control {
+    padding-right: 2.75rem;
+}
+
+.btn-toggle-senha {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #6b6560;
+    z-index: 5;
+}
+
+.btn-toggle-senha:hover {
+    color: var(--cor-primaria);
+}
+
 /* Autofill do Chrome/Edge pinta o campo de azul por padrão — força de volta pro branco do tema */
 .form-control:-webkit-autofill,
 .form-control:-webkit-autofill:hover,

@@ -56,12 +56,12 @@ $categoriasNav = array_filter(obterCategoriasArvore(), fn($c) => empty($c['FKCat
                 <?php endforeach; ?>
             </ul>
             <ul class="navbar-nav align-items-lg-center gap-lg-2">
-                <li class="nav-item">
-                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" disabled title="Carrinho chega na próxima etapa">
-                        <i class="bi bi-cart"></i> Carrinho
-                    </button>
-                </li>
                 <?php if (clienteLogado()): ?>
+                    <li class="nav-item">
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" disabled title="Carrinho chega na próxima etapa">
+                            <i class="bi bi-cart"></i> Carrinho
+                        </button>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="<?= URL_BASE ?>/usuario/minha-conta.php"><i class="bi bi-person-circle"></i> Minha conta</a>
                     </li>

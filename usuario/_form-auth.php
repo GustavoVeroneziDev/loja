@@ -7,16 +7,18 @@
         <div class="card p-4 p-md-5">
             <div id="painelLogin" class="auth-painel <?= $modoInicial === 'cadastro' ? 'd-none' : '' ?>">
                 <h1 class="h4 mb-1">Bem-vindo de volta</h1>
-                <p class="text-secundario mb-4">Entra com sua conta pra continuar.</p>
                 <?php if ($erroLogin): ?><div class="alert alert-danger"><?= htmlspecialchars($erroLogin) ?></div><?php endif; ?>
                 <form method="post" action="<?= URL_BASE ?>/usuario/login.php">
                     <div class="form-floating mb-3">
                         <input type="email" name="email" id="loginEmail" class="form-control" placeholder="seuemail@exemplo.com" required>
                         <label for="loginEmail">E-mail</label>
                     </div>
-                    <div class="form-floating mb-3">
+                    <div class="form-floating mb-3 tem-toggle-senha">
                         <input type="password" name="senha" id="loginSenha" class="form-control" placeholder="Sua senha" required>
                         <label for="loginSenha">Senha</label>
+                        <button type="button" class="btn-toggle-senha" data-alvo="loginSenha" aria-label="Mostrar senha">
+                            <i class="bi bi-eye"></i>
+                        </button>
                     </div>
                     <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Entrar</button>
                 </form>
@@ -40,9 +42,12 @@
                         <input type="text" name="telefone" id="cadastroTelefone" class="form-control" placeholder="Telefone" value="<?= htmlspecialchars($_POST['telefone'] ?? '') ?>">
                         <label for="cadastroTelefone">Telefone (opcional)</label>
                     </div>
-                    <div class="form-floating mb-3">
+                    <div class="form-floating mb-3 tem-toggle-senha">
                         <input type="password" name="senha" id="cadastroSenha" class="form-control" placeholder="Senha" minlength="4" required>
                         <label for="cadastroSenha">Senha (mín. 4 caracteres)</label>
+                        <button type="button" class="btn-toggle-senha" data-alvo="cadastroSenha" aria-label="Mostrar senha">
+                            <i class="bi bi-eye"></i>
+                        </button>
                     </div>
                     <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Criar conta</button>
                 </form>
