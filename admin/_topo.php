@@ -44,4 +44,4 @@ $nomeLoja = obterConfiguracaoLoja('nome_loja', 'Minha Loja');
     </div>
 </nav>
 <?php endif; ?>
-<main class="container py-4">
+<main class="container py-4 main-conteudo">

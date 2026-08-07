@@ -71,4 +71,4 @@ $categoriasNav = array_filter(obterCategoriasArvore(), fn($c) => empty($c['FKCat
         </div>
     </div>
 </nav>
-<main class="container py-4">
+<main class="container py-4 main-conteudo">
