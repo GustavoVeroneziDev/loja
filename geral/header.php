@@ -5,6 +5,12 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../config/conexao.php';
 require_once __DIR__ . '/../config/funcoes.php';
 
+// Admin logado nunca vê a vitrine — a área dele é o painel, não o site de compra.
+if (adminLogado()) {
+    header('Location: ' . URL_BASE . '/admin/index.php');
+    exit;
+}
+
 garantirTabelaConfiguracaoLoja();
 garantirConfiguracaoLojaPadrao();
 garantirTabelaCategoria();

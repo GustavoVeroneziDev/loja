@@ -2,7 +2,7 @@
 session_start();
 require_once __DIR__ . '/../config/conexao.php';
 require_once __DIR__ . '/../config/funcoes.php';
-garantirTabelaCliente();
+garantirTabelaUsuario();
 
 global $pdo;
 
@@ -12,17 +12,17 @@ $mensagem = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
 
-    $stmt = $pdo->prepare("SELECT IDCliente FROM Cliente WHERE Email = :email");
+    $stmt = $pdo->prepare("SELECT IDUsuario FROM Usuario WHERE Email = :email");
     $stmt->execute(['email' => $email]);
-    $idCliente = $stmt->fetchColumn();
+    $idUsuario = $stmt->fetchColumn();
 
     // Mesma mensagem exista ou não o e-mail — não confirma pra quem tá tentando adivinhar contas.
     $mensagem = 'Se esse e-mail existir na nossa base, o link de redefinição foi gerado.';
 
-    if ($idCliente) {
+    if ($idUsuario) {
         $token = bin2hex(random_bytes(32));
-        $stmt = $pdo->prepare("UPDATE Cliente SET TokenRecuperacao = :token, DataExpiracaoToken = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE IDCliente = :id");
-        $stmt->execute(['token' => $token, 'id' => $idCliente]);
+        $stmt = $pdo->prepare("UPDATE Usuario SET TokenRecuperacao = :token, DataExpiracaoToken = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE IDUsuario = :id");
+        $stmt->execute(['token' => $token, 'id' => $idUsuario]);
 
         // Envio por e-mail entra na rodada de e-mails transacionais (junto com pedido/checkout).
         // Até lá, o link aparece na tela mesmo, só pra não travar o fluxo em dev.

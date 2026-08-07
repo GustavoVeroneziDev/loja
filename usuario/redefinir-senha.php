@@ -2,7 +2,7 @@
 session_start();
 require_once __DIR__ . '/../config/conexao.php';
 require_once __DIR__ . '/../config/funcoes.php';
-garantirTabelaCliente();
+garantirTabelaUsuario();
 
 global $pdo;
 
@@ -10,19 +10,19 @@ $token = $_GET['token'] ?? ($_POST['token'] ?? '');
 $erro = null;
 $sucesso = null;
 
-$stmt = $pdo->prepare("SELECT IDCliente FROM Cliente WHERE TokenRecuperacao = :token AND DataExpiracaoToken > NOW()");
+$stmt = $pdo->prepare("SELECT IDUsuario FROM Usuario WHERE TokenRecuperacao = :token AND DataExpiracaoToken > NOW()");
 $stmt->execute(['token' => $token]);
-$idCliente = $stmt->fetchColumn();
+$idUsuario = $stmt->fetchColumn();
 
-if (!$idCliente) {
+if (!$idUsuario) {
     $erro = 'Link inválido ou expirado. Solicite a recuperação novamente.';
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $senha = $_POST['senha'] ?? '';
     if (strlen($senha) < 4) {
         $erro = 'A senha precisa ter pelo menos 4 caracteres.';
     } else {
-        $stmt = $pdo->prepare("UPDATE Cliente SET Senha = :senha, TokenRecuperacao = NULL, DataExpiracaoToken = NULL WHERE IDCliente = :id");
-        $stmt->execute(['senha' => password_hash($senha, PASSWORD_DEFAULT), 'id' => $idCliente]);
+        $stmt = $pdo->prepare("UPDATE Usuario SET Senha = :senha, TokenRecuperacao = NULL, DataExpiracaoToken = NULL WHERE IDUsuario = :id");
+        $stmt->execute(['senha' => password_hash($senha, PASSWORD_DEFAULT), 'id' => $idUsuario]);
         $sucesso = true;
     }
 }

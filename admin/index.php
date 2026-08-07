@@ -15,7 +15,7 @@ $totalSemEstoque = (int) $pdo->query("SELECT COUNT(*) FROM VariacaoProduto WHERE
 
 require __DIR__ . '/_topo.php';
 ?>
-<h1 class="h4 mb-4">Olá, <?= htmlspecialchars($_SESSION['admin_nome'] ?? '') ?></h1>
+<h1 class="h4 mb-4">Olá, <?= htmlspecialchars($_SESSION['usuario_nome'] ?? '') ?></h1>
 <div class="row g-3">
     <div class="col-md-4">
         <div class="card p-4">

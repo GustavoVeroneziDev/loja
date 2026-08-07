@@ -31,29 +31,60 @@ function obterVersaoSistema() {
 // Auto-migração de schema
 // ---------------------------------------------------------------------
 
-function garantirTabelaAdmin() {
+// Cliente e admin são a mesma entidade (Usuario) com TipoUsuario diferente — login único,
+// o painel admin não é "outro sistema", é só o que abre quando TipoUsuario = 'admin'.
+function garantirTabelaUsuario() {
     global $pdo;
-    $pdo->exec("CREATE TABLE IF NOT EXISTS Admin (
-        IDAdmin CHAR(36) PRIMARY KEY,
-        Nome VARCHAR(150) NOT NULL,
-        Email VARCHAR(190) NOT NULL UNIQUE,
-        Senha VARCHAR(255) NOT NULL,
-        MomentoCriacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-}
 
-function garantirTabelaCliente() {
-    global $pdo;
-    $pdo->exec("CREATE TABLE IF NOT EXISTS Cliente (
-        IDCliente CHAR(36) PRIMARY KEY,
+    $usuarioJaExiste = (bool) $pdo->query("SHOW TABLES LIKE 'Usuario'")->fetchColumn();
+    $clienteAntigoExiste = !$usuarioJaExiste && (bool) $pdo->query("SHOW TABLES LIKE 'Cliente'")->fetchColumn();
+    if ($clienteAntigoExiste) {
+        // RENAME TABLE só renomeia a tabela — a coluna IDCliente continua com o nome antigo,
+        // precisa renomear ela também pra bater com o resto do código (IDUsuario).
+        $pdo->exec("RENAME TABLE Cliente TO Usuario");
+        $pdo->exec("ALTER TABLE Usuario CHANGE IDCliente IDUsuario CHAR(36)");
+    }
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS Usuario (
+        IDUsuario CHAR(36) PRIMARY KEY,
         Nome VARCHAR(150) NOT NULL,
         Email VARCHAR(190) NOT NULL UNIQUE,
         Senha VARCHAR(255) NOT NULL,
         Telefone VARCHAR(20) NULL,
+        TipoUsuario ENUM('cliente','admin') NOT NULL DEFAULT 'cliente',
         TokenRecuperacao VARCHAR(64) NULL,
         DataExpiracaoToken DATETIME NULL,
         MomentoCadastro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // TipoUsuario é coluna nova pra quem já tinha Cliente antes desta versão — default reproduz o
+    // comportamento antigo (toda linha existente era cliente comum, nunca admin).
+    $colunaTipoExiste = (bool) $pdo->query("SHOW COLUMNS FROM Usuario LIKE 'TipoUsuario'")->fetchColumn();
+    if (!$colunaTipoExiste) {
+        $pdo->exec("ALTER TABLE Usuario ADD COLUMN TipoUsuario ENUM('cliente','admin') NOT NULL DEFAULT 'cliente' AFTER Telefone");
+    }
+
+    // Migra quem tava na tabela Admin separada (versão anterior) pra dentro de Usuario, e descarta a tabela velha.
+    $tabelaAdminExiste = (bool) $pdo->query("SHOW TABLES LIKE 'Admin'")->fetchColumn();
+    if ($tabelaAdminExiste) {
+        $admins = $pdo->query("SELECT * FROM Admin")->fetchAll();
+        foreach ($admins as $admin) {
+            $stmt = $pdo->prepare("SELECT IDUsuario FROM Usuario WHERE Email = :email");
+            $stmt->execute(['email' => $admin['Email']]);
+            if ($stmt->fetchColumn()) {
+                $pdo->prepare("UPDATE Usuario SET TipoUsuario = 'admin' WHERE Email = :email")->execute(['email' => $admin['Email']]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO Usuario (IDUsuario, Nome, Email, Senha, TipoUsuario) VALUES (:id, :nome, :email, :senha, 'admin')");
+                $stmt->execute([
+                    'id' => $admin['IDAdmin'],
+                    'nome' => $admin['Nome'],
+                    'email' => $admin['Email'],
+                    'senha' => $admin['Senha'],
+                ]);
+            }
+        }
+        $pdo->exec("DROP TABLE Admin");
+    }
 }
 
 function garantirTabelaCategoria() {
@@ -155,18 +186,23 @@ function garantirConfiguracaoLojaPadrao() {
 }
 
 // ---------------------------------------------------------------------
-// Autenticação — sessões separadas pra cliente (loja) e admin (painel)
+// Autenticação — uma sessão só (Usuario), o TipoUsuario decide o que a pessoa vê
 // ---------------------------------------------------------------------
 
 function clienteLogado() {
-    return !empty($_SESSION['cliente_id']);
+    return !empty($_SESSION['usuario_id']) && ($_SESSION['usuario_tipo'] ?? '') === 'cliente';
 }
 
 function adminLogado() {
-    return !empty($_SESSION['admin_id']);
+    return !empty($_SESSION['usuario_id']) && ($_SESSION['usuario_tipo'] ?? '') === 'admin';
 }
 
+// Admin logado nunca vê tela de cliente — manda direto pro painel em vez de pra tela de login.
 function exigirLoginCliente() {
+    if (adminLogado()) {
+        header('Location: ' . URL_BASE . '/admin/index.php');
+        exit;
+    }
     if (!clienteLogado()) {
         header('Location: ' . URL_BASE . '/usuario/login.php');
         exit;
@@ -175,7 +211,7 @@ function exigirLoginCliente() {
 
 function exigirLoginAdmin() {
     if (!adminLogado()) {
-        header('Location: ' . URL_BASE . '/admin/login.php');
+        header('Location: ' . URL_BASE . '/usuario/login.php');
         exit;
     }
 }

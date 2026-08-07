@@ -188,14 +188,22 @@ Quero uma **base de sistema de e-commerce de produto físico** que sirva de pont
 
 ### 2.3 Tabelas sugeridas (nomeando já no padrão da Parte 1.3)
 
+> Atualizado em 2026-08-07: **não existe tabela `Admin` separada.** Cliente e administrador são a
+> mesma entidade (`Usuario`), diferenciados por `TipoUsuario` (`'cliente'` ou `'admin'`). É um login
+> único — depois de autenticar, o sistema decide pra onde manda a pessoa pelo tipo: cliente vai pra
+> loja, admin vai direto pro painel de controle e nunca vê a vitrine de compra. Isso é reflexo de como
+> esse projeto realmente vai ser usado: não é uma plataforma que cria N lojas dentro de si — é UMA
+> loja de verdade, que serve de base/exemplo pra clonar por cliente. Um admin não é um "tipo de conta
+> de uma plataforma", é só o dono/operador dessa loja específica logando pra gerenciar ela.
+
 ```text
-Cliente          (IDCliente, Nome, Email, Senha, Telefone, TokenRecuperacao...)
-Endereco         (IDEndereco, FKCliente, CEP, Logradouro, Numero, Complemento, Cidade, UF, Principal)
+Usuario          (IDUsuario, Nome, Email, Senha, Telefone, TipoUsuario ENUM('cliente','admin'), TokenRecuperacao...)
+Endereco         (IDEndereco, FKUsuario, CEP, Logradouro, Numero, Complemento, Cidade, UF, Principal)
 Categoria        (IDCategoria, Nome, FKCategoriaPai NULL)
 Produto          (IDProduto, Nome, Descricao, FKCategoria, Ativo)
 VariacaoProduto  (IDVariacao, FKProduto, Nome/Atributo, SKU, Preco, Estoque)
 ImagemProduto    (IDImagem, FKProduto, Url, Ordem)
-Pedido           (IDPedido [auto-increment], FKCliente, Status, ValorTotal, ValorFrete, FKEndereco, CriadoEm)
+Pedido           (IDPedido [auto-increment], FKUsuario, Status, ValorTotal, ValorFrete, FKEndereco, CriadoEm)
 ItemPedido       (IDItemPedido, FKPedido, FKVariacao, Quantidade, PrecoUnitario)
 HistoricoStatusPedido (IDHistorico, FKPedido, StatusAnterior, StatusNovo, MomentoMudanca)
 Cupom            (IDCupom, Codigo, TipoDesconto, ValorDesconto, DataValidade, LimiteUso, UsosAtuais)
