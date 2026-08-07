@@ -15,7 +15,7 @@
                 <p class="mt-2 mb-0"><?= nl2br(htmlspecialchars(obterConfiguracaoLoja('texto_politica_troca', ''))) ?></p>
             </div>
         </div>
-        <p class="mt-4 mb-0">&copy; <?= date('Y') ?> <?= htmlspecialchars($nomeLoja) ?>. Todos os direitos reservados.</p>
+        <p class="mt-4 mb-0">&copy; <?= date('Y') ?> <?= htmlspecialchars($nomeLoja) ?>. Todos os direitos reservados. <span class="opacity-50">v<?= htmlspecialchars(obterVersaoSistema()) ?></span></p>
     </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

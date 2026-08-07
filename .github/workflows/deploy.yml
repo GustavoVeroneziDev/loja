@@ -13,6 +13,15 @@ jobs:
       - name: Baixar código
         uses: actions/checkout@v4
 
+      - name: Gerar versão
+        run: |
+          cat > config/versao.php <<PHP
+          <?php
+          define('VERSAO_SISTEMA', '0.0.${{ github.run_number }}');
+          define('VERSAO_COMMIT', '${GITHUB_SHA:0:7}');
+          define('VERSAO_DATA', '$(date -u +"%Y-%m-%d %H:%M UTC")');
+          PHP
+
       - name: Enviar arquivos via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:

@@ -17,6 +17,16 @@ function urlAsset($caminhoRelativo) {
     return URL_BASE . $caminhoRelativo;
 }
 
+// config/versao.php é gerado do zero a cada deploy (GitHub Actions), nunca commitado — em dev local
+// ele não existe, por isso o fallback abaixo.
+function obterVersaoSistema() {
+    $arquivoVersao = __DIR__ . '/versao.php';
+    if (!defined('VERSAO_SISTEMA') && file_exists($arquivoVersao)) {
+        require $arquivoVersao;
+    }
+    return defined('VERSAO_SISTEMA') ? VERSAO_SISTEMA : '0.0.0-dev';
+}
+
 // ---------------------------------------------------------------------
 // Auto-migração de schema
 // ---------------------------------------------------------------------

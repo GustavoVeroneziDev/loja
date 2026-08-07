@@ -1,4 +1,5 @@
 /config/conexao.php
+/config/versao.php
 
 .DS_Store
 Thumbs.db
