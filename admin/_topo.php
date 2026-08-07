@@ -10,11 +10,14 @@ garantirConfiguracaoLojaPadrao();
 $nomeLoja = obterConfiguracaoLoja('nome_loja', 'Minha Loja');
 ?>
 <!doctype html>
-<html lang="pt-BR" data-bs-theme="dark">
+<html lang="pt-BR" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Painel Admin — <?= htmlspecialchars($nomeLoja) ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="<?= URL_BASE ?>/geral/marca.css" rel="stylesheet">
@@ -22,7 +25,7 @@ $nomeLoja = obterConfiguracaoLoja('nome_loja', 'Minha Loja');
 </head>
 <body>
 <?php if (adminLogado()): ?>
-<nav class="navbar navbar-expand-lg navbar-marca navbar-dark">
+<nav class="navbar navbar-expand-lg navbar-marca navbar-light">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="<?= URL_BASE ?>/admin/index.php">
             <span class="badge-admin px-2 py-1">Admin</span> <?= htmlspecialchars($nomeLoja) ?>

@@ -86,18 +86,23 @@ $erro    = isset($_GET['erro']) ? 'Ocorreu um erro. Tente novamente.' : null;
 
 Se a página tem uma âncora relevante (uma seção específica que o usuário estava olhando), o redirect leva a âncora junto (`?ok=1#secao`) — sem isso o usuário sempre volta pro topo da página depois de qualquer ação, o que é uma fricção chata que eu não gosto.
 
-### 1.6 Estética visual — tema escuro, cores com significado
+### 1.6 Estética visual — tema claro e moderno, cores com significado
 
-- **Tema escuro por padrão**, cor de fundo de card em torno de `#1a1d27`, texto secundário em cinza (`text-secondary`/`#9ca3af`).
-- Paleta com **significado semântico consistente**, não decorativo:
-  - Verde (`#22c55e`/`#86efac`) = sucesso, ativo, pago, positivo.
-  - Vermelho (`#ef4444`/`#fca5a5`/`#dc2626`) = perigo, urgente, excluir, negativo.
-  - Âmbar/laranja (`#f59e0b`/`#fbbf24`) = atenção, pendente, aviso.
-  - Dourado (`#d4af37`) = destaque/premium (era a cor do plano mais alto no Auralis) — uso pra "isso é especial" em geral.
-  - Roxo (`#7c3aed`/`#a78bfa`) = seção administrativa/estrutural, navegação ativa.
-- **Badges/pills**: `background: rgba(R,G,B,.15); color: #hex; border: 1px solid rgba(R,G,B,.3); border-radius: pill.` Sempre essa proporção de opacidade (fundo bem sutil, borda um pouco mais forte, texto sólido).
-- **Cards**: `border-radius: 12px`, borda de `rgba(255,255,255,.08)`, nunca sombra pesada — tudo sutil.
-- **Botões de ação**: `rounded-pill`, cor inline batendo com o esquema semântico acima em vez dos botões padrão do Bootstrap (`btn-primary` etc.) — o botão "parece" com o que ele representa.
+> Atualizado em 2026-08-07: o padrão deste projeto **não é mais tema escuro**. Depois de ver a base rodando, decidi que quero uma vibe clara, moderna e "estilosa" — tipo SaaS bonito (cards brancos com sombra suave, cantos bem arredondados, inputs com label flutuante, bastante respiro). Isso substitui a ideia antiga de "tema escuro por padrão" descrita antes aqui. Mantenho o resto (paleta semântica, badges, botões coloridos por significado) — só a base de fundo/card que virou clara em vez de escura.
+
+- **Tema claro por padrão**, fundo da página num cinza bem suave (não branco puro), cards brancos com sombra sutil (`box-shadow` leve, não borda pesada), texto secundário em cinza médio com bom contraste em fundo claro.
+- **Cantos bem arredondados** em quase tudo — cards, inputs, botões — mais arredondado do que o padrão do Bootstrap, pra ficar com essa cara de app moderno.
+- **Inputs com label flutuante** (`.form-floating` do Bootstrap) nas telas de autenticação (login, cadastro, recuperação de senha) em vez de `<label>` fixo acima do campo — e anel de foco na cor de marca, não no azul padrão do Bootstrap.
+- Fonte um pouco mais "desenhada" que o system-ui padrão (uso Inter via Google Fonts) — reforça a vibe moderna sem precisar de build step, é só um `<link>`.
+- Paleta semântica com **significado consistente**, não decorativo — continua valendo, só recalibrada pra ter contraste bom em fundo claro (cores mais escuras/saturadas do que a versão pensada pra fundo escuro):
+  - Verde = sucesso, ativo, pago, positivo.
+  - Vermelho = perigo, urgente, excluir, negativo.
+  - Âmbar/laranja = atenção, pendente, aviso.
+  - Dourado = destaque/premium (era a cor do plano mais alto no Auralis) — uso pra "isso é especial" em geral.
+  - Roxo/indigo = seção administrativa/estrutural, navegação ativa, e também segue sendo a cor de marca padrão (o "estiloso" da referência que eu queria já é bem próximo desse roxo).
+- **Badges/pills**: `background: rgba(R,G,B,.12); color: #hex-escuro-legível; border: 1px solid rgba(R,G,B,.3); border-radius: pill.` Mesma proporção de antes (fundo bem sutil, borda um pouco mais forte), só que o texto agora precisa ser escuro/saturado o bastante pra ler em fundo branco — não uso mais os tons pastel-claros que funcionavam em fundo escuro.
+- **Cards**: bem arredondados, fundo branco, sombra suave em vez de borda grossa — é o oposto do "nunca sombra pesada, tudo borda" de antes; agora é "borda quase invisível, sombra é quem dá profundidade".
+- **Botões de ação**: `rounded-pill`, cor inline batendo com o esquema semântico acima em vez dos botões padrão do Bootstrap (`btn-primary` etc.) — o botão "parece" com o que ele representa. Isso não mudou.
 - **Ícones**: Bootstrap Icons (`bi-*`) em quase todo lugar, coloridos pra bater com o contexto (não fico só em preto/cinza).
 - **Escolha binária (A ou B)**: uso `btn-check` + `label.btn.btn-outline-secondary` (rádio disfarçado de botão), não dropdown, quando são só 2-3 opções.
 - **Campo condicional**: mostro/escondo com JS vanilla trocando `classList.toggle('d-none', condicao)` — nunca escondo com `display:none` direto no CSS de forma que dependa de JS pra nunca aparecer (senão quebra sem JS).

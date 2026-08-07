@@ -140,8 +140,8 @@ function salvarConfiguracaoLoja($chave, $valor) {
 function garantirConfiguracaoLojaPadrao() {
     $padroes = [
         'nome_loja' => 'Minha Loja',
-        'cor_primaria' => '#7c3aed',
-        'cor_secundaria' => '#d4af37',
+        'cor_primaria' => '#e08a3c',
+        'cor_secundaria' => '#c08552',
         'logo_url' => '/geral/img/logo-placeholder.svg',
         'texto_sobre' => 'Conte aqui a história da sua loja.',
         'texto_politica_troca' => 'Descreva aqui a política de trocas e devoluções.',

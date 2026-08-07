@@ -34,8 +34,9 @@ require __DIR__ . '/../geral/header.php';
 ?>
 <div class="row">
     <div class="col-md-5 mx-auto">
-        <div class="card p-4">
-            <h1 class="h4 mb-3">Recuperar senha</h1>
+        <div class="card p-4 p-md-5">
+            <h1 class="h4 mb-1">Recuperar senha</h1>
+            <p class="text-secundario mb-4">Manda o e-mail da sua conta que a gente te ajuda.</p>
             <?php if ($mensagem): ?><div class="alert alert-success"><?= htmlspecialchars($mensagem) ?></div><?php endif; ?>
             <?php if ($linkRecuperacao): ?>
                 <div class="alert alert-warning small">
@@ -44,11 +45,11 @@ require __DIR__ . '/../geral/header.php';
                 </div>
             <?php endif; ?>
             <form method="post">
-                <div class="mb-3">
-                    <label class="form-label">E-mail</label>
-                    <input type="email" name="email" class="form-control" required>
+                <div class="form-floating mb-3">
+                    <input type="email" name="email" id="recuperarEmail" class="form-control" placeholder="seuemail@exemplo.com" required>
+                    <label for="recuperarEmail">E-mail</label>
                 </div>
-                <button type="submit" class="btn btn-marca rounded-pill w-100">Enviar link de redefinição</button>
+                <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Enviar link de redefinição</button>
             </form>
         </div>
     </div>

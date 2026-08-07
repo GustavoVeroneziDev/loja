@@ -4,45 +4,47 @@
 ?>
 <div class="row">
     <div class="col-md-5 mx-auto">
-        <div class="card p-4">
+        <div class="card p-4 p-md-5">
             <div id="painelLogin" class="auth-painel <?= $modoInicial === 'cadastro' ? 'd-none' : '' ?>">
-                <h1 class="h4 mb-3">Entrar</h1>
+                <h1 class="h4 mb-1">Bem-vindo de volta</h1>
+                <p class="text-secundario mb-4">Entra com sua conta pra continuar.</p>
                 <?php if ($erroLogin): ?><div class="alert alert-danger"><?= htmlspecialchars($erroLogin) ?></div><?php endif; ?>
                 <form method="post" action="<?= URL_BASE ?>/usuario/login.php">
-                    <div class="mb-3">
-                        <label class="form-label">E-mail</label>
-                        <input type="email" name="email" class="form-control" required>
+                    <div class="form-floating mb-3">
+                        <input type="email" name="email" id="loginEmail" class="form-control" placeholder="seuemail@exemplo.com" required>
+                        <label for="loginEmail">E-mail</label>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Senha</label>
-                        <input type="password" name="senha" class="form-control" required>
+                    <div class="form-floating mb-3">
+                        <input type="password" name="senha" id="loginSenha" class="form-control" placeholder="Sua senha" required>
+                        <label for="loginSenha">Senha</label>
                     </div>
-                    <button type="submit" class="btn btn-marca rounded-pill w-100">Entrar</button>
+                    <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Entrar</button>
                 </form>
                 <p class="text-secundario small mt-3 mb-1"><a href="<?= URL_BASE ?>/usuario/recuperar-senha.php" class="link-marca">Esqueci minha senha</a></p>
                 <p class="text-secundario small mb-0">Ainda não tem conta? <a href="<?= URL_BASE ?>/usuario/cadastro.php" class="link-marca" data-auth-toggle="cadastro">Criar conta</a></p>
             </div>
             <div id="painelCadastro" class="auth-painel <?= $modoInicial === 'cadastro' ? '' : 'd-none' ?>">
-                <h1 class="h4 mb-3">Criar conta</h1>
+                <h1 class="h4 mb-1">Criar conta</h1>
+                <p class="text-secundario mb-4">Leva menos de um minuto.</p>
                 <?php if ($erroCadastro): ?><div class="alert alert-danger"><?= htmlspecialchars($erroCadastro) ?></div><?php endif; ?>
                 <form method="post" action="<?= URL_BASE ?>/usuario/cadastro.php">
-                    <div class="mb-3">
-                        <label class="form-label">Nome</label>
-                        <input type="text" name="nome" class="form-control" value="<?= htmlspecialchars($_POST['nome'] ?? '') ?>" required>
+                    <div class="form-floating mb-3">
+                        <input type="text" name="nome" id="cadastroNome" class="form-control" placeholder="Seu nome" value="<?= htmlspecialchars($_POST['nome'] ?? '') ?>" required>
+                        <label for="cadastroNome">Nome</label>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">E-mail</label>
-                        <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
+                    <div class="form-floating mb-3">
+                        <input type="email" name="email" id="cadastroEmail" class="form-control" placeholder="seuemail@exemplo.com" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
+                        <label for="cadastroEmail">E-mail</label>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Telefone</label>
-                        <input type="text" name="telefone" class="form-control" value="<?= htmlspecialchars($_POST['telefone'] ?? '') ?>">
+                    <div class="form-floating mb-3">
+                        <input type="text" name="telefone" id="cadastroTelefone" class="form-control" placeholder="Telefone" value="<?= htmlspecialchars($_POST['telefone'] ?? '') ?>">
+                        <label for="cadastroTelefone">Telefone (opcional)</label>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Senha</label>
-                        <input type="password" name="senha" class="form-control" minlength="8" required>
+                    <div class="form-floating mb-3">
+                        <input type="password" name="senha" id="cadastroSenha" class="form-control" placeholder="Senha" minlength="8" required>
+                        <label for="cadastroSenha">Senha (mín. 8 caracteres)</label>
                     </div>
-                    <button type="submit" class="btn btn-marca rounded-pill w-100">Criar conta</button>
+                    <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Criar conta</button>
                 </form>
                 <p class="text-secundario small mt-3 mb-0">Já tem conta? <a href="<?= URL_BASE ?>/usuario/login.php" class="link-marca" data-auth-toggle="login">Entrar</a></p>
             </div>

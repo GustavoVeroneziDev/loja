@@ -31,21 +31,22 @@ require __DIR__ . '/../geral/header.php';
 ?>
 <div class="row">
     <div class="col-md-5 mx-auto">
-        <div class="card p-4">
-            <h1 class="h4 mb-3">Redefinir senha</h1>
+        <div class="card p-4 p-md-5">
+            <h1 class="h4 mb-1">Redefinir senha</h1>
+            <p class="text-secundario mb-4">Escolhe uma senha nova.</p>
             <?php if ($sucesso): ?>
                 <div class="alert alert-success">Senha redefinida com sucesso.</div>
-                <a href="<?= URL_BASE ?>/usuario/login.php" class="btn btn-marca rounded-pill w-100">Ir para o login</a>
+                <a href="<?= URL_BASE ?>/usuario/login.php" class="btn btn-marca rounded-pill w-100 py-2">Ir para o login</a>
             <?php elseif ($erro): ?>
                 <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
             <?php else: ?>
                 <form method="post">
                     <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
-                    <div class="mb-3">
-                        <label class="form-label">Nova senha</label>
-                        <input type="password" name="senha" class="form-control" minlength="8" required>
+                    <div class="form-floating mb-3">
+                        <input type="password" name="senha" id="novaSenha" class="form-control" placeholder="Nova senha" minlength="8" required>
+                        <label for="novaSenha">Nova senha</label>
                     </div>
-                    <button type="submit" class="btn btn-marca rounded-pill w-100">Salvar nova senha</button>
+                    <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Salvar nova senha</button>
                 </form>
             <?php endif; ?>
         </div>

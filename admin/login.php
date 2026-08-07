@@ -33,20 +33,21 @@ require __DIR__ . '/_topo.php';
 ?>
 <div class="row">
     <div class="col-md-5 mx-auto">
-        <div class="card p-4">
-            <h1 class="h4 mb-3">Painel administrativo</h1>
+        <div class="card p-4 p-md-5">
+            <h1 class="h4 mb-1">Painel administrativo</h1>
+            <p class="text-secundario mb-4">Entra com sua conta de admin.</p>
             <?php if ($instalado): ?><div class="alert alert-success">Administrador criado. Faça login.</div><?php endif; ?>
             <?php if ($erro): ?><div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div><?php endif; ?>
             <form method="post">
-                <div class="mb-3">
-                    <label class="form-label">E-mail</label>
-                    <input type="email" name="email" class="form-control" required>
+                <div class="form-floating mb-3">
+                    <input type="email" name="email" id="adminEmail" class="form-control" placeholder="seuemail@exemplo.com" required>
+                    <label for="adminEmail">E-mail</label>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Senha</label>
-                    <input type="password" name="senha" class="form-control" required>
+                <div class="form-floating mb-3">
+                    <input type="password" name="senha" id="adminSenha" class="form-control" placeholder="Sua senha" required>
+                    <label for="adminSenha">Senha</label>
                 </div>
-                <button type="submit" class="btn btn-marca rounded-pill w-100">Entrar</button>
+                <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Entrar</button>
             </form>
         </div>
     </div>
