@@ -1,6 +1,10 @@
 <?php
-// Parcial compartilhado por login.php e cadastro.php — quem inclui define $modoInicial
-// ('login' ou 'cadastro'), $erroLogin e $erroCadastro antes do require.
+/**
+ * Parcial compartilhado por login.php e cadastro.php.
+ * @var string $modoInicial 'login' ou 'cadastro' — qual painel abre visível.
+ * @var string|null $erroLogin
+ * @var string|null $erroCadastro
+ */
 ?>
 <div class="row">
     <div class="col-md-5 mx-auto">
