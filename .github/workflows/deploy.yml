@@ -1,0 +1,34 @@
+name: Deploy para hospedagem via FTP
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy FTP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Enviar arquivos via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          protocol: ftps
+          # Nunca liga isso: com dangerous-clean-slate:true a action apaga TUDO que estiver
+          # no server-dir e não existir no checkout do git — incluindo config/conexao.php
+          # (que é gitignored de propósito) e as imagens de produto enviadas por upload.
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            claude.md
+            config/conexao.php
+            geral/img/produtos/**
+            geral/img/marca/**
