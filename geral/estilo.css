@@ -80,6 +80,11 @@ body {
     min-width: 0;
 }
 
+/* Respiro mínimo acima dos cards estreitos e centralizados (login/cadastro, recuperar/redefinir senha) */
+.col-md-5.mx-auto {
+    margin-top: 10vh;
+}
+
 /* Transição suave entre os painéis de login/cadastro em usuario/_form-auth.php */
 .auth-painel {
     transition: opacity .2s ease, transform .2s ease;
