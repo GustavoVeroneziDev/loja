@@ -18,8 +18,8 @@ if (!$idCliente) {
     $erro = 'Link inválido ou expirado. Solicite a recuperação novamente.';
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $senha = $_POST['senha'] ?? '';
-    if (strlen($senha) < 8) {
-        $erro = 'A senha precisa ter pelo menos 8 caracteres.';
+    if (strlen($senha) < 4) {
+        $erro = 'A senha precisa ter pelo menos 4 caracteres.';
     } else {
         $stmt = $pdo->prepare("UPDATE Cliente SET Senha = :senha, TokenRecuperacao = NULL, DataExpiracaoToken = NULL WHERE IDCliente = :id");
         $stmt->execute(['senha' => password_hash($senha, PASSWORD_DEFAULT), 'id' => $idCliente]);
@@ -43,7 +43,7 @@ require __DIR__ . '/../geral/header.php';
                 <form method="post">
                     <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
                     <div class="form-floating mb-3">
-                        <input type="password" name="senha" id="novaSenha" class="form-control" placeholder="Nova senha" minlength="8" required>
+                        <input type="password" name="senha" id="novaSenha" class="form-control" placeholder="Nova senha" minlength="4" required>
                         <label for="novaSenha">Nova senha</label>
                     </div>
                     <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Salvar nova senha</button>

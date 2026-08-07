@@ -120,6 +120,30 @@ body {
 
 .form-floating > label {
     color: #6b6560;
+    transition: transform .15s ease-in-out, background-color .15s ease-in-out;
+}
+
+/* Label "cortando" a borda de cima quando flutua, tipo ---Nome---, em vez de ficar solto dentro da caixa */
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label {
+    top: 0;
+    left: .5rem;
+    height: auto;
+    width: auto;
+    max-width: none;
+    padding: 0 .4rem;
+    background-color: #fff;
+    border-radius: 4px;
+    transform: translateY(-50%) scale(.82);
+}
+
+/* Autofill do Chrome/Edge pinta o campo de azul por padrão — força de volta pro branco do tema */
+.form-control:-webkit-autofill,
+.form-control:-webkit-autofill:hover,
+.form-control:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #fff inset;
+    -webkit-text-fill-color: #1a1a1a;
+    transition: background-color 5000s ease-in-out 0s;
 }
 
 /* Safari iOS dá zoom automático ao focar input com font-size < 16px e não volta sozinho */

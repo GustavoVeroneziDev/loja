@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $telefone = trim($_POST['telefone'] ?? '');
     $senha = $_POST['senha'] ?? '';
 
-    if ($nome === '' || $email === '' || strlen($senha) < 8) {
-        $erroCadastro = 'Preencha nome, e-mail e uma senha com pelo menos 8 caracteres.';
+    if ($nome === '' || $email === '' || strlen($senha) < 4) {
+        $erroCadastro = 'Preencha nome, e-mail e uma senha com pelo menos 4 caracteres.';
     } else {
         $stmt = $pdo->prepare("SELECT IDCliente FROM Cliente WHERE Email = :email");
         $stmt->execute(['email' => $email]);

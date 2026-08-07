@@ -41,8 +41,8 @@
                         <label for="cadastroTelefone">Telefone (opcional)</label>
                     </div>
                     <div class="form-floating mb-3">
-                        <input type="password" name="senha" id="cadastroSenha" class="form-control" placeholder="Senha" minlength="8" required>
-                        <label for="cadastroSenha">Senha (mín. 8 caracteres)</label>
+                        <input type="password" name="senha" id="cadastroSenha" class="form-control" placeholder="Senha" minlength="4" required>
+                        <label for="cadastroSenha">Senha (mín. 4 caracteres)</label>
                     </div>
                     <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Criar conta</button>
                 </form>

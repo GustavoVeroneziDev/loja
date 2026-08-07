@@ -15,8 +15,8 @@ if ($totalAdmins === 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $senha = $_POST['senha'] ?? '';
 
-    if ($nome === '' || $email === '' || strlen($senha) < 8) {
-        $erro = 'Preencha nome, e-mail e uma senha com pelo menos 8 caracteres.';
+    if ($nome === '' || $email === '' || strlen($senha) < 4) {
+        $erro = 'Preencha nome, e-mail e uma senha com pelo menos 4 caracteres.';
     } else {
         $stmt = $pdo->prepare("INSERT INTO Admin (IDAdmin, Nome, Email, Senha) VALUES (:id, :nome, :email, :senha)");
         $stmt->execute([
@@ -52,8 +52,8 @@ require __DIR__ . '/_topo.php';
                         <label for="instalarEmail">E-mail</label>
                     </div>
                     <div class="form-floating mb-3">
-                        <input type="password" name="senha" id="instalarSenha" class="form-control" placeholder="Senha" minlength="8" required>
-                        <label for="instalarSenha">Senha (mín. 8 caracteres)</label>
+                        <input type="password" name="senha" id="instalarSenha" class="form-control" placeholder="Senha" minlength="4" required>
+                        <label for="instalarSenha">Senha (mín. 4 caracteres)</label>
                     </div>
                     <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Criar administrador</button>
                 </form>
