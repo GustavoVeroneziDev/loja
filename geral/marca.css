@@ -1,0 +1,41 @@
+/*
+ * Variáveis de marca (a "pele"). Os valores aqui são só o default de fallback —
+ * em runtime, geral/header.php sobrescreve --cor-primaria/--cor-secundaria com
+ * o que estiver em ConfiguracaoLoja, então nenhuma página deve usar cor de marca
+ * hardcoded fora daqui.
+ */
+:root {
+    --cor-primaria: #7c3aed;
+    --cor-secundaria: #d4af37;
+}
+
+.navbar-marca {
+    background-color: #14151c;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.btn-marca {
+    background-color: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+    color: #fff;
+}
+
+.btn-marca:hover,
+.btn-marca:focus {
+    filter: brightness(1.12);
+    background-color: var(--cor-primaria);
+    color: #fff;
+}
+
+.text-marca {
+    color: var(--cor-primaria);
+}
+
+.link-marca {
+    color: var(--cor-secundaria);
+}
+
+.logo-loja {
+    height: 36px;
+    width: auto;
+}
