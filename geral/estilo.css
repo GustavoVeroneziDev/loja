@@ -80,6 +80,23 @@ body {
     min-width: 0;
 }
 
+/* Transição suave entre os painéis de login/cadastro em usuario/_form-auth.php */
+.auth-painel {
+    transition: opacity .2s ease, transform .2s ease;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.auth-painel.auth-saindo {
+    opacity: 0;
+    transform: translateY(-6px);
+}
+
+.auth-painel.auth-entrando {
+    opacity: 0;
+    transform: translateY(6px);
+}
+
 /* Safari iOS dá zoom automático ao focar input com font-size < 16px e não volta sozinho */
 @media (max-width: 767.98px) {
     input,
