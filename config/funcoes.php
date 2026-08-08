@@ -39,6 +39,10 @@ function obterVersaoSistema() {
 // Cliente e admin são a mesma entidade (Usuario) com TipoUsuario diferente — login único,
 // o painel admin não é "outro sistema", é só o que abre quando TipoUsuario = 'admin'.
 function garantirTabelaUsuario() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
     global $pdo;
 
     $usuarioJaExiste = (bool) $pdo->query("SHOW TABLES LIKE 'Usuario'")->fetchColumn();
@@ -90,9 +94,14 @@ function garantirTabelaUsuario() {
         }
         $pdo->exec("DROP TABLE Admin");
     }
+    $jaVerificado = true;
 }
 
 function garantirTabelaCategoria() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
     global $pdo;
     $pdo->exec("CREATE TABLE IF NOT EXISTS Categoria (
         IDCategoria CHAR(36) PRIMARY KEY,
@@ -101,9 +110,14 @@ function garantirTabelaCategoria() {
         Ordem INT NOT NULL DEFAULT 0,
         FOREIGN KEY (FKCategoriaPai) REFERENCES Categoria(IDCategoria) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
 }
 
 function garantirTabelaProduto() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
     global $pdo;
     $pdo->exec("CREATE TABLE IF NOT EXISTS Produto (
         IDProduto CHAR(36) PRIMARY KEY,
@@ -114,9 +128,14 @@ function garantirTabelaProduto() {
         MomentoCriacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (FKCategoria) REFERENCES Categoria(IDCategoria) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
 }
 
 function garantirTabelaVariacaoProduto() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
     global $pdo;
     $pdo->exec("CREATE TABLE IF NOT EXISTS VariacaoProduto (
         IDVariacao CHAR(36) PRIMARY KEY,
@@ -127,9 +146,14 @@ function garantirTabelaVariacaoProduto() {
         Estoque INT NOT NULL DEFAULT 0,
         FOREIGN KEY (FKProduto) REFERENCES Produto(IDProduto) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
 }
 
 function garantirTabelaImagemProduto() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
     global $pdo;
     $pdo->exec("CREATE TABLE IF NOT EXISTS ImagemProduto (
         IDImagem CHAR(36) PRIMARY KEY,
@@ -138,6 +162,7 @@ function garantirTabelaImagemProduto() {
         Ordem INT NOT NULL DEFAULT 0,
         FOREIGN KEY (FKProduto) REFERENCES Produto(IDProduto) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
 }
 
 // ---------------------------------------------------------------------
@@ -292,6 +317,10 @@ function uploadImagem($arquivo, $subpasta) {
 // ---------------------------------------------------------------------
 
 function garantirTabelaItemCarrinho() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
     global $pdo;
     $pdo->exec("CREATE TABLE IF NOT EXISTS ItemCarrinho (
         IDItemCarrinho CHAR(36) PRIMARY KEY,
@@ -303,6 +332,7 @@ function garantirTabelaItemCarrinho() {
         FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario) ON DELETE CASCADE,
         FOREIGN KEY (FKVariacao) REFERENCES VariacaoProduto(IDVariacao) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
 }
 
 function adicionarItemCarrinho($idVariacao, $quantidade = 1) {
@@ -414,6 +444,10 @@ function mesclarCarrinhoVisitante() {
 // ---------------------------------------------------------------------
 
 function garantirTabelaFavorito() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
     global $pdo;
     $pdo->exec("CREATE TABLE IF NOT EXISTS Favorito (
         IDFavorito CHAR(36) PRIMARY KEY,
@@ -424,6 +458,7 @@ function garantirTabelaFavorito() {
         FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario) ON DELETE CASCADE,
         FOREIGN KEY (FKProduto) REFERENCES Produto(IDProduto) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
 }
 
 function alternarFavorito($idProduto) {
