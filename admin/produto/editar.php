@@ -144,9 +144,14 @@ require __DIR__ . '/../_topo.php';
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h4 mb-0">Editar produto</h1>
-    <a href="<?= URL_BASE ?>/admin/produto/index.php" class="btn btn-outline-secondary rounded-pill btn-sm">
-        <i class="bi bi-arrow-left"></i> Voltar
-    </a>
+    <div class="d-flex gap-2">
+        <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($idProduto) ?>&preview=1" target="_blank" rel="noopener" class="btn btn-outline-secondary rounded-pill btn-sm">
+            <i class="bi bi-eye"></i> Pré-visualizar
+        </a>
+        <a href="<?= URL_BASE ?>/admin/produto/index.php" class="btn btn-outline-secondary rounded-pill btn-sm">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
 </div>
 
 <?php if ($sucesso): ?><div class="alert alert-success">Operação realizada com sucesso.</div><?php endif; ?>
@@ -220,7 +225,7 @@ require __DIR__ . '/../_topo.php';
                     <i class="bi bi-plus-lg"></i> Nova variação
                 </button>
             </div>
-            <table class="table table-dark table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
                         <th>Atributo</th>
@@ -262,7 +267,7 @@ require __DIR__ . '/../_topo.php';
                 <form method="post">
                     <div class="modal-header">
                         <h5 class="modal-title">Editar variação</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="action" value="editar_variacao">
@@ -301,7 +306,7 @@ require __DIR__ . '/../_topo.php';
             <form method="post">
                 <div class="modal-header">
                     <h5 class="modal-title">Nova variação</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="criar_variacao">

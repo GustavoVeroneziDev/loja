@@ -6,8 +6,9 @@ require_once __DIR__ . '/../config/conexao.php';
 require_once __DIR__ . '/../config/funcoes.php';
 require_once __DIR__ . '/../config/marca.php';
 
-// Admin logado nunca vê a vitrine — a área dele é o painel, não o site de compra.
-if (adminLogado()) {
+// Admin logado nunca vê a vitrine — a área dele é o painel, não o site de compra. Exceção: link
+// de pré-visualização (?preview=1), que o admin usa de propósito pra ver um produto em rascunho.
+if (adminLogado() && !isset($_GET['preview'])) {
     header('Location: ' . URL_BASE . '/admin/index.php');
     exit;
 }

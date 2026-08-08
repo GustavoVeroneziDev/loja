@@ -74,7 +74,7 @@ require __DIR__ . '/../_topo.php';
 <?php if ($sucesso): ?><div class="alert alert-success"><?= $sucesso ?></div><?php endif; ?>
 
 <div class="card">
-    <table class="table table-dark table-hover align-middle mb-0">
+    <table class="table table-hover align-middle mb-0">
         <thead>
             <tr>
                 <th>Produto</th>
@@ -82,7 +82,7 @@ require __DIR__ . '/../_topo.php';
                 <th>Preço a partir de</th>
                 <th>Estoque</th>
                 <th>Status</th>
-                <th style="width: 140px; min-width: 140px; max-width: 140px;">Ações</th>
+                <th style="width: 180px; min-width: 180px; max-width: 180px;">Ações</th>
             </tr>
         </thead>
         <tbody>
@@ -99,8 +99,11 @@ require __DIR__ . '/../_topo.php';
                             <span class="badge-atencao px-2 py-1">Rascunho</span>
                         <?php endif; ?>
                     </td>
-                    <td style="width: 140px; min-width: 140px; max-width: 140px;">
-                        <a href="<?= URL_BASE ?>/admin/produto/editar.php?id=<?= urlencode($produto['IDProduto']) ?>" class="btn btn-sm btn-outline-secondary rounded-pill">
+                    <td style="width: 180px; min-width: 180px; max-width: 180px;">
+                        <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($produto['IDProduto']) ?>&preview=1" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill" aria-label="Pré-visualizar">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="<?= URL_BASE ?>/admin/produto/editar.php?id=<?= urlencode($produto['IDProduto']) ?>" class="btn btn-sm btn-outline-secondary rounded-pill" aria-label="Editar">
                             <i class="bi bi-pencil"></i>
                         </a>
                         <form method="post" class="d-inline" data-confirmar="Excluir este produto e todas as suas variações/imagens?">
@@ -124,7 +127,7 @@ require __DIR__ . '/../_topo.php';
             <form method="post">
                 <div class="modal-header">
                     <h5 class="modal-title">Novo produto</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="criar">

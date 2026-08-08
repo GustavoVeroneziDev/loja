@@ -70,7 +70,7 @@ require __DIR__ . '/_topo.php';
 <?php if ($erro): ?><div class="alert alert-danger"><?= $erro ?></div><?php endif; ?>
 
 <div class="card">
-    <table class="table table-dark table-hover align-middle mb-0">
+    <table class="table table-hover align-middle mb-0">
         <thead>
             <tr>
                 <th>Nome</th>
@@ -107,7 +107,7 @@ require __DIR__ . '/_topo.php';
                 <form method="post">
                     <div class="modal-header">
                         <h5 class="modal-title">Editar categoria</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="action" value="editar">
@@ -145,7 +145,7 @@ require __DIR__ . '/_topo.php';
             <form method="post">
                 <div class="modal-header">
                     <h5 class="modal-title">Nova categoria</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="criar">

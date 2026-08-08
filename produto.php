@@ -1,4 +1,7 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/config/conexao.php';
 require_once __DIR__ . '/config/funcoes.php';
 garantirTabelaProduto();
@@ -9,7 +12,11 @@ garantirTabelaFavorito();
 $idProduto = $_GET['id'] ?? '';
 $produto = obterProdutoPorId($idProduto);
 
-if (!$produto || !$produto['Ativo']) {
+// Admin pode ver o produto mesmo em rascunho via link de pré-visualização (?preview=1) — precisa
+// ser um link explícito, não "todo admin logado vê tudo", senão a checagem de Ativo não serve pra nada.
+$modoPreview = adminLogado() && isset($_GET['preview']);
+
+if (!$produto || (!$produto['Ativo'] && !$modoPreview)) {
     header('Location: ' . URL_BASE . '/index.php');
     exit;
 }
@@ -20,6 +27,14 @@ $favoritado = ehFavorito($idProduto);
 
 require __DIR__ . '/geral/header.php';
 ?>
+<?php if ($modoPreview && !$produto['Ativo']): ?>
+    <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <span><i class="bi bi-eye"></i> Pré-visualização — este produto está em rascunho, ainda não aparece na loja pros clientes.</span>
+        <a href="<?= URL_BASE ?>/admin/produto/editar.php?id=<?= urlencode($idProduto) ?>" class="btn btn-sm btn-outline-secondary rounded-pill">
+            <i class="bi bi-arrow-left"></i> Voltar pro admin
+        </a>
+    </div>
+<?php endif; ?>
 <div class="row g-4">
     <div class="col-md-6">
         <?php if ($imagens): ?>
