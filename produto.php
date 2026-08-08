@@ -157,8 +157,17 @@ require __DIR__ . '/geral/header.php';
 
             <div class="d-flex gap-2 align-items-center mb-3">
                 <label for="quantidade" class="form-label mb-0 text-secundario small">Quantidade</label>
-                <input type="number" name="quantidade" id="quantidade" class="form-control" style="width: 90px;"
-                       value="1" min="1" max="<?= (int) ($variacoes[0]['Estoque'] ?? 0) ?>">
+                <div class="stepper-quantidade">
+                    <input type="number" name="quantidade" id="quantidade" value="1" min="1" max="<?= (int) ($variacoes[0]['Estoque'] ?? 0) ?>" class="campo-quantidade" inputmode="numeric">
+                    <div class="stepper-botoes">
+                        <button type="button" class="stepper-botao" data-passo="1" aria-label="Aumentar quantidade">
+                            <i class="bi bi-chevron-up"></i>
+                        </button>
+                        <button type="button" class="stepper-botao" data-passo="-1" aria-label="Diminuir quantidade">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <button type="submit" id="btnAdicionar" class="btn btn-marca rounded-pill btn-lg" <?= ($variacoes[0]['Estoque'] ?? 0) > 0 ? '' : 'disabled' ?>>
@@ -177,6 +186,19 @@ function textoEstoque(estoque) {
     return '';
 }
 
+// Botões +/- do stepper de quantidade ficam desabilitados nos limites — chamado toda vez
+// que o máximo muda (troca de variação) e a cada clique/digitação no campo.
+function atualizarBotoesQuantidade() {
+    var campo = document.getElementById('quantidade');
+    var stepper = campo.closest('.stepper-quantidade');
+    if (!stepper) return;
+    var min = parseInt(campo.min, 10) || 1;
+    var max = parseInt(campo.max, 10) || 0;
+    var valor = parseInt(campo.value, 10) || 0;
+    stepper.querySelector('[data-passo="-1"]').disabled = valor <= min;
+    stepper.querySelector('[data-passo="1"]').disabled = valor >= max;
+}
+
 function atualizarVariacaoSelecionada(input) {
     const preco = parseFloat(input.dataset.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const estoque = parseInt(input.dataset.estoque, 10);
@@ -190,7 +212,27 @@ function atualizarVariacaoSelecionada(input) {
     }
 
     document.getElementById('btnAdicionar').disabled = estoque <= 0;
+    atualizarBotoesQuantidade();
 }
+
+(function () {
+    var campo = document.getElementById('quantidade');
+    var stepper = campo.closest('.stepper-quantidade');
+    if (!stepper) return;
+
+    stepper.querySelectorAll('.stepper-botao').forEach(function (botao) {
+        botao.addEventListener('click', function () {
+            var min = parseInt(campo.min, 10) || 1;
+            var max = parseInt(campo.max, 10) || 0;
+            var passo = parseInt(botao.dataset.passo, 10);
+            campo.value = Math.max(min, Math.min(max, (parseInt(campo.value, 10) || 0) + passo));
+            atualizarBotoesQuantidade();
+        });
+    });
+
+    campo.addEventListener('input', atualizarBotoesQuantidade);
+    atualizarBotoesQuantidade();
+})();
 
 (function () {
     var dadosEl = document.getElementById('dadosVariacoes');
@@ -263,6 +305,7 @@ function atualizarVariacaoSelecionada(input) {
                 campoQuantidade.value = encontrada.estoque > 0 ? 1 : 0;
             }
             btnAdicionar.disabled = encontrada.estoque <= 0;
+            atualizarBotoesQuantidade();
             aviso.classList.add('d-none');
         } else {
             campoVariacaoId.value = '';
