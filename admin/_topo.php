@@ -7,6 +7,7 @@ require_once __DIR__ . '/../config/funcoes.php';
 require_once __DIR__ . '/../config/marca.php';
 
 $nomeLoja = NOME_LOJA;
+$rotaAtual = $_SERVER['SCRIPT_NAME'] ?? '';
 ?>
 <!doctype html>
 <html lang="pt-BR" data-bs-theme="light">
@@ -35,9 +36,21 @@ $nomeLoja = NOME_LOJA;
         </button>
         <div class="collapse navbar-collapse" id="navAdmin">
             <ul class="navbar-nav me-auto">
-                <li class="nav-item"><a class="nav-link" href="<?= URL_BASE ?>/admin/index.php">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="<?= URL_BASE ?>/admin/categoria.php">Categorias</a></li>
-                <li class="nav-item"><a class="nav-link" href="<?= URL_BASE ?>/admin/produto/index.php">Produtos</a></li>
+                <li class="nav-item">
+                    <a class="nav-link <?= str_ends_with($rotaAtual, '/admin/index.php') ? 'active' : '' ?>" href="<?= URL_BASE ?>/admin/index.php">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= str_ends_with($rotaAtual, '/admin/categoria.php') ? 'active' : '' ?>" href="<?= URL_BASE ?>/admin/categoria.php">
+                        <i class="bi bi-tags"></i> Categorias
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= str_contains($rotaAtual, '/admin/produto/') ? 'active' : '' ?>" href="<?= URL_BASE ?>/admin/produto/index.php">
+                        <i class="bi bi-box-seam"></i> Produtos
+                    </a>
+                </li>
             </ul>
             <a href="<?= URL_BASE ?>/admin/logout.php" class="btn btn-sm btn-outline-secondary rounded-pill">
                 <i class="bi bi-box-arrow-right"></i> Sair

@@ -11,32 +11,63 @@ garantirTabelaVariacaoProduto();
 global $pdo;
 $totalProdutosAtivos = (int) $pdo->query("SELECT COUNT(*) FROM Produto WHERE Ativo = 1")->fetchColumn();
 $totalCategorias = (int) $pdo->query("SELECT COUNT(*) FROM Categoria")->fetchColumn();
-$totalSemEstoque = (int) $pdo->query("SELECT COUNT(*) FROM VariacaoProduto WHERE Estoque = 0")->fetchColumn();
+$totalRascunho = (int) $pdo->query("SELECT COUNT(*) FROM Produto WHERE Ativo = 0")->fetchColumn();
+$totalSemEstoque = (int) $pdo->query("SELECT COUNT(DISTINCT FKProduto) FROM VariacaoProduto WHERE Estoque = 0")->fetchColumn();
 
 require __DIR__ . '/_topo.php';
 ?>
 <h1 class="h4 mb-4">Olá, <?= htmlspecialchars($_SESSION['usuario_nome'] ?? '') ?></h1>
-<div class="row g-3">
-    <div class="col-md-4">
-        <div class="card p-4">
-            <div class="text-secundario small">Produtos ativos</div>
-            <div class="h2 mb-0"><?= $totalProdutosAtivos ?></div>
-        </div>
+
+<h2 class="h6 text-secundario text-uppercase mb-3">Visão geral</h2>
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <a href="<?= URL_BASE ?>/admin/produto/index.php" class="card p-4 h-100 d-block text-reset text-decoration-none stat-card-admin">
+            <div class="d-flex align-items-center gap-3">
+                <div class="icone-stat-admin icone-stat-sucesso"><i class="bi bi-box-seam-fill"></i></div>
+                <div class="flex-truncate">
+                    <div class="text-secundario small">Produtos ativos</div>
+                    <div class="h3 mb-0"><?= $totalProdutosAtivos ?></div>
+                </div>
+            </div>
+        </a>
     </div>
-    <div class="col-md-4">
-        <div class="card p-4">
-            <div class="text-secundario small">Categorias</div>
-            <div class="h2 mb-0"><?= $totalCategorias ?></div>
-        </div>
+    <div class="col-6 col-lg-3">
+        <a href="<?= URL_BASE ?>/admin/categoria.php" class="card p-4 h-100 d-block text-reset text-decoration-none stat-card-admin">
+            <div class="d-flex align-items-center gap-3">
+                <div class="icone-stat-admin icone-stat-admin-cor"><i class="bi bi-tags-fill"></i></div>
+                <div class="flex-truncate">
+                    <div class="text-secundario small">Categorias</div>
+                    <div class="h3 mb-0"><?= $totalCategorias ?></div>
+                </div>
+            </div>
+        </a>
     </div>
-    <div class="col-md-4">
-        <div class="card p-4">
-            <div class="text-secundario small">Variações sem estoque</div>
-            <div class="h2 mb-0 <?= $totalSemEstoque > 0 ? 'text-warning' : '' ?>"><?= $totalSemEstoque ?></div>
-        </div>
+    <div class="col-6 col-lg-3">
+        <a href="<?= URL_BASE ?>/admin/produto/index.php?filtro=rascunho" class="card p-4 h-100 d-block text-reset text-decoration-none stat-card-admin">
+            <div class="d-flex align-items-center gap-3">
+                <div class="icone-stat-admin icone-stat-atencao"><i class="bi bi-eye-slash-fill"></i></div>
+                <div class="flex-truncate">
+                    <div class="text-secundario small">Em rascunho</div>
+                    <div class="h3 mb-0"><?= $totalRascunho ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-lg-3">
+        <a href="<?= URL_BASE ?>/admin/produto/index.php?filtro=sem_estoque" class="card p-4 h-100 d-block text-reset text-decoration-none stat-card-admin">
+            <div class="d-flex align-items-center gap-3">
+                <div class="icone-stat-admin icone-stat-atencao"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <div class="flex-truncate">
+                    <div class="text-secundario small">Sem estoque</div>
+                    <div class="h3 mb-0"><?= $totalSemEstoque ?></div>
+                </div>
+            </div>
+        </a>
     </div>
 </div>
-<div class="mt-4 d-flex gap-2 flex-wrap">
+
+<h2 class="h6 text-secundario text-uppercase mb-3">Ações rápidas</h2>
+<div class="d-flex gap-2 flex-wrap">
     <a href="<?= URL_BASE ?>/admin/produto/index.php" class="btn btn-marca rounded-pill"><i class="bi bi-box-seam"></i> Gerenciar produtos</a>
     <a href="<?= URL_BASE ?>/admin/categoria.php" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-tags"></i> Gerenciar categorias</a>
 </div>

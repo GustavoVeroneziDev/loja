@@ -52,13 +52,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $sucesso = isset($_GET['ok']) ? 'Operação realizada com sucesso.' : null;
+$filtro = $_GET['filtro'] ?? '';
 
-$produtos = $pdo->query("SELECT p.*, c.Nome AS NomeCategoria,
+$sql = "SELECT p.*, c.Nome AS NomeCategoria,
         (SELECT MIN(Preco) FROM VariacaoProduto WHERE FKProduto = p.IDProduto) AS PrecoMinimo,
         (SELECT SUM(Estoque) FROM VariacaoProduto WHERE FKProduto = p.IDProduto) AS EstoqueTotal
     FROM Produto p
-    LEFT JOIN Categoria c ON c.IDCategoria = p.FKCategoria
-    ORDER BY p.MomentoCriacao DESC")->fetchAll();
+    LEFT JOIN Categoria c ON c.IDCategoria = p.FKCategoria";
+if ($filtro === 'rascunho') {
+    $sql .= " WHERE p.Ativo = 0";
+} elseif ($filtro === 'sem_estoque') {
+    $sql .= " WHERE EXISTS (SELECT 1 FROM VariacaoProduto v WHERE v.FKProduto = p.IDProduto AND v.Estoque = 0)";
+}
+$sql .= " ORDER BY p.MomentoCriacao DESC";
+$produtos = $pdo->query($sql)->fetchAll();
 
 $categorias = obterCategoriasArvore();
 
@@ -72,6 +79,16 @@ require __DIR__ . '/../_topo.php';
 </div>
 
 <?php if ($sucesso): ?><div class="alert alert-success"><?= $sucesso ?></div><?php endif; ?>
+
+<?php if ($filtro === 'rascunho' || $filtro === 'sem_estoque'): ?>
+    <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <span>
+            <i class="bi bi-funnel"></i>
+            Mostrando só produtos <?= $filtro === 'rascunho' ? 'em rascunho' : 'com alguma variação sem estoque' ?>.
+        </span>
+        <a href="<?= URL_BASE ?>/admin/produto/index.php" class="btn btn-sm btn-outline-secondary rounded-pill">Limpar filtro</a>
+    </div>
+<?php endif; ?>
 
 <div class="card">
     <table class="table table-hover align-middle mb-0">
@@ -115,7 +132,9 @@ require __DIR__ . '/../_topo.php';
                 </tr>
             <?php endforeach; ?>
             <?php if (!$produtos): ?>
-                <tr><td colspan="6" class="text-secundario text-center py-4">Nenhum produto cadastrado ainda.</td></tr>
+                <tr><td colspan="6" class="text-secundario text-center py-4">
+                    <?= $filtro !== '' ? 'Nenhum produto encontrado com esse filtro.' : 'Nenhum produto cadastrado ainda.' ?>
+                </td></tr>
             <?php endif; ?>
         </tbody>
     </table>
