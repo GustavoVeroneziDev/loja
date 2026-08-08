@@ -344,6 +344,7 @@ require __DIR__ . '/../_topo.php';
                     <input type="file" name="imagem" class="form-control" accept=".jpg,.jpeg,.png,.webp,.mp4,.webm,.mov" required>
                     <button type="submit" class="btn btn-marca rounded-pill text-nowrap">Enviar</button>
                 </div>
+                <div class="form-text mt-0">Foto: até 5MB. Vídeo: até 30MB. Arquivo maior que isso pode fazer a página travar sem aviso — se acontecer, tente um arquivo menor.</div>
             </form>
         </div>
     </div>
