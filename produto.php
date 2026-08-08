@@ -4,6 +4,7 @@ require_once __DIR__ . '/config/funcoes.php';
 garantirTabelaProduto();
 garantirTabelaVariacaoProduto();
 garantirTabelaImagemProduto();
+garantirTabelaFavorito();
 
 $idProduto = $_GET['id'] ?? '';
 $produto = obterProdutoPorId($idProduto);
@@ -15,6 +16,7 @@ if (!$produto || !$produto['Ativo']) {
 
 $variacoes = obterVariacoesPorProduto($idProduto);
 $imagens = obterImagensPorProduto($idProduto);
+$favoritado = ehFavorito($idProduto);
 
 require __DIR__ . '/geral/header.php';
 ?>
@@ -39,37 +41,65 @@ require __DIR__ . '/geral/header.php';
                 <?php endif; ?>
             </div>
         <?php else: ?>
-            <img src="<?= htmlspecialchars(urlAsset('/geral/img/logo-placeholder.svg')) ?>" class="w-100 rounded" style="aspect-ratio: 1; object-fit: contain; background: #1a1d27;" alt="<?= htmlspecialchars($produto['Nome']) ?>">
+            <img src="<?= htmlspecialchars(urlAsset('/geral/img/logo-placeholder.svg')) ?>" class="w-100 rounded" style="aspect-ratio: 1; object-fit: contain; background: #f5f5f5;" alt="<?= htmlspecialchars($produto['Nome']) ?>">
         <?php endif; ?>
     </div>
     <div class="col-md-6">
-        <h1 class="h3"><?= htmlspecialchars($produto['Nome']) ?></h1>
+        <div class="d-flex justify-content-between align-items-start gap-3">
+            <h1 class="h3 mb-0"><?= htmlspecialchars($produto['Nome']) ?></h1>
+            <?php if (clienteLogado()): ?>
+                <form method="post" action="<?= URL_BASE ?>/usuario/favoritos.php" class="flex-shrink-0">
+                    <input type="hidden" name="action" value="alternar">
+                    <input type="hidden" name="produto_id" value="<?= htmlspecialchars($produto['IDProduto']) ?>">
+                    <input type="hidden" name="voltar_para" value="<?= htmlspecialchars(URL_BASE . '/produto.php?id=' . $produto['IDProduto']) ?>">
+                    <button type="submit" class="btn-favorito <?= $favoritado ? 'ativo' : '' ?>" aria-label="<?= $favoritado ? 'Remover dos favoritos' : 'Favoritar' ?>">
+                        <i class="bi <?= $favoritado ? 'bi-heart-fill' : 'bi-heart' ?>"></i>
+                    </button>
+                </form>
+            <?php else: ?>
+                <a href="<?= URL_BASE ?>/usuario/login.php" class="btn-favorito flex-shrink-0" aria-label="Entrar pra favoritar">
+                    <i class="bi bi-heart"></i>
+                </a>
+            <?php endif; ?>
+        </div>
         <p class="text-secundario"><?= nl2br(htmlspecialchars($produto['Descricao'] ?? '')) ?></p>
 
-        <?php if (count($variacoes) > 1): ?>
-            <div class="mb-3">
-                <label class="form-label d-block">Opção</label>
-                <div class="btn-group flex-wrap" role="group">
-                    <?php foreach ($variacoes as $i => $variacao): ?>
-                        <input type="radio" class="btn-check" name="variacao" id="variacao<?= $variacao['IDVariacao'] ?>"
-                               data-preco="<?= $variacao['Preco'] ?>" data-estoque="<?= (int) $variacao['Estoque'] ?>"
-                               <?= $i === 0 ? 'checked' : '' ?> onchange="atualizarVariacaoSelecionada(this)">
-                        <label class="btn btn-outline-secondary" for="variacao<?= $variacao['IDVariacao'] ?>">
-                            <?= htmlspecialchars($variacao['Atributo'] ?? 'Padrão') ?>
-                        </label>
-                    <?php endforeach; ?>
+        <form method="post" action="<?= URL_BASE ?>/carrinho.php" id="formAdicionarCarrinho">
+            <input type="hidden" name="action" value="adicionar">
+
+            <?php if (count($variacoes) > 1): ?>
+                <div class="mb-3">
+                    <label class="form-label d-block">Opção</label>
+                    <div class="btn-group flex-wrap" role="group">
+                        <?php foreach ($variacoes as $i => $variacao): ?>
+                            <input type="radio" class="btn-check" name="variacao_id" value="<?= htmlspecialchars($variacao['IDVariacao']) ?>" id="variacao<?= $variacao['IDVariacao'] ?>"
+                                   data-preco="<?= $variacao['Preco'] ?>" data-estoque="<?= (int) $variacao['Estoque'] ?>"
+                                   <?= $i === 0 ? 'checked' : '' ?> onchange="atualizarVariacaoSelecionada(this)">
+                            <label class="btn btn-outline-secondary" for="variacao<?= $variacao['IDVariacao'] ?>">
+                                <?= htmlspecialchars($variacao['Atributo'] ?? 'Padrão') ?>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
+            <?php else: ?>
+                <input type="hidden" name="variacao_id" value="<?= htmlspecialchars($variacoes[0]['IDVariacao'] ?? '') ?>">
+            <?php endif; ?>
+
+            <p class="h3 text-marca" id="precoSelecionado"><?= formatarPreco($variacoes[0]['Preco'] ?? 0) ?></p>
+            <p class="text-secundario small" id="estoqueSelecionado">
+                <?= ($variacoes[0]['Estoque'] ?? 0) > 0 ? (int) $variacoes[0]['Estoque'] . ' em estoque' : 'Fora de estoque' ?>
+            </p>
+
+            <div class="d-flex gap-2 align-items-center mb-3">
+                <label for="quantidade" class="form-label mb-0 text-secundario small">Quantidade</label>
+                <input type="number" name="quantidade" id="quantidade" class="form-control" style="width: 90px;"
+                       value="1" min="1" max="<?= (int) ($variacoes[0]['Estoque'] ?? 0) ?>">
             </div>
-        <?php endif; ?>
 
-        <p class="h3 text-marca" id="precoSelecionado"><?= formatarPreco($variacoes[0]['Preco'] ?? 0) ?></p>
-        <p class="text-secundario small" id="estoqueSelecionado">
-            <?= ($variacoes[0]['Estoque'] ?? 0) > 0 ? (int) $variacoes[0]['Estoque'] . ' em estoque' : 'Fora de estoque' ?>
-        </p>
-
-        <button type="button" class="btn btn-marca rounded-pill btn-lg" disabled title="Carrinho chega na próxima etapa">
-            <i class="bi bi-cart-plus"></i> Adicionar ao carrinho — em breve
-        </button>
+            <button type="submit" id="btnAdicionar" class="btn btn-marca rounded-pill btn-lg" <?= ($variacoes[0]['Estoque'] ?? 0) > 0 ? '' : 'disabled' ?>>
+                <i class="bi bi-cart-plus"></i> Adicionar ao carrinho
+            </button>
+        </form>
     </div>
 </div>
 
@@ -79,6 +109,14 @@ function atualizarVariacaoSelecionada(input) {
     const estoque = parseInt(input.dataset.estoque, 10);
     document.getElementById('precoSelecionado').textContent = preco;
     document.getElementById('estoqueSelecionado').textContent = estoque > 0 ? estoque + ' em estoque' : 'Fora de estoque';
+
+    const campoQuantidade = document.getElementById('quantidade');
+    campoQuantidade.max = estoque;
+    if (parseInt(campoQuantidade.value, 10) > estoque) {
+        campoQuantidade.value = estoque > 0 ? 1 : 0;
+    }
+
+    document.getElementById('btnAdicionar').disabled = estoque <= 0;
 }
 </script>
 <?php require __DIR__ . '/geral/footer.php'; ?>

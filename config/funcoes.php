@@ -320,3 +320,170 @@ function uploadImagem($arquivo, $subpasta) {
 
     return '/geral/img/' . $subpasta . '/' . $nomeArquivo;
 }
+
+// ---------------------------------------------------------------------
+// Carrinho — visitante fica na sessão ($_SESSION['carrinho']), cliente logado persiste em
+// ItemCarrinho. Ao logar, mescla o que tava na sessão pro banco (nunca perde escolha de visitante).
+// ---------------------------------------------------------------------
+
+function garantirTabelaItemCarrinho() {
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS ItemCarrinho (
+        IDItemCarrinho CHAR(36) PRIMARY KEY,
+        FKUsuario CHAR(36) NOT NULL,
+        FKVariacao CHAR(36) NOT NULL,
+        Quantidade INT NOT NULL DEFAULT 1,
+        MomentoAdicionado TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_usuario_variacao (FKUsuario, FKVariacao),
+        FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario) ON DELETE CASCADE,
+        FOREIGN KEY (FKVariacao) REFERENCES VariacaoProduto(IDVariacao) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function adicionarItemCarrinho($idVariacao, $quantidade = 1) {
+    $quantidade = max(1, (int) $quantidade);
+
+    if (clienteLogado()) {
+        global $pdo;
+        $stmt = $pdo->prepare("SELECT Quantidade FROM ItemCarrinho WHERE FKUsuario = :u AND FKVariacao = :v");
+        $stmt->execute(['u' => $_SESSION['usuario_id'], 'v' => $idVariacao]);
+        $atual = $stmt->fetchColumn();
+        if ($atual !== false) {
+            $pdo->prepare("UPDATE ItemCarrinho SET Quantidade = :q WHERE FKUsuario = :u AND FKVariacao = :v")
+                ->execute(['q' => $atual + $quantidade, 'u' => $_SESSION['usuario_id'], 'v' => $idVariacao]);
+        } else {
+            $pdo->prepare("INSERT INTO ItemCarrinho (IDItemCarrinho, FKUsuario, FKVariacao, Quantidade) VALUES (:id, :u, :v, :q)")
+                ->execute(['id' => gerarUuid(), 'u' => $_SESSION['usuario_id'], 'v' => $idVariacao, 'q' => $quantidade]);
+        }
+    } else {
+        $_SESSION['carrinho'][$idVariacao] = ($_SESSION['carrinho'][$idVariacao] ?? 0) + $quantidade;
+    }
+}
+
+// $quantidade <= 0 remove o item.
+function atualizarQuantidadeCarrinho($idVariacao, $quantidade) {
+    $quantidade = (int) $quantidade;
+
+    if (clienteLogado()) {
+        global $pdo;
+        if ($quantidade <= 0) {
+            $pdo->prepare("DELETE FROM ItemCarrinho WHERE FKUsuario = :u AND FKVariacao = :v")
+                ->execute(['u' => $_SESSION['usuario_id'], 'v' => $idVariacao]);
+        } else {
+            $pdo->prepare("UPDATE ItemCarrinho SET Quantidade = :q WHERE FKUsuario = :u AND FKVariacao = :v")
+                ->execute(['q' => $quantidade, 'u' => $_SESSION['usuario_id'], 'v' => $idVariacao]);
+        }
+    } elseif ($quantidade <= 0) {
+        unset($_SESSION['carrinho'][$idVariacao]);
+    } else {
+        $_SESSION['carrinho'][$idVariacao] = $quantidade;
+    }
+}
+
+// Devolve os itens do carrinho já com dado de produto/variação/imagem, prontos pra exibir.
+function obterCarrinho() {
+    global $pdo;
+
+    if (clienteLogado()) {
+        $stmt = $pdo->prepare("SELECT FKVariacao, Quantidade FROM ItemCarrinho WHERE FKUsuario = :u");
+        $stmt->execute(['u' => $_SESSION['usuario_id']]);
+        $bruto = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    } else {
+        $bruto = $_SESSION['carrinho'] ?? [];
+    }
+
+    $itens = [];
+    foreach ($bruto as $idVariacao => $quantidade) {
+        $stmt = $pdo->prepare("SELECT v.*, p.IDProduto, p.Nome AS NomeProduto,
+                (SELECT Url FROM ImagemProduto WHERE FKProduto = p.IDProduto ORDER BY Ordem LIMIT 1) AS ImagemCapa
+            FROM VariacaoProduto v
+            JOIN Produto p ON p.IDProduto = v.FKProduto
+            WHERE v.IDVariacao = :id");
+        $stmt->execute(['id' => $idVariacao]);
+        $variacao = $stmt->fetch();
+        if (!$variacao) {
+            continue; // variação foi excluída pelo admin depois de ter sido adicionada ao carrinho
+        }
+        $itens[] = [
+            'IDVariacao' => $idVariacao,
+            'Quantidade' => (int) $quantidade,
+            'variacao' => $variacao,
+            'subtotal' => $variacao['Preco'] * $quantidade,
+        ];
+    }
+    return $itens;
+}
+
+function contarItensCarrinho() {
+    if (clienteLogado()) {
+        global $pdo;
+        $stmt = $pdo->prepare("SELECT COALESCE(SUM(Quantidade), 0) FROM ItemCarrinho WHERE FKUsuario = :u");
+        $stmt->execute(['u' => $_SESSION['usuario_id']]);
+        return (int) $stmt->fetchColumn();
+    }
+    return array_sum($_SESSION['carrinho'] ?? []);
+}
+
+// Chamado logo depois do login/cadastro dar certo — o que o visitante já tinha escolhido não pode se perder.
+function mesclarCarrinhoVisitante() {
+    if (empty($_SESSION['carrinho'])) {
+        return;
+    }
+    foreach ($_SESSION['carrinho'] as $idVariacao => $quantidade) {
+        adicionarItemCarrinho($idVariacao, $quantidade);
+    }
+    unset($_SESSION['carrinho']);
+}
+
+// ---------------------------------------------------------------------
+// Favoritos — exige conta (não é por sessão de visitante, é lista salva de verdade)
+// ---------------------------------------------------------------------
+
+function garantirTabelaFavorito() {
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS Favorito (
+        IDFavorito CHAR(36) PRIMARY KEY,
+        FKUsuario CHAR(36) NOT NULL,
+        FKProduto CHAR(36) NOT NULL,
+        MomentoAdicionado TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_usuario_produto (FKUsuario, FKProduto),
+        FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario) ON DELETE CASCADE,
+        FOREIGN KEY (FKProduto) REFERENCES Produto(IDProduto) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function alternarFavorito($idProduto) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT IDFavorito FROM Favorito WHERE FKUsuario = :u AND FKProduto = :p");
+    $stmt->execute(['u' => $_SESSION['usuario_id'], 'p' => $idProduto]);
+    $existente = $stmt->fetchColumn();
+    if ($existente) {
+        $pdo->prepare("DELETE FROM Favorito WHERE IDFavorito = :id")->execute(['id' => $existente]);
+    } else {
+        $pdo->prepare("INSERT INTO Favorito (IDFavorito, FKUsuario, FKProduto) VALUES (:id, :u, :p)")
+            ->execute(['id' => gerarUuid(), 'u' => $_SESSION['usuario_id'], 'p' => $idProduto]);
+    }
+}
+
+function ehFavorito($idProduto) {
+    if (!clienteLogado()) {
+        return false;
+    }
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT 1 FROM Favorito WHERE FKUsuario = :u AND FKProduto = :p");
+    $stmt->execute(['u' => $_SESSION['usuario_id'], 'p' => $idProduto]);
+    return (bool) $stmt->fetchColumn();
+}
+
+function obterFavoritos() {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT p.*, f.MomentoAdicionado,
+            (SELECT MIN(Preco) FROM VariacaoProduto WHERE FKProduto = p.IDProduto) AS PrecoMinimo,
+            (SELECT Url FROM ImagemProduto WHERE FKProduto = p.IDProduto ORDER BY Ordem LIMIT 1) AS ImagemCapa
+        FROM Favorito f
+        JOIN Produto p ON p.IDProduto = f.FKProduto
+        WHERE f.FKUsuario = :u
+        ORDER BY f.MomentoAdicionado DESC");
+    $stmt->execute(['u' => $_SESSION['usuario_id']]);
+    return $stmt->fetchAll();
+}

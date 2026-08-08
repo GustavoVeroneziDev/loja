@@ -137,6 +137,49 @@ body {
     transform: translateY(-50%) scale(.82);
 }
 
+/* Coração de favoritar — sobre a imagem do produto (cards) ou ao lado do título (detalhe) */
+.btn-favorito {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .92);
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b6560;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.btn-favorito:hover {
+    color: #dc2626;
+}
+
+.btn-favorito.ativo {
+    color: #dc2626;
+}
+
+/* Contador no botão de carrinho da navbar */
+.badge-carrinho {
+    position: absolute;
+    top: -.4rem;
+    right: -.4rem;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 .3rem;
+    border-radius: 999px;
+    background-color: var(--cor-primaria);
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
 /* Botão de mostrar/ocultar senha embutido no próprio campo */
 .tem-toggle-senha .form-control {
     padding-right: 2.75rem;

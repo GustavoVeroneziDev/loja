@@ -14,12 +14,19 @@ if (adminLogado()) {
 garantirTabelaConfiguracaoLoja();
 garantirConfiguracaoLojaPadrao();
 garantirTabelaCategoria();
+garantirTabelaProduto();
+garantirTabelaVariacaoProduto();
+garantirTabelaImagemProduto();
+garantirTabelaUsuario();
+garantirTabelaItemCarrinho();
+garantirTabelaFavorito();
 
 $nomeLoja = obterConfiguracaoLoja('nome_loja', 'Minha Loja');
 $corPrimaria = obterConfiguracaoLoja('cor_primaria', '#e08a3c');
 $corSecundaria = obterConfiguracaoLoja('cor_secundaria', '#c08552');
 $logoUrl = obterConfiguracaoLoja('logo_url', URL_BASE . '/geral/img/logo-placeholder.svg');
 $categoriasNav = array_filter(obterCategoriasArvore(), fn($c) => empty($c['FKCategoriaPai']));
+$totalCarrinho = contarItensCarrinho();
 ?>
 <!doctype html>
 <html lang="pt-BR" data-bs-theme="light">
@@ -62,11 +69,17 @@ $categoriasNav = array_filter(obterCategoriasArvore(), fn($c) => empty($c['FKCat
                 <?php endforeach; ?>
             </ul>
             <ul class="navbar-nav align-items-lg-center gap-lg-2">
+                <li class="nav-item">
+                    <a class="btn btn-sm btn-outline-secondary rounded-pill position-relative" href="<?= URL_BASE ?>/carrinho.php">
+                        <i class="bi bi-cart"></i> Carrinho
+                        <?php if ($totalCarrinho > 0): ?>
+                            <span class="badge-carrinho"><?= $totalCarrinho ?></span>
+                        <?php endif; ?>
+                    </a>
+                </li>
                 <?php if (clienteLogado()): ?>
                     <li class="nav-item">
-                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" disabled title="Carrinho chega na próxima etapa">
-                            <i class="bi bi-cart"></i> Carrinho
-                        </button>
+                        <a class="nav-link" href="<?= URL_BASE ?>/usuario/favoritos.php"><i class="bi bi-heart"></i> Favoritos</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="<?= URL_BASE ?>/usuario/minha-conta.php"><i class="bi bi-person-circle"></i> Minha conta</a>

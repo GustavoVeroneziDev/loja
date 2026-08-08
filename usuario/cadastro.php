@@ -3,6 +3,10 @@ session_start();
 require_once __DIR__ . '/../config/conexao.php';
 require_once __DIR__ . '/../config/funcoes.php';
 garantirTabelaUsuario();
+garantirTabelaCategoria();
+garantirTabelaProduto();
+garantirTabelaVariacaoProduto();
+garantirTabelaItemCarrinho();
 
 if (adminLogado()) {
     header('Location: ' . URL_BASE . '/admin/index.php');
@@ -44,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['usuario_id'] = $idUsuario;
             $_SESSION['usuario_nome'] = $nome;
             $_SESSION['usuario_tipo'] = 'cliente';
+            mesclarCarrinhoVisitante();
             header('Location: ' . URL_BASE . '/usuario/minha-conta.php');
             exit;
         }
