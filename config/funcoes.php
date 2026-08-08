@@ -203,6 +203,19 @@ function garantirTabelaImagemProduto() {
         Ordem INT NOT NULL DEFAULT 0,
         FOREIGN KEY (FKProduto) REFERENCES Produto(IDProduto) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // FKVariacao vazio = mídia "base", aparece em qualquer variação selecionada. Preenchido =
+    // só aparece quando aquela variação específica tá selecionada (ex: foto do boné na cor verde).
+    $temFkVariacao = (bool) $pdo->query("SHOW COLUMNS FROM ImagemProduto LIKE 'FKVariacao'")->fetchColumn();
+    if (!$temFkVariacao) {
+        $pdo->exec("ALTER TABLE ImagemProduto ADD COLUMN FKVariacao CHAR(36) NULL AFTER FKProduto");
+        $pdo->exec("ALTER TABLE ImagemProduto ADD FOREIGN KEY (FKVariacao) REFERENCES VariacaoProduto(IDVariacao) ON DELETE CASCADE");
+    }
+    $temTipoMidia = (bool) $pdo->query("SHOW COLUMNS FROM ImagemProduto LIKE 'TipoMidia'")->fetchColumn();
+    if (!$temTipoMidia) {
+        $pdo->exec("ALTER TABLE ImagemProduto ADD COLUMN TipoMidia ENUM('imagem','video') NOT NULL DEFAULT 'imagem' AFTER Url");
+    }
+
     $jaVerificado = true;
 }
 
@@ -373,21 +386,29 @@ function obterImagensPorProduto($idProduto) {
     return $stmt->fetchAll();
 }
 
-// Move o upload pra geral/img/{subpasta}/{uuid}.ext e devolve a URL relativa, ou null se inválido.
+// Move o upload pra geral/img/{subpasta}/{uuid}.ext e devolve ['url' => ..., 'tipo' => 'imagem'|'video'],
+// ou null se inválido. Vídeo tem limite de tamanho maior — arquivo de vídeo é naturalmente bem
+// mais pesado que foto, 5MB não dá pra nada além de um clipe de poucos segundos.
 function uploadImagem($arquivo, $subpasta) {
     if (empty($arquivo['tmp_name']) || $arquivo['error'] !== UPLOAD_ERR_OK) {
         return null;
     }
 
-    $extensoesPermitidas = ['jpg', 'jpeg', 'png', 'webp', 'ico', 'svg'];
-    $tamanhoMaximo = 5 * 1024 * 1024;
+    $extensoesImagem = ['jpg', 'jpeg', 'png', 'webp', 'ico', 'svg'];
+    $extensoesVideo = ['mp4', 'webm', 'mov'];
+    $extensao = strtolower(pathinfo($arquivo['name'], PATHINFO_EXTENSION));
 
-    if ($arquivo['size'] > $tamanhoMaximo) {
+    if (in_array($extensao, $extensoesImagem, true)) {
+        $tipo = 'imagem';
+        $tamanhoMaximo = 5 * 1024 * 1024;
+    } elseif (in_array($extensao, $extensoesVideo, true)) {
+        $tipo = 'video';
+        $tamanhoMaximo = 30 * 1024 * 1024;
+    } else {
         return null;
     }
 
-    $extensao = strtolower(pathinfo($arquivo['name'], PATHINFO_EXTENSION));
-    if (!in_array($extensao, $extensoesPermitidas, true)) {
+    if ($arquivo['size'] > $tamanhoMaximo) {
         return null;
     }
 
@@ -401,7 +422,7 @@ function uploadImagem($arquivo, $subpasta) {
         return null;
     }
 
-    return '/geral/img/' . $subpasta . '/' . $nomeArquivo;
+    return ['url' => '/geral/img/' . $subpasta . '/' . $nomeArquivo, 'tipo' => $tipo];
 }
 
 // ---------------------------------------------------------------------

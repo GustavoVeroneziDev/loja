@@ -25,6 +25,23 @@ $variacoes = obterVariacoesPorProduto($idProduto);
 $imagens = obterImagensPorProduto($idProduto);
 $favoritado = ehFavorito($idProduto);
 
+// Mídia "base" (sem variação) aparece sempre; mídia ligada a uma variação só aparece quando ela
+// tá selecionada — ex: a foto do boné na cor verde só troca pra tela quando o cliente escolhe Verde.
+$imagensBase = array_values(array_filter($imagens, fn($img) => $img['FKVariacao'] === null));
+$imagensPorVariacao = [];
+foreach ($imagens as $img) {
+    if ($img['FKVariacao'] !== null) {
+        $imagensPorVariacao[$img['FKVariacao']][] = $img;
+    }
+}
+$paraMidiaJs = fn($img) => ['url' => urlAsset($img['Url']), 'tipo' => $img['TipoMidia']];
+
+$variacaoInicial = $variacoes[0] ?? null;
+$midiaInicial = array_merge(
+    $imagensBase,
+    ($variacaoInicial && isset($imagensPorVariacao[$variacaoInicial['IDVariacao']])) ? $imagensPorVariacao[$variacaoInicial['IDVariacao']] : []
+);
+
 require __DIR__ . '/geral/header.php';
 ?>
 <?php if ($modoPreview && !$produto['Ativo']): ?>
@@ -37,26 +54,33 @@ require __DIR__ . '/geral/header.php';
 <?php endif; ?>
 <div class="row g-4">
     <div class="col-md-6">
-        <?php if ($imagens): ?>
-            <div id="carrosselProduto" class="carousel slide">
-                <div class="carousel-inner rounded">
-                    <?php foreach ($imagens as $i => $imagem): ?>
+        <div id="carrosselProduto" class="carousel slide">
+            <div class="carousel-inner rounded">
+                <?php if ($midiaInicial): ?>
+                    <?php foreach ($midiaInicial as $i => $imagem): ?>
                         <div class="carousel-item <?= $i === 0 ? 'active' : '' ?>">
-                            <img src="<?= htmlspecialchars(urlAsset($imagem['Url'])) ?>" class="d-block w-100" style="aspect-ratio: 1; object-fit: cover;" alt="<?= htmlspecialchars($produto['Nome']) ?>">
+                            <?php if ($imagem['TipoMidia'] === 'video'): ?>
+                                <video src="<?= htmlspecialchars(urlAsset($imagem['Url'])) ?>" class="d-block w-100" style="aspect-ratio: 1; object-fit: cover;" controls muted></video>
+                            <?php else: ?>
+                                <img src="<?= htmlspecialchars(urlAsset($imagem['Url'])) ?>" class="d-block w-100" style="aspect-ratio: 1; object-fit: cover;" alt="<?= htmlspecialchars($produto['Nome']) ?>">
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
-                </div>
-                <?php if (count($imagens) > 1): ?>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#carrosselProduto" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon"></span>
-                    </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#carrosselProduto" data-bs-slide="next">
-                        <span class="carousel-control-next-icon"></span>
-                    </button>
+                <?php else: ?>
+                    <div class="carousel-item active">
+                        <img src="<?= htmlspecialchars(urlAsset('/geral/img/uscountry-logosolo.svg')) ?>" class="d-block w-100" style="aspect-ratio: 1; object-fit: contain; background: #f5f5f5;" alt="<?= htmlspecialchars($produto['Nome']) ?>">
+                    </div>
                 <?php endif; ?>
             </div>
-        <?php else: ?>
-            <img src="<?= htmlspecialchars(urlAsset('/geral/img/uscountry-logosolo.svg')) ?>" class="w-100 rounded" style="aspect-ratio: 1; object-fit: contain; background: #f5f5f5;" alt="<?= htmlspecialchars($produto['Nome']) ?>">
+            <button class="carousel-control-prev <?= count($midiaInicial) > 1 ? '' : 'd-none' ?>" type="button" data-bs-target="#carrosselProduto" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next <?= count($midiaInicial) > 1 ? '' : 'd-none' ?>" type="button" data-bs-target="#carrosselProduto" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
+        </div>
+        <?php if (count($variacoes) > 1): ?>
+            <script id="dadosMidiaBase" type="application/json"><?= json_encode(array_map($paraMidiaJs, $imagensBase)) ?></script>
         <?php endif; ?>
     </div>
     <div class="col-md-6">
@@ -120,21 +144,13 @@ require __DIR__ . '/geral/header.php';
                     </div>
                 <?php endif; ?>
                 <p class="badge-atencao px-2 py-1 small d-none mb-3" id="avisoIndisponivel">Essa combinação não está disponível.</p>
-                <script id="dadosVariacoes" type="application/json"><?= json_encode(array_map(fn($v) => [
-                    'id' => $v['IDVariacao'],
-                    'valor1' => $v['ValorAtributo1'],
-                    'valor2' => $v['ValorAtributo2'],
-                    'preco' => (float) $v['Preco'],
-                    'estoque' => (int) $v['Estoque'],
-                ], $variacoes)) ?></script>
             <?php elseif (count($variacoes) > 1): ?>
                 <div class="mb-3">
                     <label class="form-label d-block">Opção</label>
                     <div class="btn-group flex-wrap" role="group">
                         <?php foreach ($variacoes as $i => $variacao): ?>
                             <input type="radio" class="btn-check" name="variacao_id" value="<?= htmlspecialchars($variacao['IDVariacao']) ?>" id="variacao<?= $variacao['IDVariacao'] ?>"
-                                   data-preco="<?= $variacao['Preco'] ?>" data-estoque="<?= (int) $variacao['Estoque'] ?>"
-                                   <?= $i === 0 ? 'checked' : '' ?> onchange="atualizarVariacaoSelecionada(this)">
+                                   <?= $i === 0 ? 'checked' : '' ?> onchange="atualizarPorId(this.value)">
                             <label class="btn btn-outline-secondary" for="variacao<?= $variacao['IDVariacao'] ?>">
                                 <?= htmlspecialchars(descricaoVariacao($variacao) ?? 'Padrão') ?>
                             </label>
@@ -143,6 +159,17 @@ require __DIR__ . '/geral/header.php';
                 </div>
             <?php else: ?>
                 <input type="hidden" name="variacao_id" value="<?= htmlspecialchars($variacoes[0]['IDVariacao'] ?? '') ?>">
+            <?php endif; ?>
+
+            <?php if (count($variacoes) > 1): ?>
+                <script id="dadosVariacoes" type="application/json"><?= json_encode(array_map(fn($v) => [
+                    'id' => $v['IDVariacao'],
+                    'valor1' => $v['ValorAtributo1'],
+                    'valor2' => $v['ValorAtributo2'],
+                    'preco' => (float) $v['Preco'],
+                    'estoque' => (int) $v['Estoque'],
+                    'imagens' => array_map($paraMidiaJs, $imagensPorVariacao[$v['IDVariacao']] ?? []),
+                ], $variacoes)) ?></script>
             <?php endif; ?>
 
             <p class="h3 text-marca" id="precoSelecionado"><?= formatarPreco($variacoes[0]['Preco'] ?? 0) ?></p>
@@ -199,22 +226,6 @@ function atualizarBotoesQuantidade() {
     stepper.querySelector('[data-passo="1"]').disabled = valor >= max;
 }
 
-function atualizarVariacaoSelecionada(input) {
-    const preco = parseFloat(input.dataset.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const estoque = parseInt(input.dataset.estoque, 10);
-    document.getElementById('precoSelecionado').textContent = preco;
-    document.getElementById('estoqueSelecionado').innerHTML = textoEstoque(estoque);
-
-    const campoQuantidade = document.getElementById('quantidade');
-    campoQuantidade.max = estoque;
-    if (parseInt(campoQuantidade.value, 10) > estoque) {
-        campoQuantidade.value = estoque > 0 ? 1 : 0;
-    }
-
-    document.getElementById('btnAdicionar').disabled = estoque <= 0;
-    atualizarBotoesQuantidade();
-}
-
 (function () {
     var campo = document.getElementById('quantidade');
     var stepper = campo.closest('.stepper-quantidade');
@@ -234,16 +245,67 @@ function atualizarVariacaoSelecionada(input) {
     atualizarBotoesQuantidade();
 })();
 
-(function () {
+// Troca o conteúdo do carrossel pra mídia base + mídia específica da variação selecionada.
+// Sem mídia nenhuma (produto ainda sem foto pra essa variação), cai no placeholder da marca.
+function renderizarCarrossel(midiaVariacao) {
+    var carrossel = document.getElementById('carrosselProduto');
+    if (!carrossel) return;
+    var midiaBaseEl = document.getElementById('dadosMidiaBase');
+    var midiaBase = midiaBaseEl ? JSON.parse(midiaBaseEl.textContent) : [];
+    var itens = midiaBase.concat(midiaVariacao || []);
+
+    var inner = carrossel.querySelector('.carousel-inner');
+    if (!itens.length) {
+        inner.innerHTML = '<div class="carousel-item active"><img src="<?= htmlspecialchars(urlAsset('/geral/img/uscountry-logosolo.svg')) ?>" class="d-block w-100" style="aspect-ratio: 1; object-fit: contain; background: #f5f5f5;" alt=""></div>';
+    } else {
+        inner.innerHTML = itens.map(function (item, i) {
+            var conteudo = item.tipo === 'video'
+                ? '<video src="' + item.url + '" class="d-block w-100" style="aspect-ratio: 1; object-fit: cover;" controls muted></video>'
+                : '<img src="' + item.url + '" class="d-block w-100" style="aspect-ratio: 1; object-fit: cover;" alt="">';
+            return '<div class="carousel-item' + (i === 0 ? ' active' : '') + '">' + conteudo + '</div>';
+        }).join('');
+    }
+
+    carrossel.querySelectorAll('.carousel-control-prev, .carousel-control-next').forEach(function (c) {
+        c.classList.toggle('d-none', itens.length <= 1);
+    });
+
+    var instancia = bootstrap.Carousel.getInstance(carrossel);
+    if (instancia) instancia.dispose();
+    new bootstrap.Carousel(carrossel);
+}
+
+function aplicarVariacao(v) {
+    document.getElementById('precoSelecionado').textContent = v.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('estoqueSelecionado').innerHTML = textoEstoque(v.estoque);
+    var campoQuantidade = document.getElementById('quantidade');
+    campoQuantidade.max = v.estoque;
+    if (parseInt(campoQuantidade.value, 10) > v.estoque) {
+        campoQuantidade.value = v.estoque > 0 ? 1 : 0;
+    }
+    document.getElementById('btnAdicionar').disabled = v.estoque <= 0;
+    atualizarBotoesQuantidade();
+    renderizarCarrossel(v.imagens);
+}
+
+// Modo de lista única (produto com variação mas sem eixo configurado — "Opção" genérica).
+function atualizarPorId(id) {
     var dadosEl = document.getElementById('dadosVariacoes');
     if (!dadosEl) return;
     var variacoes = JSON.parse(dadosEl.textContent);
+    var v = variacoes.find(function (item) { return item.id === id; });
+    if (v) aplicarVariacao(v);
+}
+
+(function () {
+    var dadosEl = document.getElementById('dadosVariacoes');
     var grupo1 = document.querySelectorAll('input[name="opcao_eixo_1"]');
     var grupo2 = document.querySelectorAll('input[name="opcao_eixo_2"]');
+    if (!dadosEl || (!grupo1.length && !grupo2.length)) return;
+    var variacoes = JSON.parse(dadosEl.textContent);
     var campoVariacaoId = document.getElementById('campoVariacaoId');
     var aviso = document.getElementById('avisoIndisponivel');
     var btnAdicionar = document.getElementById('btnAdicionar');
-    var campoQuantidade = document.getElementById('quantidade');
 
     function valorMarcado(radios) {
         for (var i = 0; i < radios.length; i++) {
@@ -298,14 +360,7 @@ function atualizarVariacaoSelecionada(input) {
 
         if (encontrada) {
             campoVariacaoId.value = encontrada.id;
-            document.getElementById('precoSelecionado').textContent = encontrada.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('estoqueSelecionado').innerHTML = textoEstoque(encontrada.estoque);
-            campoQuantidade.max = encontrada.estoque;
-            if (parseInt(campoQuantidade.value, 10) > encontrada.estoque) {
-                campoQuantidade.value = encontrada.estoque > 0 ? 1 : 0;
-            }
-            btnAdicionar.disabled = encontrada.estoque <= 0;
-            atualizarBotoesQuantidade();
+            aplicarVariacao(encontrada);
             aviso.classList.add('d-none');
         } else {
             campoVariacaoId.value = '';

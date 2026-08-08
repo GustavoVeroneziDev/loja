@@ -156,17 +156,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'adicionar_imagem') {
         if (!empty($_FILES['imagem']['tmp_name'])) {
-            $url = uploadImagem($_FILES['imagem'], 'produtos');
-            if ($url) {
+            $midia = uploadImagem($_FILES['imagem'], 'produtos');
+            if ($midia) {
+                // Confere que a variação escolhida é mesmo desse produto (evita alguém plantar
+                // um FKVariacao de outro produto via POST manipulado).
+                $fkVariacao = $_POST['fk_variacao'] ?? '';
+                if ($fkVariacao !== '') {
+                    $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM VariacaoProduto WHERE IDVariacao = :id AND FKProduto = :produto");
+                    $stmtCheck->execute(['id' => $fkVariacao, 'produto' => $idProduto]);
+                    if ((int) $stmtCheck->fetchColumn() === 0) {
+                        $fkVariacao = '';
+                    }
+                }
+
                 $stmtOrdem = $pdo->prepare("SELECT COALESCE(MAX(Ordem), -1) + 1 FROM ImagemProduto WHERE FKProduto = :produto");
                 $stmtOrdem->execute(['produto' => $idProduto]);
                 $proximaOrdem = (int) $stmtOrdem->fetchColumn();
 
-                $stmt = $pdo->prepare("INSERT INTO ImagemProduto (IDImagem, FKProduto, Url, Ordem) VALUES (:id, :produto, :url, :ordem)");
+                $stmt = $pdo->prepare("INSERT INTO ImagemProduto (IDImagem, FKProduto, FKVariacao, Url, TipoMidia, Ordem) VALUES (:id, :produto, :variacao, :url, :tipo, :ordem)");
                 $stmt->execute([
                     'id' => gerarUuid(),
                     'produto' => $idProduto,
-                    'url' => $url,
+                    'variacao' => $fkVariacao !== '' ? $fkVariacao : null,
+                    'url' => $midia['url'],
+                    'tipo' => $midia['tipo'],
                     'ordem' => $proximaOrdem,
                 ]);
                 $sucesso = true;
@@ -287,28 +300,50 @@ require __DIR__ . '/../_topo.php';
         </div>
 
         <div class="card p-4 mt-4">
-            <h2 class="h5 mb-3">Imagens</h2>
+            <h2 class="h5 mb-3">Imagens e vídeos</h2>
+            <?php $descricaoPorVariacao = array_column(array_map(fn($v) => ['id' => $v['IDVariacao'], 'desc' => descricaoVariacao($v) ?? 'Padrão'], $variacoes), 'desc', 'id'); ?>
             <div class="row g-2 mb-3">
                 <?php foreach ($imagens as $imagem): ?>
                     <div class="col-4">
                         <div class="position-relative">
-                            <img src="<?= htmlspecialchars(urlAsset($imagem['Url'])) ?>" class="img-fluid rounded" alt="">
-                            <form method="post" data-confirmar="Excluir esta imagem?" class="position-absolute top-0 end-0 m-1">
+                            <?php if ($imagem['TipoMidia'] === 'video'): ?>
+                                <video src="<?= htmlspecialchars(urlAsset($imagem['Url'])) ?>" class="img-fluid rounded" style="aspect-ratio: 1; object-fit: cover; background: #000;" muted></video>
+                                <span class="position-absolute bottom-0 start-0 m-1 badge-admin px-2 py-1 small"><i class="bi bi-camera-video-fill"></i></span>
+                            <?php else: ?>
+                                <img src="<?= htmlspecialchars(urlAsset($imagem['Url'])) ?>" class="img-fluid rounded" style="aspect-ratio: 1; object-fit: cover;" alt="">
+                            <?php endif; ?>
+                            <form method="post" data-confirmar="Excluir <?= $imagem['TipoMidia'] === 'video' ? 'este vídeo' : 'esta imagem' ?>?" class="position-absolute top-0 end-0 m-1">
                                 <input type="hidden" name="action" value="excluir_imagem">
                                 <input type="hidden" name="id_imagem" value="<?= htmlspecialchars($imagem['IDImagem']) ?>">
                                 <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>
                             </form>
                         </div>
+                        <?php if (!$modoSimples): ?>
+                            <div class="text-secundario small text-center mt-1">
+                                <?= $imagem['FKVariacao'] ? htmlspecialchars($descricaoPorVariacao[$imagem['FKVariacao']] ?? 'variação removida') : 'todas' ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
                 <?php if (!$imagens): ?>
                     <p class="text-secundario mb-0">Nenhuma imagem ainda.</p>
                 <?php endif; ?>
             </div>
-            <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
+            <form method="post" enctype="multipart/form-data" class="d-flex flex-column gap-2">
                 <input type="hidden" name="action" value="adicionar_imagem">
-                <input type="file" name="imagem" class="form-control" accept=".jpg,.jpeg,.png,.webp" required>
-                <button type="submit" class="btn btn-marca rounded-pill text-nowrap">Enviar</button>
+                <?php if (!$modoSimples): ?>
+                    <select name="fk_variacao" class="form-select">
+                        <option value="" class="opcao-titulo">Todas as variações (base)</option>
+                        <?php foreach ($variacoes as $variacao): ?>
+                            <option value="<?= htmlspecialchars($variacao['IDVariacao']) ?>"><?= htmlspecialchars(descricaoVariacao($variacao) ?? 'Padrão') ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text mt-0">Escolhendo uma variação, essa foto/vídeo só aparece pro cliente quando ele selecionar essa opção. "Todas as variações" aparece sempre, independente da escolha.</div>
+                <?php endif; ?>
+                <div class="d-flex gap-2">
+                    <input type="file" name="imagem" class="form-control" accept=".jpg,.jpeg,.png,.webp,.mp4,.webm,.mov" required>
+                    <button type="submit" class="btn btn-marca rounded-pill text-nowrap">Enviar</button>
+                </div>
             </form>
         </div>
     </div>
