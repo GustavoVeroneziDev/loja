@@ -27,6 +27,16 @@ body {
     padding-bottom: .75rem;
 }
 
+.navbar-marca {
+    padding-top: .6rem;
+    padding-bottom: .6rem;
+}
+
+.logo-admin {
+    height: 36px;
+    width: auto;
+}
+
 /* Ícones de contato no rodapé (e-mail, WhatsApp, redes sociais) */
 .icone-contato {
     width: 2rem;

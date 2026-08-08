@@ -29,7 +29,8 @@ $rotaAtual = $_SERVER['SCRIPT_NAME'] ?? '';
 <nav class="navbar navbar-expand-lg navbar-marca navbar-light">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="<?= URL_BASE ?>/admin/index.php">
-            <span class="badge-admin px-2 py-1">Admin</span> <?= htmlspecialchars($nomeLoja) ?>
+            <img src="<?= htmlspecialchars(urlAsset(LOGO_URL)) ?>" alt="<?= htmlspecialchars($nomeLoja) ?>" class="logo-admin">
+            <span class="fw-semibold"><?= htmlspecialchars($nomeLoja) ?></span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdmin">
             <span class="navbar-toggler-icon"></span>
