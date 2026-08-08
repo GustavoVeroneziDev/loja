@@ -77,16 +77,19 @@ require __DIR__ . '/geral/header.php';
                             <?php endif; ?>
                         </div>
                         <div class="col-6 col-md-3">
-                            <form method="post" class="d-flex align-items-center gap-2">
+                            <form method="post" class="d-flex align-items-center gap-2 form-quantidade" data-preco-unitario="<?= $v['Preco'] ?>">
                                 <input type="hidden" name="action" value="atualizar">
                                 <input type="hidden" name="variacao_id" value="<?= htmlspecialchars($item['IDVariacao']) ?>">
-                                <input type="number" name="quantidade" value="<?= $item['Quantidade'] ?>" min="1" max="<?= (int) $v['Estoque'] ?>" class="form-control form-control-sm" style="width: 70px;">
+                                <input type="number" name="quantidade" value="<?= $item['Quantidade'] ?>" min="1" max="<?= (int) $v['Estoque'] ?>" class="form-control form-control-sm campo-quantidade" style="width: 70px;">
                                 <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill">Atualizar</button>
                             </form>
                         </div>
-                        <div class="col-4 col-md-2 fw-semibold"><?= formatarPreco($item['subtotal']) ?></div>
+                        <div class="col-4 col-md-2">
+                            <div class="text-secundario small texto-quantidade"><?= $item['Quantidade'] ?>x <?= formatarPreco($v['Preco']) ?></div>
+                            <div class="fw-semibold valor-subtotal"><?= formatarPreco($item['subtotal']) ?></div>
+                        </div>
                         <div class="col-2 col-md-1 text-end">
-                            <form method="post" onsubmit="return confirm('Remover este item?');">
+                            <form method="post" data-confirmar="Remover este item do carrinho?">
                                 <input type="hidden" name="action" value="remover">
                                 <input type="hidden" name="variacao_id" value="<?= htmlspecialchars($item['IDVariacao']) ?>">
                                 <button type="submit" class="btn btn-sm btn-perigo rounded-pill" aria-label="Remover"><i class="bi bi-trash"></i></button>

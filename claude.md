@@ -106,6 +106,7 @@ Se a página tem uma âncora relevante (uma seção específica que o usuário e
 - **Ícones**: Bootstrap Icons (`bi-*`) em quase todo lugar, coloridos pra bater com o contexto (não fico só em preto/cinza).
 - **Escolha binária (A ou B)**: uso `btn-check` + `label.btn.btn-outline-secondary` (rádio disfarçado de botão), não dropdown, quando são só 2-3 opções.
 - **Campo condicional**: mostro/escondo com JS vanilla trocando `classList.toggle('d-none', condicao)` — nunca escondo com `display:none` direto no CSS de forma que dependa de JS pra nunca aparecer (senão quebra sem JS).
+- **Confirmação de ação (excluir, remover etc.)**: **JAMAIS uso `confirm()`/`alert()` nativo do navegador** — aquela caixa feia "O site diz...". Sempre um modal Bootstrap centralizado (`modal-dialog-centered`) com efeito acrílico (fundo com leve `backdrop-filter: blur()`, tanto no backdrop quanto no `.modal-content`) pra destacar o item em questão. Formulário que precisa de confirmação leva `data-confirmar="mensagem"` em vez de `onsubmit="return confirm(...)"` — o JS compartilhado (repetido no rodapé público e no do admin, mesmo padrão do botão de mostrar senha) intercepta, mostra o modal, e só dá `form.submit()` de verdade se a pessoa confirmar. Regra sem exceção, vale pra qualquer confirmação nova que eu pedir daqui pra frente.
 - **Emoji**: uso em mensagens de WhatsApp/notificação (é convenção nativa desse canal), **não** uso em texto de UI dentro do site.
 
 ### 1.7 Mobile — pensar nisso desde o início, não depois

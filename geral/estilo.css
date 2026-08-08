@@ -14,6 +14,26 @@ body {
     min-height: 80vh;
 }
 
+/* Todo modal (inclusive confirmação — nunca uso confirm()/alert() nativo do navegador) ganha
+   efeito acrílico: fundo semitransparente com blur, pra destacar o item em questão por trás. */
+.modal-backdrop {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.modal-backdrop.show {
+    opacity: 1;
+    background-color: rgba(250, 244, 238, .6);
+}
+
+.modal-content {
+    background-color: rgba(255, 255, 255, .88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, .7);
+    border-radius: 16px;
+}
+
 .card,
 .card-admin {
     background-color: #ffffff;

@@ -192,7 +192,7 @@ require __DIR__ . '/../_topo.php';
                     <div class="col-4">
                         <div class="position-relative">
                             <img src="<?= htmlspecialchars(urlAsset($imagem['Url'])) ?>" class="img-fluid rounded" alt="">
-                            <form method="post" onsubmit="return confirm('Excluir esta imagem?');" class="position-absolute top-0 end-0 m-1">
+                            <form method="post" data-confirmar="Excluir esta imagem?" class="position-absolute top-0 end-0 m-1">
                                 <input type="hidden" name="action" value="excluir_imagem">
                                 <input type="hidden" name="id_imagem" value="<?= htmlspecialchars($imagem['IDImagem']) ?>">
                                 <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>
@@ -241,7 +241,7 @@ require __DIR__ . '/../_topo.php';
                                 <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditarVariacao<?= $variacao['IDVariacao'] ?>">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <form method="post" class="d-inline" onsubmit="return confirm('Excluir esta variação?');">
+                                <form method="post" class="d-inline" data-confirmar="Excluir esta variação?">
                                     <input type="hidden" name="action" value="excluir_variacao">
                                     <input type="hidden" name="id_variacao" value="<?= htmlspecialchars($variacao['IDVariacao']) ?>">
                                     <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>

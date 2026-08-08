@@ -85,7 +85,7 @@ require __DIR__ . '/_topo.php';
                         <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $categoria['IDCategoria'] ?>">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <form method="post" class="d-inline" onsubmit="return confirm('Excluir esta categoria?');">
+                        <form method="post" class="d-inline" data-confirmar="Excluir esta categoria?">
                             <input type="hidden" name="action" value="excluir">
                             <input type="hidden" name="id" value="<?= htmlspecialchars($categoria['IDCategoria']) ?>">
                             <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>

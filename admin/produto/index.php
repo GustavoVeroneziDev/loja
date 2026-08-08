@@ -103,7 +103,7 @@ require __DIR__ . '/../_topo.php';
                         <a href="<?= URL_BASE ?>/admin/produto/editar.php?id=<?= urlencode($produto['IDProduto']) ?>" class="btn btn-sm btn-outline-secondary rounded-pill">
                             <i class="bi bi-pencil"></i>
                         </a>
-                        <form method="post" class="d-inline" onsubmit="return confirm('Excluir este produto e todas as suas variações/imagens?');">
+                        <form method="post" class="d-inline" data-confirmar="Excluir este produto e todas as suas variações/imagens?">
                             <input type="hidden" name="action" value="excluir">
                             <input type="hidden" name="id" value="<?= htmlspecialchars($produto['IDProduto']) ?>">
                             <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>
