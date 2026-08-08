@@ -81,7 +81,7 @@ $totalCarrinho = contarItensCarrinho();
                 <?php if (clienteLogado()): ?>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle"></i> <?= htmlspecialchars($_SESSION['usuario_nome']) ?>
+                            <i class="bi bi-person-circle"></i> <?= htmlspecialchars(primeiroNome($_SESSION['usuario_nome'])) ?>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="<?= URL_BASE ?>/usuario/minha-conta.php"><i class="bi bi-person"></i> Minha conta</a></li>

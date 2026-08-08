@@ -11,6 +11,11 @@ function formatarPreco($valor) {
     return 'R$ ' . number_format((float) $valor, 2, ',', '.');
 }
 
+// Pra saudação/menu de usuário — nome completo não cabe em navbar.
+function primeiroNome($nomeCompleto) {
+    return trim(explode(' ', trim($nomeCompleto))[0]);
+}
+
 // Imagem/upload/logo são salvos no banco como caminho relativo à raiz do projeto (sem URL_BASE),
 // pra não ficarem presos ao nome da subpasta do deploy atual — URL_BASE só entra na hora de exibir.
 function urlAsset($caminhoRelativo) {
