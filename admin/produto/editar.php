@@ -20,6 +20,8 @@ if (!$produto) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $sucesso = null;
+    $erroCodigo = null;
+    $avisoCodigo = null;
 
     if ($action === 'editar') {
         $nome = trim($_POST['nome'] ?? '');
@@ -28,6 +30,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ativo = isset($_POST['ativo']) ? 1 : 0;
         $nomeAtributo1 = trim($_POST['nome_atributo_1'] ?? '');
         $nomeAtributo2 = trim($_POST['nome_atributo_2'] ?? '');
+
+        // Nunca deixa ficar visível na loja com o cadastro incompleto — sem essa checagem dava
+        // pra ativar um produto sem nenhuma foto, ou que venderia por R$ 0,00.
+        if ($ativo === 1) {
+            $stmtPreco = $pdo->prepare("SELECT COUNT(*) FROM VariacaoProduto WHERE FKProduto = :produto AND Preco > 0");
+            $stmtPreco->execute(['produto' => $idProduto]);
+            $temPreco = (int) $stmtPreco->fetchColumn() > 0;
+
+            $stmtImagem = $pdo->prepare("SELECT COUNT(*) FROM ImagemProduto WHERE FKProduto = :produto");
+            $stmtImagem->execute(['produto' => $idProduto]);
+            $temImagem = (int) $stmtImagem->fetchColumn() > 0;
+
+            if (!$temPreco || !$temImagem) {
+                $ativo = 0;
+                $avisoCodigo = !$temPreco && !$temImagem ? 'incompleto_preco_imagem' : (!$temPreco ? 'incompleto_preco' : 'incompleto_imagem');
+            }
+        }
 
         if ($nome !== '') {
             $stmt = $pdo->prepare("UPDATE Produto SET Nome = :nome, Descricao = :descricao, FKCategoria = :categoria, Ativo = :ativo, NomeAtributo1 = :atributo1, NomeAtributo2 = :atributo2 WHERE IDProduto = :id");
@@ -52,23 +71,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Preço vem em centavos digitados (a máscara de JS já mostra formatado) — 5000 = R$ 50,00.
         $preco = ((int) preg_replace('/\D/', '', $_POST['preco'] ?? '0')) / 100;
         $estoque = max(0, (int) ($_POST['estoque'] ?? 0));
-        $idVariacao = gerarUuid();
-        // SKU é código interno, não precisa ser digitado — gera um a partir da própria variação se deixarem em branco.
-        if ($sku === '') {
-            $sku = 'VAR-' . strtoupper(substr($idVariacao, 0, 8));
-        }
 
-        $stmt = $pdo->prepare("INSERT INTO VariacaoProduto (IDVariacao, FKProduto, ValorAtributo1, ValorAtributo2, SKU, Preco, Estoque) VALUES (:id, :produto, :valor1, :valor2, :sku, :preco, :estoque)");
-        $stmt->execute([
-            'id' => $idVariacao,
-            'produto' => $idProduto,
-            'valor1' => $valor1 !== '' ? $valor1 : null,
-            'valor2' => $valor2 !== '' ? $valor2 : null,
-            'sku' => $sku,
-            'preco' => $preco,
-            'estoque' => $estoque,
-        ]);
-        $sucesso = true;
+        if ($preco <= 0) {
+            $erroCodigo = 'preco_invalido';
+        } else {
+            $idVariacao = gerarUuid();
+            // SKU é código interno, não precisa ser digitado — gera um a partir da própria variação se deixarem em branco.
+            if ($sku === '') {
+                $sku = 'VAR-' . strtoupper(substr($idVariacao, 0, 8));
+            }
+
+            $stmt = $pdo->prepare("INSERT INTO VariacaoProduto (IDVariacao, FKProduto, ValorAtributo1, ValorAtributo2, SKU, Preco, Estoque) VALUES (:id, :produto, :valor1, :valor2, :sku, :preco, :estoque)");
+            $stmt->execute([
+                'id' => $idVariacao,
+                'produto' => $idProduto,
+                'valor1' => $valor1 !== '' ? $valor1 : null,
+                'valor2' => $valor2 !== '' ? $valor2 : null,
+                'sku' => $sku,
+                'preco' => $preco,
+                'estoque' => $estoque,
+            ]);
+            $sucesso = true;
+        }
     }
 
     if ($action === 'editar_variacao') {
@@ -82,7 +106,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sku = 'VAR-' . strtoupper(substr($idVariacao, 0, 8));
         }
 
-        if ($idVariacao !== '') {
+        if ($preco <= 0) {
+            $erroCodigo = 'preco_invalido';
+        } elseif ($idVariacao !== '') {
             $stmt = $pdo->prepare("UPDATE VariacaoProduto SET ValorAtributo1 = :valor1, ValorAtributo2 = :valor2, SKU = :sku, Preco = :preco, Estoque = :estoque WHERE IDVariacao = :id AND FKProduto = :produto");
             $stmt->execute([
                 'valor1' => $valor1 !== '' ? $valor1 : null,
@@ -145,12 +171,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    header('Location: ' . URL_BASE . '/admin/produto/editar.php?id=' . urlencode($idProduto) . ($sucesso ? '&ok=1' : '&erro=1'));
+    $destino = URL_BASE . '/admin/produto/editar.php?id=' . urlencode($idProduto);
+    $destino .= $sucesso ? '&ok=1' : '&erro=' . urlencode($erroCodigo ?? 'geral');
+    if ($avisoCodigo) {
+        $destino .= '&aviso=' . urlencode($avisoCodigo);
+    }
+    header('Location: ' . $destino);
     exit;
 }
 
+$errosMap = [
+    'geral' => 'Não foi possível concluir a ação (o produto precisa de ao menos 1 variação e 1 imagem válida).',
+    'preco_invalido' => 'O preço da variação precisa ser maior que R$ 0,00.',
+];
+$avisosMap = [
+    'incompleto_preco_imagem' => 'Salvo, mas continua em rascunho: falta uma variação com preço e pelo menos 1 foto pra poder ficar visível na loja.',
+    'incompleto_preco' => 'Salvo, mas continua em rascunho: nenhuma variação tem preço definido (maior que R$ 0,00) ainda.',
+    'incompleto_imagem' => 'Salvo, mas continua em rascunho: o produto ainda não tem nenhuma foto.',
+];
+
 $sucesso = isset($_GET['ok']) ? 'Operação realizada com sucesso.' : null;
-$erro = isset($_GET['erro']) ? 'Não foi possível concluir a ação (o produto precisa de ao menos 1 variação e 1 imagem válida).' : null;
+$erro = isset($_GET['erro']) ? ($errosMap[$_GET['erro']] ?? $errosMap['geral']) : null;
+$aviso = isset($_GET['aviso']) ? ($avisosMap[$_GET['aviso']] ?? null) : null;
 
 $categorias = obterCategoriasArvore();
 $variacoes = obterVariacoesPorProduto($idProduto);
@@ -172,6 +214,7 @@ require __DIR__ . '/../_topo.php';
 
 <?php if ($sucesso): ?><div class="alert alert-success">Operação realizada com sucesso.</div><?php endif; ?>
 <?php if ($erro): ?><div class="alert alert-danger"><?= $erro ?></div><?php endif; ?>
+<?php if ($aviso): ?><div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> <?= $aviso ?></div><?php endif; ?>
 
 <div class="row g-4">
     <div class="col-lg-6">
