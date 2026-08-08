@@ -36,9 +36,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // "Adicionar ao carrinho" na grade de produtos manda voltar_para pra continuar na mesma
-    // página em vez de pular pro carrinho; só aceita caminho do próprio site (evita open redirect).
+    // página em vez de pular pro carrinho; só aceita caminho relativo do próprio site (começa
+    // com "/" e não "//", que o navegador trata como outro host — evita open redirect). Checar
+    // só com strpos($x, URL_BASE) quebrava em produção: lá URL_BASE é string vazia (site na raiz
+    // do domínio, sem subpasta), e strpos(qualquercoisa, "") sempre dá 0 — validação nunca falhava
+    // mesmo com voltar_para vazio, e "Location: " sem valor nenhum dá tela em branco no navegador.
     $voltarPara = $_POST['voltar_para'] ?? '';
-    if (strpos($voltarPara, URL_BASE) !== 0) {
+    $mesmoSite = $voltarPara !== '' && $voltarPara[0] === '/' && ($voltarPara[1] ?? '') !== '/';
+    if (!$mesmoSite) {
         $voltarPara = URL_BASE . '/carrinho.php';
     }
     if ($falhou) {
