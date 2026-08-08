@@ -265,7 +265,13 @@ body {
     line-height: 1;
 }
 
-/* Botão de mostrar/ocultar senha embutido no próprio campo */
+/* Botão de mostrar/ocultar senha embutido no próprio campo — funciona tanto dentro de
+   .form-floating (que já tem position:relative do Bootstrap) quanto num wrapper solto
+   em volta só do input, sem label junto (por isso o position:relative explícito aqui). */
+.tem-toggle-senha {
+    position: relative;
+}
+
 .tem-toggle-senha .form-control {
     padding-right: 2.75rem;
 }
