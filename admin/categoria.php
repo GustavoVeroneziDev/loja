@@ -126,7 +126,7 @@ require __DIR__ . '/_topo.php';
                         <div class="mb-3">
                             <label class="form-label">Essa categoria é subcategoria de:</label>
                             <select name="fk_categoria_pai" class="form-select">
-                                <option value="">Nenhuma — é uma categoria principal</option>
+                                <option value="" class="opcao-titulo">Nenhuma — é uma categoria principal</option>
                                 <?php foreach ($categorias as $opcao): ?>
                                     <?php if ($opcao['IDCategoria'] !== $categoria['IDCategoria']): ?>
                                         <option value="<?= htmlspecialchars($opcao['IDCategoria']) ?>" <?= $opcao['IDCategoria'] === $categoria['FKCategoriaPai'] ? 'selected' : '' ?>>
@@ -164,7 +164,7 @@ require __DIR__ . '/_topo.php';
                     <div class="mb-3">
                         <label class="form-label">Essa categoria é subcategoria de:</label>
                         <select name="fk_categoria_pai" class="form-select">
-                            <option value="">Nenhuma — é uma categoria principal</option>
+                            <option value="" class="opcao-titulo">Nenhuma — é uma categoria principal</option>
                             <?php foreach ($categorias as $opcao): ?>
                                 <option value="<?= htmlspecialchars($opcao['IDCategoria']) ?>">
                                     <?= str_repeat('— ', $opcao['Nivel']) ?><?= htmlspecialchars($opcao['Nome']) ?>

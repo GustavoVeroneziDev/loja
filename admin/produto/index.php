@@ -157,7 +157,7 @@ require __DIR__ . '/../_topo.php';
                     <div class="mb-3">
                         <label class="form-label">Categoria</label>
                         <select name="fk_categoria" class="form-select">
-                            <option value="">Sem categoria</option>
+                            <option value="" class="opcao-titulo">Sem categoria</option>
                             <?php foreach ($categorias as $categoria): ?>
                                 <option value="<?= htmlspecialchars($categoria['IDCategoria']) ?>">
                                     <?= str_repeat('— ', $categoria['Nivel']) ?><?= htmlspecialchars($categoria['Nome']) ?>

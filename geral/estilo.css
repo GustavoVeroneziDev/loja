@@ -228,6 +228,13 @@ body {
     color: #6b6560;
 }
 
+/* Primeira opção de um <select> de categoria ("Sem categoria"/"Nenhuma") — não é um item de
+   verdade, é só ausência de escolha, então fica em itálico/cinza pra não confundir com os outros */
+.opcao-titulo {
+    font-style: italic;
+    color: #6b6560;
+}
+
 .form-floating > .form-control:focus ~ label,
 .form-floating > .form-control:not(:placeholder-shown) ~ label {
     background-color: #fff;

@@ -2,6 +2,10 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+// Página com dado dinâmico (preço, estoque, nome do produto) — nunca deixa navegador/proxy/CDN
+// guardar em cache uma versão antiga; sem isso, trocar de produto às vezes mostrava o nome errado.
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 require_once __DIR__ . '/../config/conexao.php';
 require_once __DIR__ . '/../config/funcoes.php';
 require_once __DIR__ . '/../config/marca.php';
