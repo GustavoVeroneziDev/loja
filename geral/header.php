@@ -4,6 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once __DIR__ . '/../config/conexao.php';
 require_once __DIR__ . '/../config/funcoes.php';
+require_once __DIR__ . '/../config/marca.php';
 
 // Admin logado nunca vê a vitrine — a área dele é o painel, não o site de compra.
 if (adminLogado()) {
@@ -11,8 +12,6 @@ if (adminLogado()) {
     exit;
 }
 
-garantirTabelaConfiguracaoLoja();
-garantirConfiguracaoLojaPadrao();
 garantirTabelaCategoria();
 garantirTabelaProduto();
 garantirTabelaVariacaoProduto();
@@ -21,11 +20,7 @@ garantirTabelaUsuario();
 garantirTabelaItemCarrinho();
 garantirTabelaFavorito();
 
-$nomeLoja = obterConfiguracaoLoja('nome_loja', 'Minha Loja');
-$corPrimaria = obterConfiguracaoLoja('cor_primaria', '#e08a3c');
-$corSecundaria = obterConfiguracaoLoja('cor_secundaria', '#c08552');
-$logoUrl = obterConfiguracaoLoja('logo_url', '/geral/img/Logo-texto.svg');
-$faviconUrl = obterConfiguracaoLoja('favicon_url', $logoUrl);
+$nomeLoja = NOME_LOJA;
 $categoriasNav = array_filter(obterCategoriasArvore(), fn($c) => empty($c['FKCategoriaPai']));
 $totalCarrinho = contarItensCarrinho();
 ?>
@@ -35,26 +30,20 @@ $totalCarrinho = contarItensCarrinho();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars($nomeLoja) ?></title>
-    <link rel="icon" href="<?= htmlspecialchars(urlAsset($faviconUrl)) ?>">
+    <link rel="icon" href="<?= htmlspecialchars(urlAsset(FAVICON_URL)) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="<?= URL_BASE ?>/geral/marca.css" rel="stylesheet">
-    <style>
-        :root {
-            --cor-primaria: <?= htmlspecialchars($corPrimaria) ?>;
-            --cor-secundaria: <?= htmlspecialchars($corSecundaria) ?>;
-        }
-    </style>
+    <link href="<?= URL_BASE ?>/geral/estrutura.css" rel="stylesheet">
     <link href="<?= URL_BASE ?>/geral/estilo.css" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-marca navbar-light">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="<?= URL_BASE ?>/index.php">
-            <img src="<?= htmlspecialchars(urlAsset($logoUrl)) ?>" alt="<?= htmlspecialchars($nomeLoja) ?>" class="logo-loja">
+            <img src="<?= htmlspecialchars(urlAsset(LOGO_URL)) ?>" alt="<?= htmlspecialchars($nomeLoja) ?>" class="logo-loja">
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navLoja">
             <span class="navbar-toggler-icon"></span>

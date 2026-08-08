@@ -39,6 +39,5 @@ require __DIR__ . '/_topo.php';
 <div class="mt-4 d-flex gap-2 flex-wrap">
     <a href="<?= URL_BASE ?>/admin/produto/index.php" class="btn btn-marca rounded-pill"><i class="bi bi-box-seam"></i> Gerenciar produtos</a>
     <a href="<?= URL_BASE ?>/admin/categoria.php" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-tags"></i> Gerenciar categorias</a>
-    <a href="<?= URL_BASE ?>/admin/configuracoes.php" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-palette"></i> Configurações da loja</a>
 </div>
 <?php require __DIR__ . '/_rodape.php'; ?>

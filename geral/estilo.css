@@ -1,17 +1,46 @@
 /*
- * Cores semânticas (não são pele — ficam fixas em todo clone).
- * Verde = sucesso/ativo, vermelho = perigo, âmbar = atenção, dourado = destaque, roxo = admin.
- * Recalibradas pra ler bem em fundo claro (mais escuras/saturadas do que a versão de fundo escuro).
+ * Estilo: cor e tema. Layout/forma fica em geral/estrutura.css.
+ *
+ * Cor de marca (linha abaixo até .logo-loja) é a "pele" — troca por cliente clonado.
+ * O resto (badges, botões semânticos, fundo, texto) é cor semântica fixa, não muda
+ * de clone pra clone: verde = sucesso/ativo, vermelho = perigo, âmbar = atenção,
+ * dourado = destaque, roxo = admin. Recalibradas pra ler bem em fundo claro.
  */
+
+:root {
+    --cor-primaria: #e08a3c;
+    --cor-secundaria: #c08552;
+}
+
+.navbar-marca {
+    background-color: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+}
+
+.btn-marca {
+    background-color: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+    color: #fff;
+    box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--cor-primaria) 45%, transparent);
+}
+
+.btn-marca:hover,
+.btn-marca:focus {
+    filter: brightness(1.08);
+    background-color: var(--cor-primaria);
+    color: #fff;
+}
+
+.text-marca {
+    color: var(--cor-primaria);
+}
+
+.link-marca {
+    color: var(--cor-secundaria);
+}
 
 body {
     background-color: #faf4ee;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-}
-
-/* Evita o rodapé grudar no header em página com pouco conteúdo (categoria vazia, telas de login, etc.) */
-.main-conteudo {
-    min-height: 80vh;
 }
 
 /* Todo modal (inclusive confirmação — nunca uso confirm()/alert() nativo do navegador) ganha
@@ -31,14 +60,12 @@ body {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, .7);
-    border-radius: 16px;
 }
 
 .card,
 .card-admin {
     background-color: #ffffff;
     border: 1px solid rgba(0, 0, 0, .05);
-    border-radius: 16px;
     box-shadow: 0 1px 2px rgba(20, 15, 10, .04), 0 8px 24px -4px rgba(20, 15, 10, .06);
 }
 
@@ -50,35 +77,30 @@ body {
     background: rgba(34, 197, 94, .12);
     color: #15803d;
     border: 1px solid rgba(34, 197, 94, .3);
-    border-radius: 999px;
 }
 
 .badge-perigo {
     background: rgba(239, 68, 68, .12);
     color: #dc2626;
     border: 1px solid rgba(239, 68, 68, .3);
-    border-radius: 999px;
 }
 
 .badge-atencao {
     background: rgba(245, 158, 11, .12);
     color: #b45309;
     border: 1px solid rgba(245, 158, 11, .3);
-    border-radius: 999px;
 }
 
 .badge-destaque {
     background: rgba(192, 133, 82, .14);
     color: #93582f;
     border: 1px solid rgba(192, 133, 82, .35);
-    border-radius: 999px;
 }
 
 .badge-admin {
     background: rgba(124, 58, 237, .12);
     color: #6d28d9;
     border: 1px solid rgba(124, 58, 237, .3);
-    border-radius: 999px;
 }
 
 .btn-sucesso {
@@ -99,36 +121,8 @@ body {
     color: #1a1206;
 }
 
-.flex-truncate {
-    min-width: 0;
-}
-
-/* Respiro mínimo acima dos cards estreitos e centralizados (login/cadastro, recuperar/redefinir senha) */
-.col-md-5.mx-auto {
-    margin-top: 10vh;
-}
-
-/* Transição suave entre os painéis de login/cadastro em usuario/_form-auth.php */
-.auth-painel {
-    transition: opacity .2s ease, transform .2s ease;
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.auth-painel.auth-saindo {
-    opacity: 0;
-    transform: translateY(-6px);
-}
-
-.auth-painel.auth-entrando {
-    opacity: 0;
-    transform: translateY(6px);
-}
-
-/* Inputs mais arredondados e com anel de foco na cor de marca em vez do azul padrão do Bootstrap */
 .form-control,
 .form-select {
-    border-radius: 10px;
     border-color: rgba(0, 0, 0, .12);
 }
 
@@ -140,73 +134,25 @@ body {
 
 .form-floating > label {
     color: #6b6560;
-    transition: transform .15s ease-in-out, background-color .15s ease-in-out;
 }
 
-/* Label "cortando" a borda de cima quando flutua, tipo ---Nome---, em vez de ficar solto dentro da caixa */
 .form-floating > .form-control:focus ~ label,
 .form-floating > .form-control:not(:placeholder-shown) ~ label {
-    top: 0;
-    left: .5rem;
-    height: auto;
-    width: auto;
-    max-width: none;
-    padding: 0 .4rem;
     background-color: #fff;
-    border-radius: 4px;
-    transform: translateY(-50%) scale(.82);
 }
 
-/* Quantidade do carrinho — número centralizado + botões de + e - empilhados ao lado,
-   em vez das setinhas nativas do input number */
 .stepper-quantidade {
-    display: flex;
-    align-items: stretch;
     border: 1px solid rgba(0, 0, 0, .12);
-    border-radius: 10px;
-    overflow: hidden;
-    width: fit-content;
     background-color: #fff;
-}
-
-.stepper-quantidade .campo-quantidade {
-    width: 3rem;
-    border: none;
-    background: transparent;
-    text-align: center;
-    font-weight: 600;
-    -moz-appearance: textfield;
-}
-
-.stepper-quantidade .campo-quantidade::-webkit-outer-spin-button,
-.stepper-quantidade .campo-quantidade::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.stepper-quantidade .campo-quantidade:focus {
-    outline: none;
-    box-shadow: none;
 }
 
 .stepper-botoes {
-    display: flex;
-    flex-direction: column;
     border-left: 1px solid rgba(0, 0, 0, .12);
 }
 
 .stepper-botao {
-    width: 1.75rem;
-    height: 1.15rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     background-color: #f7f4f1;
-    border: none;
     color: #6b6560;
-    font-size: .65rem;
-    line-height: 1;
-    padding: 0;
 }
 
 .stepper-botao:first-child {
@@ -222,73 +168,24 @@ body {
     opacity: .4;
 }
 
-/* Coração de favoritar — sobre a imagem do produto (cards) ou ao lado do título (detalhe) */
 .btn-favorito {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 50%;
     background: rgba(255, 255, 255, .92);
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     color: #6b6560;
     box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
-    text-decoration: none;
-    flex-shrink: 0;
 }
 
-.btn-favorito:hover {
-    color: #dc2626;
-}
-
+.btn-favorito:hover,
 .btn-favorito.ativo {
     color: #dc2626;
 }
 
-/* Contador no botão de carrinho da navbar */
 .badge-carrinho {
-    position: absolute;
-    top: -.4rem;
-    right: -.4rem;
-    min-width: 1.1rem;
-    height: 1.1rem;
-    padding: 0 .3rem;
-    border-radius: 999px;
     background-color: var(--cor-primaria);
     color: #fff;
-    font-size: .65rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-}
-
-/* Botão de mostrar/ocultar senha embutido no próprio campo — funciona tanto dentro de
-   .form-floating (que já tem position:relative do Bootstrap) quanto num wrapper solto
-   em volta só do input, sem label junto (por isso o position:relative explícito aqui). */
-.tem-toggle-senha {
-    position: relative;
-}
-
-.tem-toggle-senha .form-control {
-    padding-right: 2.75rem;
 }
 
 .btn-toggle-senha {
-    position: absolute;
-    top: 0;
-    right: 0;
-    height: 100%;
-    width: 2.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
     color: #6b6560;
-    z-index: 5;
 }
 
 .btn-toggle-senha:hover {
@@ -302,13 +199,4 @@ body {
     -webkit-box-shadow: 0 0 0 1000px #fff inset;
     -webkit-text-fill-color: #1a1a1a;
     transition: background-color 5000s ease-in-out 0s;
-}
-
-/* Safari iOS dá zoom automático ao focar input com font-size < 16px e não volta sozinho */
-@media (max-width: 767.98px) {
-    input,
-    select,
-    textarea {
-        font-size: 16px;
-    }
 }

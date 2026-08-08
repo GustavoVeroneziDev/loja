@@ -106,6 +106,7 @@ Se a página tem uma âncora relevante (uma seção específica que o usuário e
 - **Ícones**: Bootstrap Icons (`bi-*`) em quase todo lugar, coloridos pra bater com o contexto (não fico só em preto/cinza).
 - **Escolha binária (A ou B)**: uso `btn-check` + `label.btn.btn-outline-secondary` (rádio disfarçado de botão), não dropdown, quando são só 2-3 opções.
 - **Campo condicional**: mostro/escondo com JS vanilla trocando `classList.toggle('d-none', condicao)` — nunca escondo com `display:none` direto no CSS de forma que dependa de JS pra nunca aparecer (senão quebra sem JS).
+- **CSS em 2 arquivos, separado por responsabilidade**: `geral/estrutura.css` (layout, forma, tamanho, tipografia, transição/animação — nenhuma cor) e `geral/estilo.css` (cor: variáveis de marca no topo, cor semântica de status, fundo, texto, sombra). Uma regra que mexe em forma E cor do mesmo seletor (ex: `.card` tem `border-radius` na estrutura e `background-color`/`box-shadow` no estilo) fica dividida entre os dois arquivos — normal, não é duplicação.
 - **Confirmação de ação (excluir, remover etc.)**: **JAMAIS uso `confirm()`/`alert()` nativo do navegador** — aquela caixa feia "O site diz...". Sempre um modal Bootstrap centralizado (`modal-dialog-centered`) com efeito acrílico (fundo com leve `backdrop-filter: blur()`, tanto no backdrop quanto no `.modal-content`) pra destacar o item em questão. Formulário que precisa de confirmação leva `data-confirmar="mensagem"` em vez de `onsubmit="return confirm(...)"` — o JS compartilhado (repetido no rodapé público e no do admin, mesmo padrão do botão de mostrar senha) intercepta, mostra o modal, e só dá `form.submit()` de verdade se a pessoa confirmar. Regra sem exceção, vale pra qualquer confirmação nova que eu pedir daqui pra frente.
 - **Emoji**: uso em mensagens de WhatsApp/notificação (é convenção nativa desse canal), **não** uso em texto de UI dentro do site.
 
@@ -208,8 +209,11 @@ Pedido           (IDPedido [auto-increment], FKUsuario, Status, ValorTotal, Valo
 ItemPedido       (IDItemPedido, FKPedido, FKVariacao, Quantidade, PrecoUnitario)
 HistoricoStatusPedido (IDHistorico, FKPedido, StatusAnterior, StatusNovo, MomentoMudanca)
 Cupom            (IDCupom, Codigo, TipoDesconto, ValorDesconto, DataValidade, LimiteUso, UsosAtuais)
-ConfiguracaoLoja (Chave, Valor) — é a "pele": nome da loja, cores, logo, textos institucionais
 ```
+
+> Atualizado em 2026-08-08: **não existe mais tabela `ConfiguracaoLoja`.** A "pele" (nome da loja,
+> cores, logo, favicon, textos institucionais) virou arquivo, não banco — ver 2.5. Não tem mais tela
+> de Configurações no admin.
 
 ### 2.4 Deploy — mesmo modelo do Auralis, a menos que eu diga outra hospedagem
 
@@ -217,13 +221,20 @@ ConfiguracaoLoja (Chave, Valor) — é a "pele": nome da loja, cores, logo, text
 - Arquivos de credencial real (conexão com banco, chaves de API) ficam **fora do git** (`.gitignore`), com um arquivo de exemplo (`config/conexao.example.php`) commitado mostrando a estrutura esperada, já que cada clone-por-cliente terá seu próprio banco/credenciais.
 - PHP e MySQL travados no mesmo fuso horário (`America/Sao_Paulo`, `SET time_zone = '-03:00'` na conexão) desde o primeiro dia — evita bug de "vence hoje" variando de dia perto da meia-noite (já bati nisso no Auralis).
 
-### 2.5 Onde a "pele" vai entrar depois — deixe isso pronto pra receber
+### 2.5 Onde a "pele" entra — arquivo, não banco
 
-Pra cada cliente novo só trocar a pele sem mexer em lógica, desde já:
+> Atualizado em 2026-08-08: a ideia original aqui era a pele vir de uma tabela `ConfiguracaoLoja`,
+> editável por uma tela de Configurações no admin. Decidi que isso é complexidade sem necessidade
+> pra esse modelo de negócio — não é o cliente final quem troca a própria marca numa tela, sou eu
+> (ou quem for clonar) editando o projeto na hora de entregar pra um cliente novo. Trocar arquivo é
+> mais direto que passar por banco, painel e upload pra chegar no mesmo lugar. A pele inteira agora é
+> **arquivo, versionado no git**, igual o resto do código.
 
-- Toda cor visual de marca (não as cores semânticas de status da Parte 1.6, essas continuam fixas) deve vir de **variáveis CSS centralizadas** num único arquivo (ex: `geral/marca.css` ou bloco de `:root{}` no topo do CSS principal), nunca hardcoded espalhado em `style="..."` inline pelas páginas de loja voltadas pro cliente final (o admin pode ser mais fixo, é meu, não do cliente).
-- Nome da loja, logo (URL de imagem), textos institucionais (sobre/política de troca/contato) vêm da tabela `ConfiguracaoLoja` citada acima, lidos em runtime — nunca escritos direto no HTML.
-- Favicon/PWA icons também pensados como arquivo substituível (`geral/img/logo.*`), não hardcoded.
+Pra cada cliente novo só trocar a pele sem mexer em lógica de negócio:
+
+- **Cor de marca**: `--cor-primaria`/`--cor-secundaria` no topo de `geral/estilo.css` (ver 1.6 — estilo/cor fica todo nesse arquivo, separado de `geral/estrutura.css` que é só layout/forma). Cor semântica de status (verde/vermelho/âmbar/dourado/roxo) continua fixa, não é pele.
+- **Nome da loja, logo, favicon, textos institucionais** (sobre/política de troca/contato) vêm de `config/marca.php` — um arquivo só, com `define()` pra cada valor. Troca de cliente = editar esse arquivo.
+- **Logo/favicon** são arquivo substituível em `geral/img/`, referenciado pelas constantes `LOGO_URL`/`FAVICON_URL` de `config/marca.php`.
 
 ### 2.6 Fora de escopo nesta entrega (anotar, não esquecer)
 

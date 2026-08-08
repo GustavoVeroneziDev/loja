@@ -140,56 +140,6 @@ function garantirTabelaImagemProduto() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
-function garantirTabelaConfiguracaoLoja() {
-    global $pdo;
-    $pdo->exec("CREATE TABLE IF NOT EXISTS ConfiguracaoLoja (
-        Chave VARCHAR(100) PRIMARY KEY,
-        Valor TEXT NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-}
-
-// ---------------------------------------------------------------------
-// ConfiguracaoLoja (a "pele" — nome, cores de marca, textos institucionais)
-// ---------------------------------------------------------------------
-
-function obterConfiguracaoLoja($chave, $default = null) {
-    global $pdo;
-    $stmt = $pdo->prepare("SELECT Valor FROM ConfiguracaoLoja WHERE Chave = :chave");
-    $stmt->execute(['chave' => $chave]);
-    $valor = $stmt->fetchColumn();
-    return $valor !== false ? $valor : $default;
-}
-
-function salvarConfiguracaoLoja($chave, $valor) {
-    global $pdo;
-    $stmt = $pdo->prepare("SELECT Chave FROM ConfiguracaoLoja WHERE Chave = :chave");
-    $stmt->execute(['chave' => $chave]);
-    if ($stmt->fetchColumn() !== false) {
-        $stmt = $pdo->prepare("UPDATE ConfiguracaoLoja SET Valor = :valor WHERE Chave = :chave");
-    } else {
-        $stmt = $pdo->prepare("INSERT INTO ConfiguracaoLoja (Chave, Valor) VALUES (:chave, :valor)");
-    }
-    $stmt->execute(['chave' => $chave, 'valor' => $valor]);
-}
-
-// Defaults só entram se a chave ainda não existir — nunca sobrescreve o que o cliente já customizou.
-function garantirConfiguracaoLojaPadrao() {
-    $padroes = [
-        'nome_loja' => 'Minha Loja',
-        'cor_primaria' => '#e08a3c',
-        'cor_secundaria' => '#c08552',
-        'logo_url' => '/geral/img/Logo-texto.svg',
-        'texto_sobre' => 'Conte aqui a história da sua loja.',
-        'texto_politica_troca' => 'Descreva aqui a política de trocas e devoluções.',
-        'texto_contato' => 'contato@minhaloja.com.br',
-    ];
-    foreach ($padroes as $chave => $valorPadrao) {
-        if (obterConfiguracaoLoja($chave) === null) {
-            salvarConfiguracaoLoja($chave, $valorPadrao);
-        }
-    }
-}
-
 // ---------------------------------------------------------------------
 // Autenticação — uma sessão só (Usuario), o TipoUsuario decide o que a pessoa vê
 // ---------------------------------------------------------------------

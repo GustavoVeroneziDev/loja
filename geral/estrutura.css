@@ -1,0 +1,199 @@
+/*
+ * Estrutura: layout, forma, tamanho, tipografia, comportamento/animação.
+ * Nada de cor aqui — cor é tudo em geral/estilo.css.
+ */
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Evita o rodapé grudar no header em página com pouco conteúdo (categoria vazia, telas de login, etc.) */
+.main-conteudo {
+    min-height: 80vh;
+}
+
+.modal-content {
+    border-radius: 16px;
+}
+
+.card,
+.card-admin {
+    border-radius: 16px;
+}
+
+.badge-sucesso,
+.badge-perigo,
+.badge-atencao,
+.badge-destaque,
+.badge-admin {
+    border-radius: 999px;
+}
+
+.flex-truncate {
+    min-width: 0;
+}
+
+/* Respiro mínimo acima dos cards estreitos e centralizados (login/cadastro, recuperar/redefinir senha) */
+.col-md-5.mx-auto {
+    margin-top: 10vh;
+}
+
+/* Transição suave entre os painéis de login/cadastro em usuario/_form-auth.php */
+.auth-painel {
+    transition: opacity .2s ease, transform .2s ease;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.auth-painel.auth-saindo {
+    opacity: 0;
+    transform: translateY(-6px);
+}
+
+.auth-painel.auth-entrando {
+    opacity: 0;
+    transform: translateY(6px);
+}
+
+/* Inputs mais arredondados */
+.form-control,
+.form-select {
+    border-radius: 10px;
+}
+
+.form-floating > label {
+    transition: transform .15s ease-in-out, background-color .15s ease-in-out;
+}
+
+/* Label "cortando" a borda de cima quando flutua, tipo ---Nome---, em vez de ficar solto dentro da caixa */
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label {
+    top: 0;
+    left: .5rem;
+    height: auto;
+    width: auto;
+    max-width: none;
+    padding: 0 .4rem;
+    border-radius: 4px;
+    transform: translateY(-50%) scale(.82);
+}
+
+/* Quantidade do carrinho — número centralizado + botões de + e - empilhados ao lado,
+   em vez das setinhas nativas do input number */
+.stepper-quantidade {
+    display: flex;
+    align-items: stretch;
+    border-radius: 10px;
+    overflow: hidden;
+    width: fit-content;
+}
+
+.stepper-quantidade .campo-quantidade {
+    width: 3rem;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-weight: 600;
+    -moz-appearance: textfield;
+}
+
+.stepper-quantidade .campo-quantidade::-webkit-outer-spin-button,
+.stepper-quantidade .campo-quantidade::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.stepper-quantidade .campo-quantidade:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.stepper-botoes {
+    display: flex;
+    flex-direction: column;
+}
+
+.stepper-botao {
+    width: 1.75rem;
+    height: 1.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    font-size: .65rem;
+    line-height: 1;
+    padding: 0;
+}
+
+/* Coração de favoritar — sobre a imagem do produto (cards) ou ao lado do título (detalhe) */
+.btn-favorito {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+/* Contador no botão de carrinho da navbar */
+.badge-carrinho {
+    position: absolute;
+    top: -.4rem;
+    right: -.4rem;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 .3rem;
+    border-radius: 999px;
+    font-size: .65rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* Botão de mostrar/ocultar senha embutido no próprio campo — funciona tanto dentro de
+   .form-floating (que já tem position:relative do Bootstrap) quanto num wrapper solto
+   em volta só do input, sem label junto (por isso o position:relative explícito aqui). */
+.tem-toggle-senha {
+    position: relative;
+}
+
+.tem-toggle-senha .form-control {
+    padding-right: 2.75rem;
+}
+
+.btn-toggle-senha {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    z-index: 5;
+}
+
+.logo-loja {
+    height: 36px;
+    width: auto;
+}
+
+.link-marca {
+    font-weight: 500;
+}
+
+/* Safari iOS dá zoom automático ao focar input com font-size < 16px e não volta sozinho */
+@media (max-width: 767.98px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}
