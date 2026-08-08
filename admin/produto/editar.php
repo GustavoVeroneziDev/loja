@@ -43,31 +43,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'criar_variacao') {
         $atributo = trim($_POST['atributo'] ?? '');
         $sku = trim($_POST['sku'] ?? '');
-        $preco = (float) str_replace(',', '.', $_POST['preco'] ?? '0');
+        // Preço vem em centavos digitados (a máscara de JS já mostra formatado) — 5000 = R$ 50,00.
+        $preco = ((int) preg_replace('/\D/', '', $_POST['preco'] ?? '0')) / 100;
         $estoque = max(0, (int) ($_POST['estoque'] ?? 0));
-
-        if ($sku !== '') {
-            $stmt = $pdo->prepare("INSERT INTO VariacaoProduto (IDVariacao, FKProduto, Atributo, SKU, Preco, Estoque) VALUES (:id, :produto, :atributo, :sku, :preco, :estoque)");
-            $stmt->execute([
-                'id' => gerarUuid(),
-                'produto' => $idProduto,
-                'atributo' => $atributo !== '' ? $atributo : null,
-                'sku' => $sku,
-                'preco' => $preco,
-                'estoque' => $estoque,
-            ]);
-            $sucesso = true;
+        $idVariacao = gerarUuid();
+        // SKU é código interno, não precisa ser digitado — gera um a partir da própria variação se deixarem em branco.
+        if ($sku === '') {
+            $sku = 'VAR-' . strtoupper(substr($idVariacao, 0, 8));
         }
+
+        $stmt = $pdo->prepare("INSERT INTO VariacaoProduto (IDVariacao, FKProduto, Atributo, SKU, Preco, Estoque) VALUES (:id, :produto, :atributo, :sku, :preco, :estoque)");
+        $stmt->execute([
+            'id' => $idVariacao,
+            'produto' => $idProduto,
+            'atributo' => $atributo !== '' ? $atributo : null,
+            'sku' => $sku,
+            'preco' => $preco,
+            'estoque' => $estoque,
+        ]);
+        $sucesso = true;
     }
 
     if ($action === 'editar_variacao') {
         $idVariacao = $_POST['id_variacao'] ?? '';
         $atributo = trim($_POST['atributo'] ?? '');
         $sku = trim($_POST['sku'] ?? '');
-        $preco = (float) str_replace(',', '.', $_POST['preco'] ?? '0');
+        $preco = ((int) preg_replace('/\D/', '', $_POST['preco'] ?? '0')) / 100;
         $estoque = max(0, (int) ($_POST['estoque'] ?? 0));
+        if ($sku === '') {
+            $sku = 'VAR-' . strtoupper(substr($idVariacao, 0, 8));
+        }
 
-        if ($idVariacao !== '' && $sku !== '') {
+        if ($idVariacao !== '') {
             $stmt = $pdo->prepare("UPDATE VariacaoProduto SET Atributo = :atributo, SKU = :sku, Preco = :preco, Estoque = :estoque WHERE IDVariacao = :id AND FKProduto = :produto");
             $stmt->execute([
                 'atributo' => $atributo !== '' ? $atributo : null,
@@ -278,12 +285,12 @@ require __DIR__ . '/../_topo.php';
                         </div>
                         <div class="mb-3">
                             <label class="form-label">SKU</label>
-                            <input type="text" name="sku" class="form-control" value="<?= htmlspecialchars($variacao['SKU']) ?>" required>
+                            <input type="text" name="sku" class="form-control" value="<?= htmlspecialchars($variacao['SKU']) ?>" placeholder="gerado automaticamente se deixar em branco">
                         </div>
                         <div class="row g-3">
                             <div class="col-sm-6">
                                 <label class="form-label">Preço</label>
-                                <input type="text" name="preco" class="form-control" value="<?= htmlspecialchars($variacao['Preco']) ?>" required>
+                                <input type="text" name="preco" class="form-control mascara-preco" inputmode="numeric" value="<?= htmlspecialchars(formatarPreco($variacao['Preco'])) ?>" required>
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label">Estoque</label>
@@ -316,12 +323,12 @@ require __DIR__ . '/../_topo.php';
                     </div>
                     <div class="mb-3">
                         <label class="form-label">SKU</label>
-                        <input type="text" name="sku" class="form-control" required>
+                        <input type="text" name="sku" class="form-control" placeholder="gerado automaticamente se deixar em branco">
                     </div>
                     <div class="row g-3">
                         <div class="col-sm-6">
                             <label class="form-label">Preço</label>
-                            <input type="text" name="preco" class="form-control" placeholder="0,00" required>
+                            <input type="text" name="preco" class="form-control mascara-preco" inputmode="numeric" placeholder="R$ 0,00" required>
                         </div>
                         <div class="col-sm-6">
                             <label class="form-label">Estoque</label>
@@ -336,4 +343,17 @@ require __DIR__ . '/../_topo.php';
         </div>
     </div>
 </div>
+
+<script>
+document.querySelectorAll('.mascara-preco').forEach(function (campo) {
+    function formatar() {
+        var centavos = parseInt(campo.value.replace(/\D/g, ''), 10) || 0;
+        campo.value = (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    campo.addEventListener('input', function () {
+        formatar();
+        campo.setSelectionRange(campo.value.length, campo.value.length);
+    });
+});
+</script>
 <?php require __DIR__ . '/../_rodape.php'; ?>
