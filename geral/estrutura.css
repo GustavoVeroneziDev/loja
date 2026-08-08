@@ -7,7 +7,7 @@ body {
     font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
-/* Fonte da wordmark ao lado da logo — arquivo local em geral/fonts/, não CDN */
+/* Fonte estilizada (western/rústica) pra título de página — arquivo local em geral/fonts/, não CDN */
 @font-face {
     font-family: 'Rye';
     src: url('fonts/Rye-Regular.ttf') format('truetype');
@@ -16,11 +16,15 @@ body {
     font-display: swap;
 }
 
-.wordmark-marca {
+.titulo-estilizado {
     font-family: 'Rye', serif;
-    font-size: 1.4rem;
-    letter-spacing: .03em;
-    line-height: 1;
+    letter-spacing: .02em;
+    line-height: 1.3;
+}
+
+.navbar-loja {
+    padding-top: .75rem;
+    padding-bottom: .75rem;
 }
 
 /* Ícones de contato no rodapé (e-mail, WhatsApp, redes sociais) */
@@ -208,7 +212,7 @@ body {
 }
 
 .logo-loja {
-    height: 36px;
+    height: 64px;
     width: auto;
 }
 

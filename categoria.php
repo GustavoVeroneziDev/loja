@@ -23,7 +23,7 @@ $voltarParaCategoria = URL_BASE . '/categoria.php?id=' . urlencode($idCategoria)
 
 require __DIR__ . '/geral/header.php';
 ?>
-<h1 class="h4 mb-4"><?= htmlspecialchars($categoria['Nome']) ?></h1>
+<h1 class="h3 mb-4 titulo-estilizado"><?= htmlspecialchars($categoria['Nome']) ?></h1>
 <div class="row g-4">
     <?php foreach ($produtos as $produto): $favoritado = ehFavorito($produto['IDProduto']); ?>
         <div class="col-6 col-md-4 col-lg-3">

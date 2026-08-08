@@ -40,11 +40,10 @@ $totalCarrinho = contarItensCarrinho();
     <link href="<?= URL_BASE ?>/geral/estilo.css" rel="stylesheet">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-marca navbar-light">
+<nav class="navbar navbar-expand-lg navbar-marca navbar-loja navbar-dark">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="<?= URL_BASE ?>/index.php">
             <img src="<?= htmlspecialchars(urlAsset(LOGO_URL)) ?>" alt="<?= htmlspecialchars($nomeLoja) ?>" class="logo-loja">
-            <span class="wordmark-marca"><?= htmlspecialchars(TEXTO_LOGO) ?></span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navLoja">
             <span class="navbar-toggler-icon"></span>

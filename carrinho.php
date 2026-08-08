@@ -48,7 +48,7 @@ require __DIR__ . '/geral/header.php';
 ?>
 <div class="row">
     <div class="col-lg-8">
-        <h1 class="h4 mb-4">Seu carrinho</h1>
+        <h1 class="h3 mb-4 titulo-estilizado">Seu carrinho</h1>
         <?php if ($erro): ?><div class="alert alert-danger"><?= $erro ?></div><?php endif; ?>
 
         <?php if (!$itens): ?>

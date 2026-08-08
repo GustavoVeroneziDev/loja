@@ -9,7 +9,6 @@
             </div>
             <div class="col-md-3">
                 <strong>Contato</strong>
-                <p class="mt-2 mb-2"><?= htmlspecialchars(TEXTO_CONTATO) ?></p>
                 <div class="d-flex gap-2">
                     <a href="mailto:<?= htmlspecialchars(TEXTO_CONTATO) ?>" class="icone-contato" aria-label="E-mail">
                         <i class="bi bi-envelope"></i>

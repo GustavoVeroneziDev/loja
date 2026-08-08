@@ -23,7 +23,7 @@ $favoritos = obterFavoritos();
 
 require __DIR__ . '/../geral/header.php';
 ?>
-<h1 class="h4 mb-4">Meus favoritos</h1>
+<h1 class="h3 mb-4 titulo-estilizado">Meus favoritos</h1>
 
 <?php if (!$favoritos): ?>
     <div class="card p-5 text-center text-secundario">

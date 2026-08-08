@@ -17,6 +17,25 @@
     border-bottom: 1px solid rgba(0, 0, 0, .06);
 }
 
+/* Primeiro rascunho de navbar escura/rústica pro site público (admin continua na .navbar-marca
+   branca de cima) — base azul-marinho escuro com listras bem sutis simulando ripa de madeira.
+   Isso é experimental, ainda em aberto — ajusta o tom/textura conforme o gosto. */
+.navbar-loja {
+    background-color: #171e2e;
+    background-image: repeating-linear-gradient(
+        90deg,
+        rgba(0, 0, 0, .15) 0px,
+        rgba(0, 0, 0, .15) 2px,
+        transparent 2px,
+        transparent 6px,
+        rgba(255, 255, 255, .02) 6px,
+        rgba(255, 255, 255, .02) 8px,
+        transparent 8px,
+        transparent 14px
+    );
+    border-bottom: 3px solid var(--cor-primaria);
+}
+
 .btn-marca {
     background-color: var(--cor-primaria);
     border-color: var(--cor-primaria);
@@ -39,7 +58,7 @@
     color: var(--cor-secundaria);
 }
 
-.wordmark-marca {
+.titulo-estilizado {
     color: var(--cor-primaria);
 }
 

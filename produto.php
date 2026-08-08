@@ -46,7 +46,7 @@ require __DIR__ . '/geral/header.php';
     </div>
     <div class="col-md-6">
         <div class="d-flex justify-content-between align-items-start gap-3">
-            <h1 class="h3 mb-0"><?= htmlspecialchars($produto['Nome']) ?></h1>
+            <h1 class="h3 mb-0 titulo-estilizado"><?= htmlspecialchars($produto['Nome']) ?></h1>
             <?php if (clienteLogado()): ?>
                 <form method="post" action="<?= URL_BASE ?>/usuario/favoritos.php" class="flex-shrink-0">
                     <input type="hidden" name="action" value="alternar">

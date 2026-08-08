@@ -78,7 +78,7 @@ $erroSenha = $errosSenhaMap[$_GET['erro'] ?? ''] ?? null;
 
 require __DIR__ . '/../geral/header.php';
 ?>
-<h1 class="h4 mb-4">Minha conta</h1>
+<h1 class="h3 mb-4 titulo-estilizado">Minha conta</h1>
 <div class="row g-4">
     <div class="col-lg-6">
         <div class="card p-4 h-100">
