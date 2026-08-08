@@ -28,8 +28,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $descricao = trim($_POST['descricao'] ?? '');
         $fkCategoria = $_POST['fk_categoria'] ?? '';
         $ativo = isset($_POST['ativo']) ? 1 : 0;
-        $nomeAtributo1 = trim($_POST['nome_atributo_1'] ?? '');
-        $nomeAtributo2 = trim($_POST['nome_atributo_2'] ?? '');
+        $tipoProduto = $_POST['tipo_produto'] ?? 'simples';
+        $nomeAtributo1 = $tipoProduto === 'variavel' ? trim($_POST['nome_atributo_1'] ?? '') : '';
+        $nomeAtributo2 = $tipoProduto === 'variavel' ? trim($_POST['nome_atributo_2'] ?? '') : '';
+
+        // Não deixa voltar pra "produto simples" com mais de 1 variação cadastrada — ia sobrar
+        // variação sem rótulo nenhum pra diferenciar uma da outra. Precisa excluir as extras primeiro.
+        if ($tipoProduto === 'simples') {
+            $stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM VariacaoProduto WHERE FKProduto = :produto");
+            $stmtTotal->execute(['produto' => $idProduto]);
+            if ((int) $stmtTotal->fetchColumn() > 1) {
+                $avisoCodigo = 'nao_e_simples';
+                $nomeAtributo1 = trim($_POST['nome_atributo_1'] ?? '');
+                $nomeAtributo2 = trim($_POST['nome_atributo_2'] ?? '');
+            }
+        }
 
         // Nunca deixa ficar visível na loja com o cadastro incompleto — sem essa checagem dava
         // pra ativar um produto sem nenhuma foto, ou que venderia por R$ 0,00.
@@ -44,7 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!$temPreco || !$temImagem) {
                 $ativo = 0;
-                $avisoCodigo = !$temPreco && !$temImagem ? 'incompleto_preco_imagem' : (!$temPreco ? 'incompleto_preco' : 'incompleto_imagem');
+                // Não sobrescreve o aviso de "não dá pra simplificar" se ele já disparou acima.
+                $avisoCodigo = $avisoCodigo ?? (!$temPreco && !$temImagem ? 'incompleto_preco_imagem' : (!$temPreco ? 'incompleto_preco' : 'incompleto_imagem'));
             }
         }
 
@@ -188,6 +202,7 @@ $avisosMap = [
     'incompleto_preco_imagem' => 'Salvo, mas continua em rascunho: falta uma variação com preço e pelo menos 1 foto pra poder ficar visível na loja.',
     'incompleto_preco' => 'Salvo, mas continua em rascunho: nenhuma variação tem preço definido (maior que R$ 0,00) ainda.',
     'incompleto_imagem' => 'Salvo, mas continua em rascunho: o produto ainda não tem nenhuma foto.',
+    'nao_e_simples' => 'Continua como "com variações": pra virar produto simples, primeiro exclua as variações extras até sobrar só 1.',
 ];
 
 $sucesso = isset($_GET['ok']) ? 'Operação realizada com sucesso.' : null;
@@ -197,6 +212,9 @@ $aviso = isset($_GET['aviso']) ? ($avisosMap[$_GET['aviso']] ?? null) : null;
 $categorias = obterCategoriasArvore();
 $variacoes = obterVariacoesPorProduto($idProduto);
 $imagens = obterImagensPorProduto($idProduto);
+// Sem eixo configurado = produto simples (1 variação só, sem "Cor"/"Tamanho" pra distinguir) —
+// esconde toda a complexidade de variação pra quem só quer cadastrar algo com preço e estoque.
+$modoSimples = empty($produto['NomeAtributo1']);
 
 require __DIR__ . '/../_topo.php';
 ?>
@@ -242,7 +260,14 @@ require __DIR__ . '/../_topo.php';
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Esse produto varia por (opcional)</label>
+                    <label class="form-label d-block">Tipo de produto</label>
+                    <input type="radio" class="btn-check" name="tipo_produto" id="tipoSimples" value="simples" <?= $modoSimples ? 'checked' : '' ?> onchange="document.getElementById('camposEixos').classList.add('d-none')">
+                    <label class="btn btn-outline-secondary" for="tipoSimples">Produto simples</label>
+                    <input type="radio" class="btn-check" name="tipo_produto" id="tipoVariavel" value="variavel" <?= !$modoSimples ? 'checked' : '' ?> onchange="document.getElementById('camposEixos').classList.remove('d-none')">
+                    <label class="btn btn-outline-secondary" for="tipoVariavel">Com variações (cor, tamanho...)</label>
+                </div>
+                <div class="mb-3 <?= $modoSimples ? 'd-none' : '' ?>" id="camposEixos">
+                    <label class="form-label">Esse produto varia por</label>
                     <div class="row g-2">
                         <div class="col-sm-6">
                             <input type="text" name="nome_atributo_1" class="form-control" placeholder="ex: Cor" value="<?= htmlspecialchars($produto['NomeAtributo1'] ?? '') ?>">
@@ -251,7 +276,7 @@ require __DIR__ . '/../_topo.php';
                             <input type="text" name="nome_atributo_2" class="form-control" placeholder="ex: Tamanho" value="<?= htmlspecialchars($produto['NomeAtributo2'] ?? '') ?>">
                         </div>
                     </div>
-                    <div class="form-text">Defina os eixos aqui antes de criar as variações. Ex: "Cor" + "Tamanho" — nem toda combinação precisa existir (pode ter Azul só no 40, sem ter Preto no 40).</div>
+                    <div class="form-text">Ex: "Cor" + "Tamanho" — nem toda combinação precisa existir (pode ter Azul só no 40, sem ter Preto no 40). Pra voltar a "produto simples" depois, exclua as variações extras até sobrar só 1.</div>
                 </div>
                 <div class="form-check form-switch mb-3">
                     <input type="checkbox" name="ativo" class="form-check-input" id="ativoSwitch" <?= $produto['Ativo'] ? 'checked' : '' ?>>
@@ -290,47 +315,71 @@ require __DIR__ . '/../_topo.php';
 
     <div class="col-lg-6">
         <div class="card p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="h5 mb-0">Variações</h2>
-                <button class="btn btn-sm btn-marca rounded-pill" data-bs-toggle="modal" data-bs-target="#modalCriarVariacao">
-                    <i class="bi bi-plus-lg"></i> Nova variação
-                </button>
-            </div>
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th><?= htmlspecialchars(implode(' / ', array_filter([$produto['NomeAtributo1'] ?? null, $produto['NomeAtributo2'] ?? null])) ?: 'Variação') ?></th>
-                        <th>SKU</th>
-                        <th>Preço</th>
-                        <th>Estoque</th>
-                        <th style="width: 110px; min-width: 110px; max-width: 110px;">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($variacoes as $variacao): ?>
+            <?php if ($modoSimples): ?>
+                <h2 class="h5 mb-3">Preço e estoque</h2>
+                <?php $variacaoUnica = $variacoes[0] ?? null; ?>
+                <?php if ($variacaoUnica): ?>
+                    <form method="post">
+                        <input type="hidden" name="action" value="editar_variacao">
+                        <input type="hidden" name="id_variacao" value="<?= htmlspecialchars($variacaoUnica['IDVariacao']) ?>">
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <label class="form-label">Preço</label>
+                                <input type="text" name="preco" class="form-control mascara-preco" inputmode="numeric" value="<?= htmlspecialchars(formatarPreco($variacaoUnica['Preco'])) ?>" required>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Estoque</label>
+                                <input type="number" name="estoque" class="form-control" min="0" value="<?= (int) $variacaoUnica['Estoque'] ?>" required>
+                            </div>
+                        </div>
+                        <div class="form-text mb-3">SKU: <?= htmlspecialchars($variacaoUnica['SKU']) ?></div>
+                        <button type="submit" class="btn btn-marca rounded-pill">Salvar</button>
+                    </form>
+                <?php endif; ?>
+            <?php else: ?>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h5 mb-0">Variações</h2>
+                    <button class="btn btn-sm btn-marca rounded-pill" data-bs-toggle="modal" data-bs-target="#modalCriarVariacao">
+                        <i class="bi bi-plus-lg"></i> Nova variação
+                    </button>
+                </div>
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
                         <tr>
-                            <td><?= htmlspecialchars(descricaoVariacao($variacao) ?? 'Padrão') ?></td>
-                            <td class="text-secundario"><?= htmlspecialchars($variacao['SKU']) ?></td>
-                            <td><?= formatarPreco($variacao['Preco']) ?></td>
-                            <td><?= $variacao['Estoque'] == 0 ? '<span class="badge-perigo px-2 py-1">0</span>' : (int) $variacao['Estoque'] ?></td>
-                            <td style="width: 110px; min-width: 110px; max-width: 110px;">
-                                <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditarVariacao<?= $variacao['IDVariacao'] ?>">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <form method="post" class="d-inline" data-confirmar="Excluir esta variação?">
-                                    <input type="hidden" name="action" value="excluir_variacao">
-                                    <input type="hidden" name="id_variacao" value="<?= htmlspecialchars($variacao['IDVariacao']) ?>">
-                                    <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>
-                                </form>
-                            </td>
+                            <th><?= htmlspecialchars(implode(' / ', array_filter([$produto['NomeAtributo1'] ?? null, $produto['NomeAtributo2'] ?? null])) ?: 'Variação') ?></th>
+                            <th>SKU</th>
+                            <th>Preço</th>
+                            <th>Estoque</th>
+                            <th style="width: 110px; min-width: 110px; max-width: 110px;">Ações</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($variacoes as $variacao): ?>
+                            <tr>
+                                <td><?= htmlspecialchars(descricaoVariacao($variacao) ?? 'Padrão') ?></td>
+                                <td class="text-secundario"><?= htmlspecialchars($variacao['SKU']) ?></td>
+                                <td><?= formatarPreco($variacao['Preco']) ?></td>
+                                <td><?= $variacao['Estoque'] == 0 ? '<span class="badge-perigo px-2 py-1">0</span>' : (int) $variacao['Estoque'] ?></td>
+                                <td style="width: 110px; min-width: 110px; max-width: 110px;">
+                                    <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditarVariacao<?= $variacao['IDVariacao'] ?>">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="post" class="d-inline" data-confirmar="Excluir esta variação?">
+                                        <input type="hidden" name="action" value="excluir_variacao">
+                                        <input type="hidden" name="id_variacao" value="<?= htmlspecialchars($variacao['IDVariacao']) ?>">
+                                        <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
+<?php if (!$modoSimples): ?>
 <?php foreach ($variacoes as $variacao): ?>
     <div class="modal fade" id="modalEditarVariacao<?= $variacao['IDVariacao'] ?>" tabindex="-1">
         <div class="modal-dialog">
@@ -439,6 +488,7 @@ require __DIR__ . '/../_topo.php';
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <script>
 document.querySelectorAll('.mascara-preco').forEach(function (campo) {
