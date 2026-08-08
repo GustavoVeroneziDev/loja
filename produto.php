@@ -197,9 +197,46 @@ function atualizarVariacaoSelecionada(input) {
         return null;
     }
 
+    // Valores do OUTRO eixo que têm alguma variação com estoque de verdade combinando com
+    // (eixo, valor) — trata "não existe essa combinação" e "existe mas estoque 0" do mesmo
+    // jeito, porque pro cliente as duas coisas significam a mesma coisa: não dá pra comprar.
+    function valoresDisponiveis(eixo, valor) {
+        var chave = eixo === 1 ? 'valor1' : 'valor2';
+        var chaveOutro = eixo === 1 ? 'valor2' : 'valor1';
+        var disponiveis = new Set();
+        variacoes.forEach(function (v) {
+            if (v[chave] === valor && v.estoque > 0) disponiveis.add(v[chaveOutro]);
+        });
+        return disponiveis;
+    }
+
+    // Desabilita (apaga) no grupo os valores que não combinam com o valor atualmente marcado
+    // no OUTRO eixo — e se o valor marcado nesse grupo virou inválido, pula sozinho pro
+    // primeiro que ainda está disponível, sem esperar o cliente escolher errado primeiro.
+    function filtrarGrupo(grupo, disponiveis) {
+        if (!grupo.length || !disponiveis) return;
+        var marcado = valorMarcado(grupo);
+        var aindaValido = marcado !== null && disponiveis.has(marcado);
+        grupo.forEach(function (r) {
+            r.disabled = !disponiveis.has(r.value);
+        });
+        if (!aindaValido) {
+            var proximo = Array.prototype.slice.call(grupo).find(function (r) { return disponiveis.has(r.value); });
+            if (proximo) proximo.checked = true;
+        }
+    }
+
     function atualizar() {
         var v1 = grupo1.length ? valorMarcado(grupo1) : null;
         var v2 = grupo2.length ? valorMarcado(grupo2) : null;
+
+        if (grupo1.length && grupo2.length) {
+            filtrarGrupo(grupo2, v1 !== null ? valoresDisponiveis(1, v1) : null);
+            v2 = valorMarcado(grupo2);
+            filtrarGrupo(grupo1, v2 !== null ? valoresDisponiveis(2, v2) : null);
+            v1 = valorMarcado(grupo1);
+        }
+
         var encontrada = variacoes.find(function (v) {
             return (v1 === null || v.valor1 === v1) && (v2 === null || v.valor2 === v2);
         });
