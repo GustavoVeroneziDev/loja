@@ -38,8 +38,8 @@ $paraMidiaJs = fn($img) => ['url' => urlAsset($img['Url']), 'tipo' => $img['Tipo
 
 $variacaoInicial = $variacoes[0] ?? null;
 $midiaInicial = array_merge(
-    $imagensBase,
-    ($variacaoInicial && isset($imagensPorVariacao[$variacaoInicial['IDVariacao']])) ? $imagensPorVariacao[$variacaoInicial['IDVariacao']] : []
+    ($variacaoInicial && isset($imagensPorVariacao[$variacaoInicial['IDVariacao']])) ? $imagensPorVariacao[$variacaoInicial['IDVariacao']] : [],
+    $imagensBase
 );
 
 require __DIR__ . '/geral/header.php';
@@ -252,7 +252,7 @@ function renderizarCarrossel(midiaVariacao) {
     if (!carrossel) return;
     var midiaBaseEl = document.getElementById('dadosMidiaBase');
     var midiaBase = midiaBaseEl ? JSON.parse(midiaBaseEl.textContent) : [];
-    var itens = midiaBase.concat(midiaVariacao || []);
+    var itens = (midiaVariacao || []).concat(midiaBase);
 
     var inner = carrossel.querySelector('.carousel-inner');
     if (!itens.length) {
