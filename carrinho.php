@@ -76,12 +76,21 @@ require __DIR__ . '/geral/header.php';
                                 <span class="badge-atencao px-2 py-1 small d-inline-block mt-1">só temos <?= (int) $v['Estoque'] ?> em estoque</span>
                             <?php endif; ?>
                         </div>
-                        <div class="col-6 col-md-3">
-                            <form method="post" class="d-flex align-items-center gap-2 form-quantidade" data-preco-unitario="<?= $v['Preco'] ?>">
+                        <div class="col-6 col-md-3 d-flex justify-content-center">
+                            <form method="post" class="form-quantidade" data-preco-unitario="<?= $v['Preco'] ?>">
                                 <input type="hidden" name="action" value="atualizar">
                                 <input type="hidden" name="variacao_id" value="<?= htmlspecialchars($item['IDVariacao']) ?>">
-                                <input type="number" name="quantidade" value="<?= $item['Quantidade'] ?>" min="1" max="<?= (int) $v['Estoque'] ?>" class="form-control form-control-sm campo-quantidade" style="width: 70px;">
-                                <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill">Atualizar</button>
+                                <div class="stepper-quantidade">
+                                    <input type="number" name="quantidade" value="<?= $item['Quantidade'] ?>" min="1" max="<?= (int) $v['Estoque'] ?>" class="campo-quantidade" inputmode="numeric">
+                                    <div class="stepper-botoes">
+                                        <button type="button" class="stepper-botao" data-passo="1" aria-label="Aumentar quantidade">
+                                            <i class="bi bi-chevron-up"></i>
+                                        </button>
+                                        <button type="button" class="stepper-botao" data-passo="-1" aria-label="Diminuir quantidade">
+                                            <i class="bi bi-chevron-down"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </form>
                         </div>
                         <div class="col-4 col-md-2">
@@ -113,4 +122,43 @@ require __DIR__ . '/geral/header.php';
         </div>
     </div>
 </div>
+
+<script>
+document.querySelectorAll('.campo-quantidade').forEach(function (campo) {
+    var form = campo.closest('.form-quantidade');
+    var precoUnitario = parseFloat(form.dataset.precoUnitario);
+    var linha = form.closest('.row');
+    var textoQuantidade = linha.querySelector('.texto-quantidade');
+    var valorSubtotal = linha.querySelector('.valor-subtotal');
+    var botaoMais = form.querySelector('[data-passo="1"]');
+    var botaoMenos = form.querySelector('[data-passo="-1"]');
+    var min = parseInt(campo.min, 10) || 1;
+    var max = parseInt(campo.max, 10) || Infinity;
+
+    function atualizarPrevia() {
+        var quantidade = parseInt(campo.value, 10) || 0;
+        textoQuantidade.textContent = quantidade + 'x ' + precoUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        valorSubtotal.textContent = (quantidade * precoUnitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        botaoMenos.disabled = quantidade <= min;
+        botaoMais.disabled = quantidade >= max;
+    }
+
+    campo.addEventListener('input', atualizarPrevia);
+    campo.addEventListener('change', function () {
+        form.submit();
+    });
+
+    [botaoMais, botaoMenos].forEach(function (botao) {
+        botao.addEventListener('click', function () {
+            var passo = parseInt(botao.dataset.passo, 10);
+            var novoValor = Math.max(min, Math.min(max, (parseInt(campo.value, 10) || 0) + passo));
+            campo.value = novoValor;
+            atualizarPrevia();
+            form.submit();
+        });
+    });
+
+    atualizarPrevia();
+});
+</script>
 <?php require __DIR__ . '/geral/footer.php'; ?>

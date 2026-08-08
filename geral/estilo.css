@@ -157,6 +157,71 @@ body {
     transform: translateY(-50%) scale(.82);
 }
 
+/* Quantidade do carrinho — número centralizado + botões de + e - empilhados ao lado,
+   em vez das setinhas nativas do input number */
+.stepper-quantidade {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid rgba(0, 0, 0, .12);
+    border-radius: 10px;
+    overflow: hidden;
+    width: fit-content;
+    background-color: #fff;
+}
+
+.stepper-quantidade .campo-quantidade {
+    width: 3rem;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-weight: 600;
+    -moz-appearance: textfield;
+}
+
+.stepper-quantidade .campo-quantidade::-webkit-outer-spin-button,
+.stepper-quantidade .campo-quantidade::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.stepper-quantidade .campo-quantidade:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.stepper-botoes {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid rgba(0, 0, 0, .12);
+}
+
+.stepper-botao {
+    width: 1.75rem;
+    height: 1.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f7f4f1;
+    border: none;
+    color: #6b6560;
+    font-size: .65rem;
+    line-height: 1;
+    padding: 0;
+}
+
+.stepper-botao:first-child {
+    border-bottom: 1px solid rgba(0, 0, 0, .12);
+}
+
+.stepper-botao:hover:not(:disabled) {
+    background-color: var(--cor-primaria);
+    color: #fff;
+}
+
+.stepper-botao:disabled {
+    opacity: .4;
+}
+
 /* Coração de favoritar — sobre a imagem do produto (cards) ou ao lado do título (detalhe) */
 .btn-favorito {
     width: 2.25rem;
