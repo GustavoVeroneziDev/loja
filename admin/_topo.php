@@ -26,7 +26,7 @@ $rotaAtual = $_SERVER['SCRIPT_NAME'] ?? '';
 </head>
 <body>
 <?php if (adminLogado()): ?>
-<nav class="navbar navbar-expand-lg navbar-marca navbar-light">
+<nav class="navbar navbar-expand-lg navbar-marca navbar-loja navbar-dark">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="<?= URL_BASE ?>/admin/index.php">
             <img src="<?= htmlspecialchars(urlAsset(LOGO_URL)) ?>" alt="<?= htmlspecialchars($nomeLoja) ?>" class="logo-admin">

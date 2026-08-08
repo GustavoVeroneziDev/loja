@@ -22,13 +22,15 @@
     border-bottom: 1px solid var(--cor-divisoria);
 }
 
-/* Roxo = "navegação ativa" na paleta semântica (mesma cor do badge-admin) */
+/* Roxo = "navegação ativa" na paleta semântica (mesma cor do badge-admin) — tom mais claro que o
+   do badge porque aqui é texto direto sobre a navbar escura de madeira, precisa de mais contraste
+   que a versão de fundo clarinho + texto saturado do badge (essa aqui é reprovada em WCAG AA). */
 .navbar-marca .nav-link.active {
-    color: #6d28d9;
+    color: #a78bfa;
     font-weight: 600;
 }
 
-/* Navbar escura/rústica do site público (admin continua na .navbar-marca branca de cima).
+/* Navbar escura/rústica — mesmo visual pro site público e pro admin (só muda o menu por dentro).
    Base café escuro com listras bem sutis simulando ripa de madeira + trim de bronze embaixo. */
 .navbar-loja {
     background-color: var(--cor-primaria);
