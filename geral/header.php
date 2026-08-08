@@ -24,7 +24,8 @@ garantirTabelaFavorito();
 $nomeLoja = obterConfiguracaoLoja('nome_loja', 'Minha Loja');
 $corPrimaria = obterConfiguracaoLoja('cor_primaria', '#e08a3c');
 $corSecundaria = obterConfiguracaoLoja('cor_secundaria', '#c08552');
-$logoUrl = obterConfiguracaoLoja('logo_url', URL_BASE . '/geral/img/logo-placeholder.svg');
+$logoUrl = obterConfiguracaoLoja('logo_url', '/geral/img/logo-placeholder.svg');
+$faviconUrl = obterConfiguracaoLoja('favicon_url', $logoUrl);
 $categoriasNav = array_filter(obterCategoriasArvore(), fn($c) => empty($c['FKCategoriaPai']));
 $totalCarrinho = contarItensCarrinho();
 ?>
@@ -34,7 +35,7 @@ $totalCarrinho = contarItensCarrinho();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars($nomeLoja) ?></title>
-    <link rel="icon" href="<?= htmlspecialchars(urlAsset($logoUrl)) ?>">
+    <link rel="icon" href="<?= htmlspecialchars(urlAsset($faviconUrl)) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

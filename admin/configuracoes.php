@@ -21,6 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    if (!empty($_FILES['favicon']['tmp_name'])) {
+        $urlFavicon = uploadImagem($_FILES['favicon'], 'marca');
+        if ($urlFavicon) {
+            salvarConfiguracaoLoja('favicon_url', $urlFavicon);
+        }
+    }
+
     header('Location: ' . URL_BASE . '/admin/configuracoes.php?ok=1');
     exit;
 }
@@ -31,6 +38,7 @@ $nomeLoja = obterConfiguracaoLoja('nome_loja');
 $corPrimaria = obterConfiguracaoLoja('cor_primaria');
 $corSecundaria = obterConfiguracaoLoja('cor_secundaria');
 $logoUrl = obterConfiguracaoLoja('logo_url');
+$faviconUrl = obterConfiguracaoLoja('favicon_url', $logoUrl);
 $textoSobre = obterConfiguracaoLoja('texto_sobre');
 $textoPoliticaTroca = obterConfiguracaoLoja('texto_politica_troca');
 $textoContato = obterConfiguracaoLoja('texto_contato');
@@ -60,10 +68,18 @@ require __DIR__ . '/_topo.php';
                         <input type="color" name="cor_secundaria" class="form-control form-control-color w-100" value="<?= htmlspecialchars($corSecundaria) ?>">
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Logo atual</label>
-                    <div class="mb-2"><img src="<?= htmlspecialchars(urlAsset($logoUrl)) ?>" class="logo-loja" alt="Logo atual"></div>
-                    <input type="file" name="logo" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-8">
+                        <label class="form-label">Logo (navbar e rodapé)</label>
+                        <div class="mb-2"><img src="<?= htmlspecialchars(urlAsset($logoUrl)) ?>" class="logo-loja" alt="Logo atual"></div>
+                        <input type="file" name="logo" class="form-control" accept=".jpg,.jpeg,.png,.webp,.svg">
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label">Favicon (aba do navegador)</label>
+                        <div class="mb-2"><img src="<?= htmlspecialchars(urlAsset($faviconUrl)) ?>" style="height: 32px; width: 32px; object-fit: contain;" alt="Favicon atual"></div>
+                        <input type="file" name="favicon" class="form-control" accept=".ico,.png,.svg">
+                        <div class="form-text">Se não enviar, usa a logo.</div>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Sobre a loja</label>

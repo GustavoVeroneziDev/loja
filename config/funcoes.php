@@ -296,7 +296,7 @@ function uploadImagem($arquivo, $subpasta) {
         return null;
     }
 
-    $extensoesPermitidas = ['jpg', 'jpeg', 'png', 'webp'];
+    $extensoesPermitidas = ['jpg', 'jpeg', 'png', 'webp', 'ico', 'svg'];
     $tamanhoMaximo = 5 * 1024 * 1024;
 
     if ($arquivo['size'] > $tamanhoMaximo) {

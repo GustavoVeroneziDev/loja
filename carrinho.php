@@ -11,7 +11,7 @@ garantirTabelaItemCarrinho();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $idVariacao = $_POST['variacao_id'] ?? '';
-    $sucesso = null;
+    $falhou = false;
 
     if ($action === 'adicionar') {
         global $pdo;
@@ -22,25 +22,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $quantidade = max(1, (int) ($_POST['quantidade'] ?? 1));
         if ($estoque !== false && (int) $estoque > 0) {
             adicionarItemCarrinho($idVariacao, min($quantidade, (int) $estoque));
-            $sucesso = true;
+        } else {
+            $falhou = true;
         }
     }
 
     if ($action === 'atualizar') {
         atualizarQuantidadeCarrinho($idVariacao, (int) ($_POST['quantidade'] ?? 0));
-        $sucesso = true;
     }
 
     if ($action === 'remover') {
         atualizarQuantidadeCarrinho($idVariacao, 0);
-        $sucesso = true;
     }
 
-    header('Location: ' . URL_BASE . '/carrinho.php' . ($sucesso ? '?ok=1' : '?erro=1'));
+    header('Location: ' . URL_BASE . '/carrinho.php' . ($falhou ? '?erro=1' : ''));
     exit;
 }
 
-$sucesso = isset($_GET['ok']) ? 'Carrinho atualizado.' : null;
 $erro = isset($_GET['erro']) ? 'Não foi possível adicionar — confere o estoque disponível.' : null;
 
 $itens = obterCarrinho();
@@ -51,7 +49,6 @@ require __DIR__ . '/geral/header.php';
 <div class="row">
     <div class="col-lg-8">
         <h1 class="h4 mb-4">Seu carrinho</h1>
-        <?php if ($sucesso): ?><div class="alert alert-success"><?= $sucesso ?></div><?php endif; ?>
         <?php if ($erro): ?><div class="alert alert-danger"><?= $erro ?></div><?php endif; ?>
 
         <?php if (!$itens): ?>

@@ -8,6 +8,8 @@ require_once __DIR__ . '/../config/funcoes.php';
 garantirTabelaConfiguracaoLoja();
 garantirConfiguracaoLojaPadrao();
 $nomeLoja = obterConfiguracaoLoja('nome_loja', 'Minha Loja');
+$logoUrl = obterConfiguracaoLoja('logo_url', '/geral/img/logo-placeholder.svg');
+$faviconUrl = obterConfiguracaoLoja('favicon_url', $logoUrl);
 ?>
 <!doctype html>
 <html lang="pt-BR" data-bs-theme="light">
@@ -15,6 +17,7 @@ $nomeLoja = obterConfiguracaoLoja('nome_loja', 'Minha Loja');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Painel Admin — <?= htmlspecialchars($nomeLoja) ?></title>
+    <link rel="icon" href="<?= htmlspecialchars(urlAsset($faviconUrl)) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
