@@ -341,6 +341,15 @@ function atualizarQuantidadeCarrinho($idVariacao, $quantidade) {
     }
 }
 
+function limparCarrinho() {
+    if (clienteLogado()) {
+        global $pdo;
+        $pdo->prepare("DELETE FROM ItemCarrinho WHERE FKUsuario = :u")->execute(['u' => $_SESSION['usuario_id']]);
+    } else {
+        unset($_SESSION['carrinho']);
+    }
+}
+
 // Devolve os itens do carrinho já com dado de produto/variação/imagem, prontos pra exibir.
 function obterCarrinho() {
     global $pdo;

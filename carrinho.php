@@ -32,7 +32,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'remover') {
-        atualizarQuantidadeCarrinho($idVariacao, 0);
+        if (isset($_POST['variacoes']) && is_array($_POST['variacoes'])) {
+            foreach ($_POST['variacoes'] as $idVariacaoSelecionada) {
+                atualizarQuantidadeCarrinho($idVariacaoSelecionada, 0);
+            }
+        } else {
+            atualizarQuantidadeCarrinho($idVariacao, 0);
+        }
+    }
+
+    if ($action === 'limpar') {
+        limparCarrinho();
     }
 
     // "Adicionar ao carrinho" na grade de produtos manda voltar_para pra continuar na mesma
@@ -62,8 +72,38 @@ require __DIR__ . '/geral/header.php';
 ?>
 <div class="row">
     <div class="col-lg-8">
-        <h1 class="h3 mb-4 titulo-estilizado">Seu carrinho</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0 titulo-estilizado">Seu carrinho</h1>
+            <?php if ($itens): ?>
+                <button type="button" id="btnEsvaziar" class="btn btn-sm btn-outline-secondary rounded-pill">
+                    <i class="bi bi-trash3"></i> Esvaziar
+                </button>
+            <?php endif; ?>
+        </div>
         <?php if ($erro): ?><div class="alert alert-danger"><?= $erro ?></div><?php endif; ?>
+
+        <?php if ($itens): ?>
+            <div id="barraSelecaoCarrinho" class="d-none card p-3 mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <span class="text-secundario small" id="textoSelecionados">Nenhum item selecionado</span>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" form="formRemoverSelecionados" id="btnRemoverSelecionados" class="btn btn-sm btn-perigo rounded-pill" disabled>
+                            <i class="bi bi-trash"></i> Remover selecionados
+                        </button>
+                        <button type="submit" form="formLimparCarrinho" class="btn btn-sm btn-perigo rounded-pill">
+                            <i class="bi bi-x-circle"></i> Limpar tudo
+                        </button>
+                        <button type="button" id="btnCancelarSelecao" class="btn btn-sm btn-outline-secondary rounded-pill">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+            <form id="formRemoverSelecionados" method="post" data-confirmar="Remover os itens selecionados do carrinho?">
+                <input type="hidden" name="action" value="remover">
+            </form>
+            <form id="formLimparCarrinho" method="post" data-confirmar="Isso vai remover todos os itens do carrinho. Confirmar?">
+                <input type="hidden" name="action" value="limpar">
+            </form>
+        <?php endif; ?>
 
         <?php if (!$itens): ?>
             <div class="card p-5 text-center text-secundario">
@@ -74,6 +114,9 @@ require __DIR__ . '/geral/header.php';
             <?php foreach ($itens as $item): $v = $item['variacao']; ?>
                 <div class="card p-3 mb-3">
                     <div class="row align-items-center g-3">
+                        <div class="col-auto d-none item-checkbox-col">
+                            <input type="checkbox" class="form-check-input item-checkbox" name="variacoes[]" value="<?= htmlspecialchars($item['IDVariacao']) ?>" form="formRemoverSelecionados" aria-label="Selecionar item">
+                        </div>
                         <div class="col-3 col-md-2">
                             <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($v['IDProduto']) ?>">
                                 <img src="<?= htmlspecialchars(urlAsset($v['ImagemCapa'] ?? '/geral/img/uscountry-logosolo.svg')) ?>" class="img-fluid rounded" style="aspect-ratio: 1; object-fit: cover;" alt="">
@@ -171,5 +214,47 @@ document.querySelectorAll('.campo-quantidade').forEach(function (campo) {
 
     atualizarPrevia();
 });
+
+(function () {
+    var btnEsvaziar = document.getElementById('btnEsvaziar');
+    if (!btnEsvaziar) return;
+
+    var barraSelecao = document.getElementById('barraSelecaoCarrinho');
+    var btnCancelar = document.getElementById('btnCancelarSelecao');
+    var btnRemoverSelecionados = document.getElementById('btnRemoverSelecionados');
+    var formRemoverSelecionados = document.getElementById('formRemoverSelecionados');
+    var textoSelecionados = document.getElementById('textoSelecionados');
+    var colunasCheckbox = document.querySelectorAll('.item-checkbox-col');
+    var checkboxes = document.querySelectorAll('.item-checkbox');
+
+    function atualizarContagem() {
+        var marcados = document.querySelectorAll('.item-checkbox:checked').length;
+        btnRemoverSelecionados.disabled = marcados === 0;
+        textoSelecionados.textContent = marcados === 0
+            ? 'Nenhum item selecionado'
+            : marcados + (marcados === 1 ? ' item selecionado' : ' itens selecionados');
+        formRemoverSelecionados.dataset.confirmar = marcados === 1
+            ? 'Remover o item selecionado do carrinho?'
+            : 'Remover os ' + marcados + ' itens selecionados do carrinho?';
+    }
+
+    function entrarModoSelecao() {
+        colunasCheckbox.forEach(function (col) { col.classList.remove('d-none'); });
+        barraSelecao.classList.remove('d-none');
+        btnEsvaziar.classList.add('d-none');
+        atualizarContagem();
+    }
+
+    function sairModoSelecao() {
+        colunasCheckbox.forEach(function (col) { col.classList.add('d-none'); });
+        barraSelecao.classList.add('d-none');
+        btnEsvaziar.classList.remove('d-none');
+        checkboxes.forEach(function (cb) { cb.checked = false; });
+    }
+
+    btnEsvaziar.addEventListener('click', entrarModoSelecao);
+    btnCancelar.addEventListener('click', sairModoSelecao);
+    checkboxes.forEach(function (cb) { cb.addEventListener('change', atualizarContagem); });
+})();
 </script>
 <?php require __DIR__ . '/geral/footer.php'; ?>
