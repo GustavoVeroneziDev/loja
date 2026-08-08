@@ -10,7 +10,7 @@
     <div class="col-md-5 mx-auto">
         <div class="card p-4 p-md-5">
             <div id="painelLogin" class="auth-painel <?= $modoInicial === 'cadastro' ? 'd-none' : '' ?>">
-                <h1 class="h4 mb-1">Bem-vindo de volta</h1>
+                <h1 class="h4 mb-4">Bem-vindo de volta</h1>
                 <?php if ($erroLogin): ?><div class="alert alert-danger"><?= htmlspecialchars($erroLogin) ?></div><?php endif; ?>
                 <form method="post" action="<?= URL_BASE ?>/usuario/login.php">
                     <div class="form-floating mb-3">
