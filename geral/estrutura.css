@@ -216,6 +216,50 @@ body {
     width: auto;
 }
 
+/* Barra de ação no rodapé do card de produto — 2 botões mesclados numa pílula só,
+   divididos por uma linha vertical (mesma ideia do stepper de quantidade, só que horizontal) */
+.botoes-acao-produto {
+    display: flex;
+    border-radius: 999px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.botoes-acao-produto form {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.btn-acao-produto {
+    flex: 1 1 0;
+    min-width: 0;
+    border: none;
+    padding: .55rem .25rem;
+    font-size: .75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .3rem;
+    white-space: nowrap;
+}
+
+/* Versão de 1 botão só (produto com mais de 1 variação — manda pra página do produto
+   escolher, em vez de adivinhar qual variação adicionar) */
+.botoes-acao-produto-simples {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    border-radius: 999px;
+    padding: .55rem .25rem;
+    font-size: .8rem;
+    font-weight: 600;
+    text-decoration: none;
+    width: 100%;
+}
+
 /* Nome da loja ao lado da logo — herda fonte/cor de .titulo-estilizado, só define o
    tamanho aqui porque não está dentro de um h1/h3 de página pra herdar o size do Bootstrap */
 .wordmark-loja {

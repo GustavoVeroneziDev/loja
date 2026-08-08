@@ -35,7 +35,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         atualizarQuantidadeCarrinho($idVariacao, 0);
     }
 
-    header('Location: ' . URL_BASE . '/carrinho.php' . ($falhou ? '?erro=1' : ''));
+    // "Adicionar ao carrinho" na grade de produtos manda voltar_para pra continuar na mesma
+    // página em vez de pular pro carrinho; só aceita caminho do próprio site (evita open redirect).
+    $voltarPara = $_POST['voltar_para'] ?? '';
+    if (strpos($voltarPara, URL_BASE) !== 0) {
+        $voltarPara = URL_BASE . '/carrinho.php';
+    }
+    if ($falhou) {
+        $voltarPara .= (strpos($voltarPara, '?') !== false ? '&' : '?') . 'erro=1';
+    }
+    header('Location: ' . $voltarPara);
     exit;
 }
 

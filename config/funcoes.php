@@ -205,11 +205,17 @@ function obterCategoriasArvore() {
 // ---------------------------------------------------------------------
 
 // Lista produtos ativos com preço mínimo entre variações e a imagem de menor Ordem.
+// TotalVariacoes/IDVariacaoUnica/EstoqueVariacaoUnica existem pra grade de produto poder
+// adicionar direto ao carrinho quando só há 1 variação — se houver mais de uma, a grade manda
+// pra página do produto em vez de adivinhar qual variação o cliente quer.
 function obterProdutosAtivos($idCategoria = null) {
     global $pdo;
     $sql = "SELECT p.*,
                    (SELECT MIN(Preco) FROM VariacaoProduto WHERE FKProduto = p.IDProduto) AS PrecoMinimo,
-                   (SELECT Url FROM ImagemProduto WHERE FKProduto = p.IDProduto ORDER BY Ordem LIMIT 1) AS ImagemCapa
+                   (SELECT Url FROM ImagemProduto WHERE FKProduto = p.IDProduto ORDER BY Ordem LIMIT 1) AS ImagemCapa,
+                   (SELECT COUNT(*) FROM VariacaoProduto WHERE FKProduto = p.IDProduto) AS TotalVariacoes,
+                   (SELECT IDVariacao FROM VariacaoProduto WHERE FKProduto = p.IDProduto ORDER BY Preco LIMIT 1) AS IDVariacaoUnica,
+                   (SELECT Estoque FROM VariacaoProduto WHERE FKProduto = p.IDProduto ORDER BY Preco LIMIT 1) AS EstoqueVariacaoUnica
             FROM Produto p
             WHERE p.Ativo = 1";
     $params = [];
@@ -434,7 +440,10 @@ function obterFavoritos() {
     global $pdo;
     $stmt = $pdo->prepare("SELECT p.*, f.MomentoAdicionado,
             (SELECT MIN(Preco) FROM VariacaoProduto WHERE FKProduto = p.IDProduto) AS PrecoMinimo,
-            (SELECT Url FROM ImagemProduto WHERE FKProduto = p.IDProduto ORDER BY Ordem LIMIT 1) AS ImagemCapa
+            (SELECT Url FROM ImagemProduto WHERE FKProduto = p.IDProduto ORDER BY Ordem LIMIT 1) AS ImagemCapa,
+            (SELECT COUNT(*) FROM VariacaoProduto WHERE FKProduto = p.IDProduto) AS TotalVariacoes,
+            (SELECT IDVariacao FROM VariacaoProduto WHERE FKProduto = p.IDProduto ORDER BY Preco LIMIT 1) AS IDVariacaoUnica,
+            (SELECT Estoque FROM VariacaoProduto WHERE FKProduto = p.IDProduto ORDER BY Preco LIMIT 1) AS EstoqueVariacaoUnica
         FROM Favorito f
         JOIN Produto p ON p.IDProduto = f.FKProduto
         WHERE f.FKUsuario = :u

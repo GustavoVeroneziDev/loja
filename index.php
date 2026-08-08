@@ -30,19 +30,46 @@ require __DIR__ . '/geral/header.php';
                         <i class="bi bi-heart"></i>
                     </a>
                 <?php endif; ?>
-                <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($produto['IDProduto']) ?>" class="text-decoration-none text-reset">
-                    <div class="card h-100">
+                <div class="card h-100">
+                    <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($produto['IDProduto']) ?>" class="text-decoration-none text-reset">
                         <img src="<?= htmlspecialchars(urlAsset($produto['ImagemCapa'] ?? '/geral/img/uscountry-logosolo.svg')) ?>"
                              class="card-img-top" style="aspect-ratio: 1; object-fit: cover; border-radius: 16px 16px 0 0;"
                              alt="<?= htmlspecialchars($produto['Nome']) ?>">
-                        <div class="card-body">
+                        <div class="card-body pb-1">
                             <h2 class="h6 mb-1"><?= htmlspecialchars($produto['Nome']) ?></h2>
                             <p class="text-marca fw-semibold mb-0">
                                 <?= $produto['PrecoMinimo'] !== null ? formatarPreco($produto['PrecoMinimo']) : 'Consulte' ?>
                             </p>
                         </div>
+                    </a>
+                    <div class="card-body pt-0">
+                        <?php if ((int) ($produto['TotalVariacoes'] ?? 0) === 1): $semEstoque = (int) ($produto['EstoqueVariacaoUnica'] ?? 0) <= 0; ?>
+                            <div class="botoes-acao-produto">
+                                <form method="post" action="<?= URL_BASE ?>/carrinho.php">
+                                    <input type="hidden" name="action" value="adicionar">
+                                    <input type="hidden" name="variacao_id" value="<?= htmlspecialchars($produto['IDVariacaoUnica']) ?>">
+                                    <input type="hidden" name="quantidade" value="1">
+                                    <input type="hidden" name="voltar_para" value="<?= htmlspecialchars(URL_BASE . '/index.php') ?>">
+                                    <button type="submit" class="btn-acao-produto" <?= $semEstoque ? 'disabled' : '' ?> aria-label="Adicionar ao carrinho">
+                                        <i class="bi bi-cart-plus"></i><span class="d-none d-sm-inline">Carrinho</span>
+                                    </button>
+                                </form>
+                                <form method="post" action="<?= URL_BASE ?>/carrinho.php">
+                                    <input type="hidden" name="action" value="adicionar">
+                                    <input type="hidden" name="variacao_id" value="<?= htmlspecialchars($produto['IDVariacaoUnica']) ?>">
+                                    <input type="hidden" name="quantidade" value="1">
+                                    <button type="submit" class="btn-acao-produto acao-comprar" <?= $semEstoque ? 'disabled' : '' ?> aria-label="Comprar agora">
+                                        <i class="bi bi-bag-check"></i><span class="d-none d-sm-inline">Comprar</span>
+                                    </button>
+                                </form>
+                            </div>
+                        <?php else: ?>
+                            <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($produto['IDProduto']) ?>" class="botoes-acao-produto-simples">
+                                <i class="bi bi-eye"></i> Ver opções
+                            </a>
+                        <?php endif; ?>
                     </div>
-                </a>
+                </div>
             </div>
         </div>
     <?php endforeach; ?>

@@ -251,6 +251,42 @@ body {
     color: #fff;
 }
 
+.botoes-acao-produto {
+    background-color: var(--cor-primaria);
+}
+
+.btn-acao-produto {
+    background: transparent;
+    color: #fff;
+}
+
+.botoes-acao-produto form:first-child .btn-acao-produto {
+    border-right: 1px solid rgba(255, 255, 255, .18);
+}
+
+.btn-acao-produto:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, .1);
+}
+
+.btn-acao-produto:disabled {
+    opacity: .4;
+}
+
+/* "Comprar" ganha o bronze pra se destacar como a ação principal dentro da barra mesclada */
+.btn-acao-produto.acao-comprar {
+    color: var(--cor-destaque);
+}
+
+.botoes-acao-produto-simples {
+    background-color: var(--cor-primaria);
+    color: #fff;
+}
+
+.botoes-acao-produto-simples:hover {
+    filter: brightness(1.3);
+    color: #fff;
+}
+
 .btn-toggle-senha {
     color: #6b6560;
 }
