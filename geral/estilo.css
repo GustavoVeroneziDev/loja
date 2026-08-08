@@ -39,6 +39,20 @@
     color: var(--cor-secundaria);
 }
 
+.wordmark-marca {
+    color: var(--cor-primaria);
+}
+
+.icone-contato {
+    background-color: rgba(0, 0, 0, .04);
+    color: #6b6560;
+}
+
+.icone-contato:hover {
+    background-color: var(--cor-primaria);
+    color: #fff;
+}
+
 body {
     background-color: #faf4ee;
 }

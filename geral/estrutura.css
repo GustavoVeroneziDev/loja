@@ -7,6 +7,33 @@ body {
     font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
+/* Fonte da wordmark ao lado da logo — arquivo local em geral/fonts/, não CDN */
+@font-face {
+    font-family: 'Rye';
+    src: url('fonts/Rye-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+.wordmark-marca {
+    font-family: 'Rye', serif;
+    font-size: 1.4rem;
+    letter-spacing: .03em;
+    line-height: 1;
+}
+
+/* Ícones de contato no rodapé (e-mail, WhatsApp, redes sociais) */
+.icone-contato {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
 /* Evita o rodapé grudar no header em página com pouco conteúdo (categoria vazia, telas de login, etc.) */
 .main-conteudo {
     min-height: 80vh;

@@ -9,7 +9,24 @@
             </div>
             <div class="col-md-3">
                 <strong>Contato</strong>
-                <p class="mt-2 mb-0"><?= htmlspecialchars(TEXTO_CONTATO) ?></p>
+                <p class="mt-2 mb-2"><?= htmlspecialchars(TEXTO_CONTATO) ?></p>
+                <div class="d-flex gap-2">
+                    <a href="mailto:<?= htmlspecialchars(TEXTO_CONTATO) ?>" class="icone-contato" aria-label="E-mail">
+                        <i class="bi bi-envelope"></i>
+                    </a>
+                    <a href="https://wa.me/<?= htmlspecialchars(WHATSAPP_NUMERO) ?>" target="_blank" rel="noopener" class="icone-contato" aria-label="WhatsApp">
+                        <i class="bi bi-whatsapp"></i>
+                    </a>
+                    <a href="tel:<?= htmlspecialchars(preg_replace('/\D/', '', TELEFONE_CONTATO)) ?>" class="icone-contato" aria-label="Telefone">
+                        <i class="bi bi-telephone"></i>
+                    </a>
+                    <a href="<?= htmlspecialchars(INSTAGRAM_URL) ?>" target="_blank" rel="noopener" class="icone-contato" aria-label="Instagram">
+                        <i class="bi bi-instagram"></i>
+                    </a>
+                    <a href="<?= htmlspecialchars(FACEBOOK_URL) ?>" target="_blank" rel="noopener" class="icone-contato" aria-label="Facebook">
+                        <i class="bi bi-facebook"></i>
+                    </a>
+                </div>
             </div>
             <div class="col-md-3">
                 <strong>Trocas e devoluções</strong>
