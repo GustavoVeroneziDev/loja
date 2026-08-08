@@ -151,7 +151,7 @@ require __DIR__ . '/geral/header.php';
                             <div class="text-secundario small texto-quantidade"><?= $item['Quantidade'] ?>x <?= formatarPreco($v['Preco']) ?></div>
                             <div class="fw-semibold valor-subtotal"><?= formatarPreco($item['subtotal']) ?></div>
                         </div>
-                        <div class="col-2 col-md-1 text-end">
+                        <div class="col-2 col-md-1 text-end item-remover-col">
                             <form method="post" data-confirmar="Remover este item do carrinho?">
                                 <input type="hidden" name="action" value="remover">
                                 <input type="hidden" name="variacao_id" value="<?= htmlspecialchars($item['IDVariacao']) ?>">
@@ -225,6 +225,7 @@ document.querySelectorAll('.campo-quantidade').forEach(function (campo) {
     var formRemoverSelecionados = document.getElementById('formRemoverSelecionados');
     var textoSelecionados = document.getElementById('textoSelecionados');
     var colunasCheckbox = document.querySelectorAll('.item-checkbox-col');
+    var colunasRemover = document.querySelectorAll('.item-remover-col');
     var checkboxes = document.querySelectorAll('.item-checkbox');
 
     function atualizarContagem() {
@@ -240,6 +241,7 @@ document.querySelectorAll('.campo-quantidade').forEach(function (campo) {
 
     function entrarModoSelecao() {
         colunasCheckbox.forEach(function (col) { col.classList.remove('d-none'); });
+        colunasRemover.forEach(function (col) { col.classList.add('d-none'); });
         barraSelecao.classList.remove('d-none');
         btnEsvaziar.classList.add('d-none');
         atualizarContagem();
@@ -247,6 +249,7 @@ document.querySelectorAll('.campo-quantidade').forEach(function (campo) {
 
     function sairModoSelecao() {
         colunasCheckbox.forEach(function (col) { col.classList.add('d-none'); });
+        colunasRemover.forEach(function (col) { col.classList.remove('d-none'); });
         barraSelecao.classList.add('d-none');
         btnEsvaziar.classList.remove('d-none');
         checkboxes.forEach(function (cb) { cb.checked = false; });
