@@ -204,19 +204,58 @@ function garantirTabelaImagemProduto() {
         FOREIGN KEY (FKProduto) REFERENCES Produto(IDProduto) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    // FKVariacao vazio = mídia "base", aparece em qualquer variação selecionada. Preenchido =
-    // só aparece quando aquela variação específica tá selecionada (ex: foto do boné na cor verde).
-    $temFkVariacao = (bool) $pdo->query("SHOW COLUMNS FROM ImagemProduto LIKE 'FKVariacao'")->fetchColumn();
-    if (!$temFkVariacao) {
-        $pdo->exec("ALTER TABLE ImagemProduto ADD COLUMN FKVariacao CHAR(36) NULL AFTER FKProduto");
-        $pdo->exec("ALTER TABLE ImagemProduto ADD FOREIGN KEY (FKVariacao) REFERENCES VariacaoProduto(IDVariacao) ON DELETE CASCADE");
+    // ValorAtributo1/2 NULL = "qualquer valor daquele eixo" (curinga). Uma foto com só
+    // ValorAtributo1='Vermelho' (eixo 2 em branco) aparece em Vermelho·P, Vermelho·M, Vermelho·G...
+    // de uma vez só — evita subir a mesma foto uma vez por tamanho. Os dois em branco = mídia
+    // "base", aparece sempre. Espelha as mesmas colunas de VariacaoProduto de propósito, pra
+    // poder reaproveitar descricaoVariacao() direto numa linha de ImagemProduto também.
+    $temValorAtributo1 = (bool) $pdo->query("SHOW COLUMNS FROM ImagemProduto LIKE 'ValorAtributo1'")->fetchColumn();
+    if (!$temValorAtributo1) {
+        $pdo->exec("ALTER TABLE ImagemProduto ADD COLUMN ValorAtributo1 VARCHAR(100) NULL AFTER FKProduto");
+        $pdo->exec("ALTER TABLE ImagemProduto ADD COLUMN ValorAtributo2 VARCHAR(100) NULL AFTER ValorAtributo1");
     }
+
+    // Coluna antiga (FKVariacao, vínculo com 1 variação exata) — migra pro par de valores da
+    // própria variação referenciada (preserva o comportamento de quem já tinha foto vinculada)
+    // e descarta a coluna/FK velha.
+    $temFkVariacao = (bool) $pdo->query("SHOW COLUMNS FROM ImagemProduto LIKE 'FKVariacao'")->fetchColumn();
+    if ($temFkVariacao) {
+        $pdo->exec("UPDATE ImagemProduto i
+            JOIN VariacaoProduto v ON v.IDVariacao = i.FKVariacao
+            SET i.ValorAtributo1 = v.ValorAtributo1, i.ValorAtributo2 = v.ValorAtributo2
+            WHERE i.FKVariacao IS NOT NULL");
+        $nomeConstraint = $pdo->query("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ImagemProduto'
+              AND COLUMN_NAME = 'FKVariacao' AND REFERENCED_TABLE_NAME IS NOT NULL")->fetchColumn();
+        if ($nomeConstraint) {
+            $pdo->exec("ALTER TABLE ImagemProduto DROP FOREIGN KEY `$nomeConstraint`");
+        }
+        $pdo->exec("ALTER TABLE ImagemProduto DROP COLUMN FKVariacao");
+    }
+
     $temTipoMidia = (bool) $pdo->query("SHOW COLUMNS FROM ImagemProduto LIKE 'TipoMidia'")->fetchColumn();
     if (!$temTipoMidia) {
         $pdo->exec("ALTER TABLE ImagemProduto ADD COLUMN TipoMidia ENUM('imagem','video') NOT NULL DEFAULT 'imagem' AFTER Url");
     }
 
     $jaVerificado = true;
+}
+
+// Uma foto/vídeo "combina" com uma variação quando, em cada eixo, ou o valor bate ou a mídia não
+// travou aquele eixo (NULL = qualquer valor) — deixa 1 upload servir várias variações da mesma
+// cor. Ordena a mais específica primeiro (mais eixo travado), mídia "base" (nenhum eixo) por
+// último, pra virar a foto ativa do carrossel quando a variação muda.
+function imagensParaVariacao($imagens, $variacao) {
+    $combina = array_values(array_filter($imagens, function ($img) use ($variacao) {
+        $eixo1Ok = $img['ValorAtributo1'] === null || $img['ValorAtributo1'] === $variacao['ValorAtributo1'];
+        $eixo2Ok = $img['ValorAtributo2'] === null || $img['ValorAtributo2'] === $variacao['ValorAtributo2'];
+        return $eixo1Ok && $eixo2Ok;
+    }));
+    usort($combina, fn($a, $b) =>
+        (($b['ValorAtributo1'] !== null) + ($b['ValorAtributo2'] !== null))
+        - (($a['ValorAtributo1'] !== null) + ($a['ValorAtributo2'] !== null))
+    );
+    return $combina;
 }
 
 // ---------------------------------------------------------------------

@@ -158,26 +158,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($_FILES['imagem']['tmp_name'])) {
             $midia = uploadImagem($_FILES['imagem'], 'produtos');
             if ($midia) {
-                // Confere que a variação escolhida é mesmo desse produto (evita alguém plantar
-                // um FKVariacao de outro produto via POST manipulado).
-                $fkVariacao = $_POST['fk_variacao'] ?? '';
-                if ($fkVariacao !== '') {
-                    $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM VariacaoProduto WHERE IDVariacao = :id AND FKProduto = :produto");
-                    $stmtCheck->execute(['id' => $fkVariacao, 'produto' => $idProduto]);
-                    if ((int) $stmtCheck->fetchColumn() === 0) {
-                        $fkVariacao = '';
-                    }
-                }
+                $valor1 = trim($_POST['valor_atributo_1'] ?? '');
+                $valor2 = trim($_POST['valor_atributo_2'] ?? '');
 
                 $stmtOrdem = $pdo->prepare("SELECT COALESCE(MAX(Ordem), -1) + 1 FROM ImagemProduto WHERE FKProduto = :produto");
                 $stmtOrdem->execute(['produto' => $idProduto]);
                 $proximaOrdem = (int) $stmtOrdem->fetchColumn();
 
-                $stmt = $pdo->prepare("INSERT INTO ImagemProduto (IDImagem, FKProduto, FKVariacao, Url, TipoMidia, Ordem) VALUES (:id, :produto, :variacao, :url, :tipo, :ordem)");
+                $stmt = $pdo->prepare("INSERT INTO ImagemProduto (IDImagem, FKProduto, ValorAtributo1, ValorAtributo2, Url, TipoMidia, Ordem) VALUES (:id, :produto, :valor1, :valor2, :url, :tipo, :ordem)");
                 $stmt->execute([
                     'id' => gerarUuid(),
                     'produto' => $idProduto,
-                    'variacao' => $fkVariacao !== '' ? $fkVariacao : null,
+                    'valor1' => $valor1 !== '' ? $valor1 : null,
+                    'valor2' => $valor2 !== '' ? $valor2 : null,
                     'url' => $midia['url'],
                     'tipo' => $midia['tipo'],
                     'ordem' => $proximaOrdem,
@@ -228,6 +221,10 @@ $imagens = obterImagensPorProduto($idProduto);
 // Sem eixo configurado = produto simples (1 variação só, sem "Cor"/"Tamanho" pra distinguir) —
 // esconde toda a complexidade de variação pra quem só quer cadastrar algo com preço e estoque.
 $modoSimples = empty($produto['NomeAtributo1']);
+// Valores de eixo já usados em alguma variação — popula os seletores de "pra qual valor essa
+// foto/vídeo vale" na hora de anexar mídia.
+$valoresEixo1Existentes = array_values(array_unique(array_filter(array_column($variacoes, 'ValorAtributo1'))));
+$valoresEixo2Existentes = array_values(array_unique(array_filter(array_column($variacoes, 'ValorAtributo2'))));
 
 require __DIR__ . '/../_topo.php';
 ?>
@@ -301,7 +298,6 @@ require __DIR__ . '/../_topo.php';
 
         <div class="card p-4 mt-4">
             <h2 class="h5 mb-3">Imagens e vídeos</h2>
-            <?php $descricaoPorVariacao = array_column(array_map(fn($v) => ['id' => $v['IDVariacao'], 'desc' => descricaoVariacao($v) ?? 'Padrão'], $variacoes), 'desc', 'id'); ?>
             <div class="row g-2 mb-3">
                 <?php foreach ($imagens as $imagem): ?>
                     <div class="col-4">
@@ -320,7 +316,7 @@ require __DIR__ . '/../_topo.php';
                         </div>
                         <?php if (!$modoSimples): ?>
                             <div class="text-secundario small text-center mt-1">
-                                <?= $imagem['FKVariacao'] ? htmlspecialchars($descricaoPorVariacao[$imagem['FKVariacao']] ?? 'variação removida') : 'todas' ?>
+                                <?= htmlspecialchars(descricaoVariacao($imagem) ?? 'todas') ?>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -332,13 +328,27 @@ require __DIR__ . '/../_topo.php';
             <form method="post" enctype="multipart/form-data" class="d-flex flex-column gap-2">
                 <input type="hidden" name="action" value="adicionar_imagem">
                 <?php if (!$modoSimples): ?>
-                    <select name="fk_variacao" class="form-select">
-                        <option value="" class="opcao-titulo">Todas as variações (base)</option>
-                        <?php foreach ($variacoes as $variacao): ?>
-                            <option value="<?= htmlspecialchars($variacao['IDVariacao']) ?>"><?= htmlspecialchars(descricaoVariacao($variacao) ?? 'Padrão') ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div class="form-text mt-0">Escolhendo uma variação, essa foto/vídeo só aparece pro cliente quando ele selecionar essa opção. "Todas as variações" aparece sempre, independente da escolha.</div>
+                    <div class="row g-2">
+                        <div class="col">
+                            <select name="valor_atributo_1" class="form-select">
+                                <option value="" class="opcao-titulo">Todas (<?= htmlspecialchars($produto['NomeAtributo1']) ?>)</option>
+                                <?php foreach ($valoresEixo1Existentes as $valor): ?>
+                                    <option value="<?= htmlspecialchars($valor) ?>"><?= htmlspecialchars($valor) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <?php if ($produto['NomeAtributo2']): ?>
+                            <div class="col">
+                                <select name="valor_atributo_2" class="form-select">
+                                    <option value="" class="opcao-titulo">Todos (<?= htmlspecialchars($produto['NomeAtributo2']) ?>)</option>
+                                    <?php foreach ($valoresEixo2Existentes as $valor): ?>
+                                        <option value="<?= htmlspecialchars($valor) ?>"><?= htmlspecialchars($valor) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-text mt-0">Deixe em "Todas/Todos" pra essa foto/vídeo aparecer em qualquer valor daquele eixo — ex: escolhendo só "Vermelho" (sem travar <?= htmlspecialchars($produto['NomeAtributo2'] ?? 'o outro eixo') ?>), a foto vale pra Vermelho em qualquer <?= htmlspecialchars($produto['NomeAtributo2'] ?? 'variação') ?>, sem precisar subir de novo pra cada uma.</div>
                 <?php endif; ?>
                 <div class="d-flex gap-2">
                     <input type="file" name="imagem" class="form-control" accept=".jpg,.jpeg,.png,.webp,.mp4,.webm,.mov" required>

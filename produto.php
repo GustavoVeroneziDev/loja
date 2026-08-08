@@ -25,22 +25,11 @@ $variacoes = obterVariacoesPorProduto($idProduto);
 $imagens = obterImagensPorProduto($idProduto);
 $favoritado = ehFavorito($idProduto);
 
-// Mídia "base" (sem variação) aparece sempre; mídia ligada a uma variação só aparece quando ela
-// tá selecionada — ex: a foto do boné na cor verde só troca pra tela quando o cliente escolhe Verde.
-$imagensBase = array_values(array_filter($imagens, fn($img) => $img['FKVariacao'] === null));
-$imagensPorVariacao = [];
-foreach ($imagens as $img) {
-    if ($img['FKVariacao'] !== null) {
-        $imagensPorVariacao[$img['FKVariacao']][] = $img;
-    }
-}
+// imagensParaVariacao() já resolve base + específica da variação, na ordem certa (mais
+// específica primeiro) — mesma função usada aqui e no JSON que o JS lê ao trocar de variação.
 $paraMidiaJs = fn($img) => ['url' => urlAsset($img['Url']), 'tipo' => $img['TipoMidia']];
-
 $variacaoInicial = $variacoes[0] ?? null;
-$midiaInicial = array_merge(
-    ($variacaoInicial && isset($imagensPorVariacao[$variacaoInicial['IDVariacao']])) ? $imagensPorVariacao[$variacaoInicial['IDVariacao']] : [],
-    $imagensBase
-);
+$midiaInicial = $variacaoInicial ? imagensParaVariacao($imagens, $variacaoInicial) : $imagens;
 
 require __DIR__ . '/geral/header.php';
 ?>
@@ -79,9 +68,6 @@ require __DIR__ . '/geral/header.php';
                 <span class="carousel-control-next-icon"></span>
             </button>
         </div>
-        <?php if (count($variacoes) > 1): ?>
-            <script id="dadosMidiaBase" type="application/json"><?= json_encode(array_map($paraMidiaJs, $imagensBase)) ?></script>
-        <?php endif; ?>
     </div>
     <div class="col-md-6">
         <div class="d-flex justify-content-between align-items-start gap-3">
@@ -168,7 +154,7 @@ require __DIR__ . '/geral/header.php';
                     'valor2' => $v['ValorAtributo2'],
                     'preco' => (float) $v['Preco'],
                     'estoque' => (int) $v['Estoque'],
-                    'imagens' => array_map($paraMidiaJs, $imagensPorVariacao[$v['IDVariacao']] ?? []),
+                    'imagens' => array_map($paraMidiaJs, imagensParaVariacao($imagens, $v)),
                 ], $variacoes)) ?></script>
             <?php endif; ?>
 
@@ -245,14 +231,13 @@ function atualizarBotoesQuantidade() {
     atualizarBotoesQuantidade();
 })();
 
-// Troca o conteúdo do carrossel pra mídia base + mídia específica da variação selecionada.
-// Sem mídia nenhuma (produto ainda sem foto pra essa variação), cai no placeholder da marca.
-function renderizarCarrossel(midiaVariacao) {
+// Troca o conteúdo do carrossel pra mídia da variação selecionada — o PHP (imagensParaVariacao)
+// já manda a lista pronta, base + específica, na ordem certa. Sem mídia nenhuma (produto ainda
+// sem foto pra essa variação), cai no placeholder da marca.
+function renderizarCarrossel(midia) {
     var carrossel = document.getElementById('carrosselProduto');
     if (!carrossel) return;
-    var midiaBaseEl = document.getElementById('dadosMidiaBase');
-    var midiaBase = midiaBaseEl ? JSON.parse(midiaBaseEl.textContent) : [];
-    var itens = (midiaVariacao || []).concat(midiaBase);
+    var itens = midia || [];
 
     var inner = carrossel.querySelector('.carousel-inner');
     if (!itens.length) {
