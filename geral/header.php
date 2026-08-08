@@ -24,7 +24,7 @@ garantirTabelaFavorito();
 $nomeLoja = obterConfiguracaoLoja('nome_loja', 'Minha Loja');
 $corPrimaria = obterConfiguracaoLoja('cor_primaria', '#e08a3c');
 $corSecundaria = obterConfiguracaoLoja('cor_secundaria', '#c08552');
-$logoUrl = obterConfiguracaoLoja('logo_url', '/geral/img/logo-placeholder.svg');
+$logoUrl = obterConfiguracaoLoja('logo_url', '/geral/img/Logo-texto.svg');
 $faviconUrl = obterConfiguracaoLoja('favicon_url', $logoUrl);
 $categoriasNav = array_filter(obterCategoriasArvore(), fn($c) => empty($c['FKCategoriaPai']));
 $totalCarrinho = contarItensCarrinho();

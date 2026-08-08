@@ -62,7 +62,7 @@ require __DIR__ . '/geral/header.php';
                     <div class="row align-items-center g-3">
                         <div class="col-3 col-md-2">
                             <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($v['IDProduto']) ?>">
-                                <img src="<?= htmlspecialchars(urlAsset($v['ImagemCapa'] ?? '/geral/img/logo-placeholder.svg')) ?>" class="img-fluid rounded" style="aspect-ratio: 1; object-fit: cover;" alt="">
+                                <img src="<?= htmlspecialchars(urlAsset($v['ImagemCapa'] ?? '/geral/img/Logo-texto.svg')) ?>" class="img-fluid rounded" style="aspect-ratio: 1; object-fit: cover;" alt="">
                             </a>
                         </div>
                         <div class="col-9 col-md-4">

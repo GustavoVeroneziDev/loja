@@ -41,7 +41,7 @@ require __DIR__ . '/geral/header.php';
                 <?php endif; ?>
             </div>
         <?php else: ?>
-            <img src="<?= htmlspecialchars(urlAsset('/geral/img/logo-placeholder.svg')) ?>" class="w-100 rounded" style="aspect-ratio: 1; object-fit: contain; background: #f5f5f5;" alt="<?= htmlspecialchars($produto['Nome']) ?>">
+            <img src="<?= htmlspecialchars(urlAsset('/geral/img/Logo-texto.svg')) ?>" class="w-100 rounded" style="aspect-ratio: 1; object-fit: contain; background: #f5f5f5;" alt="<?= htmlspecialchars($produto['Nome']) ?>">
         <?php endif; ?>
     </div>
     <div class="col-md-6">

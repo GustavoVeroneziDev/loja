@@ -178,7 +178,7 @@ function garantirConfiguracaoLojaPadrao() {
         'nome_loja' => 'Minha Loja',
         'cor_primaria' => '#e08a3c',
         'cor_secundaria' => '#c08552',
-        'logo_url' => '/geral/img/logo-placeholder.svg',
+        'logo_url' => '/geral/img/Logo-texto.svg',
         'texto_sobre' => 'Conte aqui a história da sua loja.',
         'texto_politica_troca' => 'Descreva aqui a política de trocas e devoluções.',
         'texto_contato' => 'contato@minhaloja.com.br',

@@ -44,7 +44,7 @@ require __DIR__ . '/geral/header.php';
                 <?php endif; ?>
                 <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($produto['IDProduto']) ?>" class="text-decoration-none text-reset">
                     <div class="card h-100">
-                        <img src="<?= htmlspecialchars(urlAsset($produto['ImagemCapa'] ?? '/geral/img/logo-placeholder.svg')) ?>"
+                        <img src="<?= htmlspecialchars(urlAsset($produto['ImagemCapa'] ?? '/geral/img/Logo-texto.svg')) ?>"
                              class="card-img-top" style="aspect-ratio: 1; object-fit: cover; border-radius: 16px 16px 0 0;"
                              alt="<?= htmlspecialchars($produto['Nome']) ?>">
                         <div class="card-body">

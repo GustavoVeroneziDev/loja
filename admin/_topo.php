@@ -8,7 +8,7 @@ require_once __DIR__ . '/../config/funcoes.php';
 garantirTabelaConfiguracaoLoja();
 garantirConfiguracaoLojaPadrao();
 $nomeLoja = obterConfiguracaoLoja('nome_loja', 'Minha Loja');
-$logoUrl = obterConfiguracaoLoja('logo_url', '/geral/img/logo-placeholder.svg');
+$logoUrl = obterConfiguracaoLoja('logo_url', '/geral/img/Logo-texto.svg');
 $faviconUrl = obterConfiguracaoLoja('favicon_url', $logoUrl);
 ?>
 <!doctype html>
