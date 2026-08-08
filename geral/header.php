@@ -79,11 +79,16 @@ $totalCarrinho = contarItensCarrinho();
                     </a>
                 </li>
                 <?php if (clienteLogado()): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= URL_BASE ?>/usuario/favoritos.php"><i class="bi bi-heart"></i> Favoritos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= URL_BASE ?>/usuario/minha-conta.php"><i class="bi bi-person-circle"></i> Minha conta</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> <?= htmlspecialchars($_SESSION['usuario_nome']) ?>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="<?= URL_BASE ?>/usuario/minha-conta.php"><i class="bi bi-person"></i> Minha conta</a></li>
+                            <li><a class="dropdown-item" href="<?= URL_BASE ?>/usuario/favoritos.php"><i class="bi bi-heart"></i> Favoritos</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" style="color: #dc2626;" href="<?= URL_BASE ?>/usuario/logout.php"><i class="bi bi-box-arrow-right"></i> Sair</a></li>
+                        </ul>
                     </li>
                 <?php else: ?>
                     <li class="nav-item">

@@ -72,6 +72,23 @@
             }
         });
     })();
+
+    // Todo POST daqui recarrega a página (padrão do site inteiro) e o navegador, por padrão, volta
+    // pro topo — chato em ação tipo favoritar no meio da vitrine. Guarda o scroll antes de qualquer
+    // formulário enviar e restaura assim que a página volta, sem precisar declarar nada por página.
+    (function () {
+        var chave = 'scrollY:' + location.pathname;
+
+        var salvo = sessionStorage.getItem(chave);
+        if (salvo !== null) {
+            sessionStorage.removeItem(chave);
+            window.scrollTo(0, parseInt(salvo, 10));
+        }
+
+        document.addEventListener('submit', function () {
+            sessionStorage.setItem(chave, window.scrollY);
+        }, true);
+    })();
 </script>
 </body>
 

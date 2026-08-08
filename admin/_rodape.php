@@ -53,6 +53,23 @@ document.querySelectorAll('.btn-toggle-senha').forEach(function (botao) {
         }
     });
 })();
+
+// Todo POST daqui recarrega a página (padrão do site inteiro) e o navegador, por padrão, volta pro
+// topo — chato depois de editar algo no meio de uma lista longa. Guarda o scroll antes de qualquer
+// formulário enviar e restaura assim que a página volta, sem precisar declarar nada por página.
+(function () {
+    var chave = 'scrollY:' + location.pathname;
+
+    var salvo = sessionStorage.getItem(chave);
+    if (salvo !== null) {
+        sessionStorage.removeItem(chave);
+        window.scrollTo(0, parseInt(salvo, 10));
+    }
+
+    document.addEventListener('submit', function () {
+        sessionStorage.setItem(chave, window.scrollY);
+    }, true);
+})();
 </script>
 </body>
 </html>
