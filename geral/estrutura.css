@@ -216,6 +216,12 @@ body {
     width: auto;
 }
 
+/* Nome da loja ao lado da logo — herda fonte/cor de .titulo-estilizado, só define o
+   tamanho aqui porque não está dentro de um h1/h3 de página pra herdar o size do Bootstrap */
+.wordmark-loja {
+    font-size: 2rem;
+}
+
 .link-marca {
     font-weight: 500;
 }

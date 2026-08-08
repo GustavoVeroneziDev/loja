@@ -4,8 +4,8 @@
  * Pra clonar pra um cliente novo: edita esse arquivo (e as cores em geral/estilo.css).
  */
 
-define('NOME_LOJA', 'Minha Loja');
-define('LOGO_URL', '/geral/img/Logo-texto.svg');
+define('NOME_LOJA', 'US Country');
+define('LOGO_URL', '/geral/img/uscountry-logosolo.svg');
 define('FAVICON_URL', '/geral/img/uscountry-logosolo.ico');
 define('TEXTO_SOBRE', 'Conte aqui a história da sua loja.');
 define('TEXTO_POLITICA_TROCA', 'Descreva aqui a política de trocas e devoluções.');
