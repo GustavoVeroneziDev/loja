@@ -146,8 +146,13 @@ require __DIR__ . '/geral/header.php';
             <?php endif; ?>
 
             <p class="h3 text-marca" id="precoSelecionado"><?= formatarPreco($variacoes[0]['Preco'] ?? 0) ?></p>
-            <p class="text-secundario small" id="estoqueSelecionado">
-                <?= ($variacoes[0]['Estoque'] ?? 0) > 0 ? (int) $variacoes[0]['Estoque'] . ' em estoque' : 'Fora de estoque' ?>
+            <?php $estoqueInicial = (int) ($variacoes[0]['Estoque'] ?? 0); ?>
+            <p class="mb-3" id="estoqueSelecionado">
+                <?php if ($estoqueInicial === 0): ?>
+                    <span class="text-secundario small">Fora de estoque</span>
+                <?php elseif ($estoqueInicial <= 5): ?>
+                    <span class="badge-atencao px-2 py-1 small"><i class="bi bi-fire"></i> Só restam <?= $estoqueInicial ?> em estoque</span>
+                <?php endif; ?>
             </p>
 
             <div class="d-flex gap-2 align-items-center mb-3">
@@ -164,11 +169,19 @@ require __DIR__ . '/geral/header.php';
 </div>
 
 <script>
+// Estoque saudável não mostra nada (não é informação útil pro cliente) — só avisa quando
+// zerou ou quando tá acabando (<=5), com o fogo pra chamar atenção pra urgência.
+function textoEstoque(estoque) {
+    if (estoque <= 0) return '<span class="text-secundario small">Fora de estoque</span>';
+    if (estoque <= 5) return '<span class="badge-atencao px-2 py-1 small"><i class="bi bi-fire"></i> Só restam ' + estoque + ' em estoque</span>';
+    return '';
+}
+
 function atualizarVariacaoSelecionada(input) {
     const preco = parseFloat(input.dataset.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const estoque = parseInt(input.dataset.estoque, 10);
     document.getElementById('precoSelecionado').textContent = preco;
-    document.getElementById('estoqueSelecionado').textContent = estoque > 0 ? estoque + ' em estoque' : 'Fora de estoque';
+    document.getElementById('estoqueSelecionado').innerHTML = textoEstoque(estoque);
 
     const campoQuantidade = document.getElementById('quantidade');
     campoQuantidade.max = estoque;
@@ -244,7 +257,7 @@ function atualizarVariacaoSelecionada(input) {
         if (encontrada) {
             campoVariacaoId.value = encontrada.id;
             document.getElementById('precoSelecionado').textContent = encontrada.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('estoqueSelecionado').textContent = encontrada.estoque > 0 ? encontrada.estoque + ' em estoque' : 'Fora de estoque';
+            document.getElementById('estoqueSelecionado').innerHTML = textoEstoque(encontrada.estoque);
             campoQuantidade.max = encontrada.estoque;
             if (parseInt(campoQuantidade.value, 10) > encontrada.estoque) {
                 campoQuantidade.value = encontrada.estoque > 0 ? 1 : 0;
