@@ -208,7 +208,7 @@ function obterCategoriasArvore() {
 // TotalVariacoes/IDVariacaoUnica/EstoqueVariacaoUnica existem pra grade de produto poder
 // adicionar direto ao carrinho quando só há 1 variação — se houver mais de uma, a grade manda
 // pra página do produto em vez de adivinhar qual variação o cliente quer.
-function obterProdutosAtivos($idCategoria = null) {
+function obterProdutosAtivos($idCategoria = null, $busca = null) {
     global $pdo;
     $sql = "SELECT p.*,
                    (SELECT MIN(Preco) FROM VariacaoProduto WHERE FKProduto = p.IDProduto) AS PrecoMinimo,
@@ -222,6 +222,10 @@ function obterProdutosAtivos($idCategoria = null) {
     if ($idCategoria !== null) {
         $sql .= " AND p.FKCategoria = :idCategoria";
         $params['idCategoria'] = $idCategoria;
+    }
+    if ($busca !== null && $busca !== '') {
+        $sql .= " AND (p.Nome LIKE :busca OR p.Descricao LIKE :busca)";
+        $params['busca'] = '%' . $busca . '%';
     }
     $sql .= " ORDER BY p.MomentoCriacao DESC";
     $stmt = $pdo->prepare($sql);

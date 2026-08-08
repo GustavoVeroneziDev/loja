@@ -7,11 +7,30 @@ garantirTabelaVariacaoProduto();
 garantirTabelaImagemProduto();
 garantirTabelaFavorito();
 
-$produtos = obterProdutosAtivos();
+$busca = trim($_GET['busca'] ?? '');
+$produtos = obterProdutosAtivos(null, $busca !== '' ? $busca : null);
 
 require __DIR__ . '/geral/header.php';
 ?>
 <h1 class="h3 mb-4 titulo-estilizado">Produtos</h1>
+
+<form method="get" action="<?= URL_BASE ?>/index.php" class="mb-4">
+    <div class="input-group barra-pesquisa">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="search" name="busca" class="form-control" placeholder="Buscar produtos..." value="<?= htmlspecialchars($busca) ?>">
+        <?php if ($busca !== ''): ?>
+            <a href="<?= URL_BASE ?>/index.php" class="btn btn-outline-secondary" aria-label="Limpar busca"><i class="bi bi-x-lg"></i></a>
+        <?php endif; ?>
+        <button type="submit" class="btn btn-marca">Buscar</button>
+    </div>
+</form>
+
+<?php if ($busca !== ''): ?>
+    <p class="text-secundario mb-3">
+        <?= count($produtos) ?> <?= count($produtos) === 1 ? 'resultado' : 'resultados' ?> pra "<?= htmlspecialchars($busca) ?>"
+    </p>
+<?php endif; ?>
+
 <div class="row g-4">
     <?php foreach ($produtos as $produto): $favoritado = ehFavorito($produto['IDProduto']); ?>
         <div class="col-6 col-md-4 col-lg-3">
@@ -74,7 +93,9 @@ require __DIR__ . '/geral/header.php';
         </div>
     <?php endforeach; ?>
     <?php if (!$produtos): ?>
-        <p class="text-secundario">Nenhum produto disponível ainda.</p>
+        <p class="text-secundario">
+            <?= $busca !== '' ? 'Nenhum produto encontrado pra "' . htmlspecialchars($busca) . '".' : 'Nenhum produto disponível ainda.' ?>
+        </p>
     <?php endif; ?>
 </div>
 <?php require __DIR__ . '/geral/footer.php'; ?>
