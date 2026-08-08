@@ -76,7 +76,7 @@ $totalCarrinho = contarItensCarrinho();
                             <li><a class="dropdown-item" href="<?= URL_BASE ?>/usuario/minha-conta.php"><i class="bi bi-person"></i> Minha conta</a></li>
                             <li><a class="dropdown-item" href="<?= URL_BASE ?>/usuario/favoritos.php"><i class="bi bi-heart"></i> Favoritos</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" style="color: #dc2626;" href="<?= URL_BASE ?>/usuario/logout.php"><i class="bi bi-box-arrow-right"></i> Sair</a></li>
+                            <li><a class="dropdown-item dropdown-item-perigo" href="<?= URL_BASE ?>/usuario/logout.php"><i class="bi bi-box-arrow-right"></i> Sair</a></li>
                         </ul>
                     </li>
                 <?php else: ?>

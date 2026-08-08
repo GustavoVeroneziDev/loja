@@ -1,6 +1,6 @@
 <?php /** @var string $nomeLoja Definida por geral/header.php, sempre incluído antes deste arquivo. */ ?>
 </main>
-<footer class="border-top mt-5" style="border-color: rgba(0,0,0,.06) !important;">
+<footer class="rodape-loja mt-5">
     <div class="container py-4 text-secundario small">
         <div class="row g-4">
             <div class="col-md-6">

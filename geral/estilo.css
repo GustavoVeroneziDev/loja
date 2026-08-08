@@ -1,27 +1,31 @@
 /*
  * Estilo: cor e tema. Layout/forma fica em geral/estrutura.css.
  *
- * Cor de marca (linha abaixo até .logo-loja) é a "pele" — troca por cliente clonado.
- * O resto (badges, botões semânticos, fundo, texto) é cor semântica fixa, não muda
- * de clone pra clone: verde = sucesso/ativo, vermelho = perigo, âmbar = atenção,
- * dourado = destaque, roxo = admin. Recalibradas pra ler bem em fundo claro.
+ * Paleta "New Rustic Luxury" — é a "pele", troca por cliente clonado.
+ * Cor semântica fixa (verde/vermelho/âmbar/roxo) NÃO é pele, não muda de clone
+ * pra clone: verde = sucesso/ativo, vermelho = perigo, âmbar = atenção, roxo = admin.
+ * badge-destaque é semântico ("isso é especial") mas foi recalibrado pro tom de
+ * bronze abaixo por escolha de estilo — fica como valor fixo, não ligado à variável,
+ * porque semântica não pode depender da pele do cliente.
  */
 
 :root {
-    --cor-primaria: #e08a3c;
-    --cor-secundaria: #c08552;
+    --cor-primaria: #1a1513;   /* café escuro/preto absoluto — cabeçalho, rodapé, botões */
+    --cor-secundaria: #4e3629; /* marrom tabaco — links, banners e blocos de transição */
+    --cor-destaque: #a3805b;   /* bronze acetinado — títulos e detalhes de destaque */
+    --cor-fundo: #fdfbf7;      /* off-white linho — fundo principal do site */
+    --cor-divisoria: #e6e1da;  /* cinza mineral — linhas divisórias e ícones */
 }
 
 .navbar-marca {
     background-color: #ffffff;
-    border-bottom: 1px solid rgba(0, 0, 0, .06);
+    border-bottom: 1px solid var(--cor-divisoria);
 }
 
-/* Primeiro rascunho de navbar escura/rústica pro site público (admin continua na .navbar-marca
-   branca de cima) — base azul-marinho escuro com listras bem sutis simulando ripa de madeira.
-   Isso é experimental, ainda em aberto — ajusta o tom/textura conforme o gosto. */
+/* Navbar escura/rústica do site público (admin continua na .navbar-marca branca de cima).
+   Base café escuro com listras bem sutis simulando ripa de madeira + trim de bronze embaixo. */
 .navbar-loja {
-    background-color: #171e2e;
+    background-color: var(--cor-primaria);
     background-image: repeating-linear-gradient(
         90deg,
         rgba(0, 0, 0, .15) 0px,
@@ -33,7 +37,7 @@
         transparent 8px,
         transparent 14px
     );
-    border-bottom: 3px solid var(--cor-primaria);
+    border-bottom: 3px solid var(--cor-destaque);
 }
 
 .btn-marca {
@@ -45,13 +49,13 @@
 
 .btn-marca:hover,
 .btn-marca:focus {
-    filter: brightness(1.08);
+    filter: brightness(1.4);
     background-color: var(--cor-primaria);
     color: #fff;
 }
 
 .text-marca {
-    color: var(--cor-primaria);
+    color: var(--cor-destaque);
 }
 
 .link-marca {
@@ -59,21 +63,50 @@
 }
 
 .titulo-estilizado {
+    color: var(--cor-destaque);
+}
+
+/* Ícone de contato — versão padrão assume fundo claro (mineral gray + tinta café escuro).
+   Dentro do rodapé escuro tem override próprio, mais abaixo. */
+.icone-contato {
+    background-color: var(--cor-divisoria);
     color: var(--cor-primaria);
 }
 
-.icone-contato {
-    background-color: rgba(0, 0, 0, .04);
-    color: #6b6560;
-}
-
 .icone-contato:hover {
-    background-color: var(--cor-primaria);
+    background-color: var(--cor-destaque);
     color: #fff;
 }
 
 body {
-    background-color: #faf4ee;
+    background-color: var(--cor-fundo);
+}
+
+/* Rodapé escuro simetrizando com a navbar (mesmo café escuro, trim de bronze em cima) —
+   como o fundo inverte pra escuro, o texto/ícone padrão (pensados pra fundo claro) precisam
+   de override de contraste aqui dentro; texto-marca (bronze) já lê bem nos dois fundos. */
+.rodape-loja {
+    background-color: var(--cor-primaria);
+    border-top: 3px solid var(--cor-destaque);
+}
+
+.rodape-loja .text-secundario {
+    color: color-mix(in srgb, var(--cor-fundo) 65%, transparent);
+}
+
+.rodape-loja .icone-contato {
+    background-color: color-mix(in srgb, var(--cor-fundo) 12%, transparent);
+    color: var(--cor-fundo);
+}
+
+.rodape-loja .icone-contato:hover {
+    background-color: var(--cor-destaque);
+    color: var(--cor-primaria);
+}
+
+/* Link "Sair" do dropdown do usuário — vermelho de perigo, separado por <hr> no dropdown */
+.dropdown-item-perigo {
+    color: #dc2626;
 }
 
 /* Todo modal (inclusive confirmação — nunca uso confirm()/alert() nativo do navegador) ganha
@@ -85,7 +118,7 @@ body {
 
 .modal-backdrop.show {
     opacity: 1;
-    background-color: rgba(250, 244, 238, .6);
+    background-color: color-mix(in srgb, var(--cor-fundo) 60%, transparent);
 }
 
 .modal-content {
@@ -98,8 +131,8 @@ body {
 .card,
 .card-admin {
     background-color: #ffffff;
-    border: 1px solid rgba(0, 0, 0, .05);
-    box-shadow: 0 1px 2px rgba(20, 15, 10, .04), 0 8px 24px -4px rgba(20, 15, 10, .06);
+    border: 1px solid var(--cor-divisoria);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--cor-primaria) 4%, transparent), 0 8px 24px -4px color-mix(in srgb, var(--cor-primaria) 6%, transparent);
 }
 
 .text-secundario {
@@ -124,10 +157,11 @@ body {
     border: 1px solid rgba(245, 158, 11, .3);
 }
 
+/* Fixo (não é pele), mas recalibrado pro tom de bronze da paleta atual — ver nota no topo do arquivo */
 .badge-destaque {
-    background: rgba(192, 133, 82, .14);
-    color: #93582f;
-    border: 1px solid rgba(192, 133, 82, .35);
+    background: rgba(163, 128, 91, .16);
+    color: #6b4a2f;
+    border: 1px solid rgba(163, 128, 91, .4);
 }
 
 .badge-admin {
@@ -156,13 +190,13 @@ body {
 
 .form-control,
 .form-select {
-    border-color: rgba(0, 0, 0, .12);
+    border-color: var(--cor-divisoria);
 }
 
 .form-control:focus,
 .form-select:focus {
-    border-color: var(--cor-primaria);
-    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--cor-primaria) 18%, transparent);
+    border-color: var(--cor-destaque);
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--cor-destaque) 18%, transparent);
 }
 
 .form-floating > label {
@@ -175,25 +209,25 @@ body {
 }
 
 .stepper-quantidade {
-    border: 1px solid rgba(0, 0, 0, .12);
+    border: 1px solid var(--cor-divisoria);
     background-color: #fff;
 }
 
 .stepper-botoes {
-    border-left: 1px solid rgba(0, 0, 0, .12);
+    border-left: 1px solid var(--cor-divisoria);
 }
 
 .stepper-botao {
-    background-color: #f7f4f1;
+    background-color: var(--cor-divisoria);
     color: #6b6560;
 }
 
 .stepper-botao:first-child {
-    border-bottom: 1px solid rgba(0, 0, 0, .12);
+    border-bottom: 1px solid var(--cor-divisoria);
 }
 
 .stepper-botao:hover:not(:disabled) {
-    background-color: var(--cor-primaria);
+    background-color: var(--cor-destaque);
     color: #fff;
 }
 
@@ -213,7 +247,7 @@ body {
 }
 
 .badge-carrinho {
-    background-color: var(--cor-primaria);
+    background-color: var(--cor-destaque);
     color: #fff;
 }
 
@@ -222,7 +256,7 @@ body {
 }
 
 .btn-toggle-senha:hover {
-    color: var(--cor-primaria);
+    color: var(--cor-destaque);
 }
 
 /* Autofill do Chrome/Edge pinta o campo de azul por padrão — força de volta pro branco do tema */
