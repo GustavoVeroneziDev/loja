@@ -266,6 +266,49 @@ function obterCategoriasArvore() {
     return $resultado;
 }
 
+// Retorna o próprio ID + todo descendente (filho, neto, ...), pra categoria-mãe poder somar
+// produto de subcategoria sem precisar herdar categoria de verdade no banco.
+function obterDescendentesCategoria($idCategoria) {
+    $todas = obterCategorias();
+    $porPai = [];
+    foreach ($todas as $categoria) {
+        $porPai[$categoria['FKCategoriaPai'] ?? ''][] = $categoria['IDCategoria'];
+    }
+
+    $ids = [$idCategoria];
+    $fila = [$idCategoria];
+    while ($fila) {
+        $atual = array_shift($fila);
+        foreach ($porPai[$atual] ?? [] as $filhoId) {
+            $ids[] = $filhoId;
+            $fila[] = $filhoId;
+        }
+    }
+    return $ids;
+}
+
+// Produto de uma categoria, separado em "direto" (produto ligado exatamente a essa categoria)
+// e 1 grupo por subcategoria DIRETA (cada grupo já traz produto de neto/mini-grupo dela junto,
+// sem duplicar) — pra página de categoria poder mostrar subtítulo por subcategoria quando
+// existir, e cair no grid simples de sempre quando a categoria não tem filho nenhum.
+function obterProdutosAgrupadosPorCategoria($idCategoria) {
+    $todas = obterCategorias();
+    $filhosDiretos = array_values(array_filter($todas, fn($c) => $c['FKCategoriaPai'] === $idCategoria));
+
+    $grupos = [];
+    foreach ($filhosDiretos as $filho) {
+        $produtosRamo = obterProdutosAtivos(obterDescendentesCategoria($filho['IDCategoria']));
+        if ($produtosRamo) {
+            $grupos[] = ['categoria' => $filho, 'produtos' => $produtosRamo];
+        }
+    }
+
+    return [
+        'diretos' => obterProdutosAtivos($idCategoria),
+        'grupos' => $grupos,
+    ];
+}
+
 // ---------------------------------------------------------------------
 // Produto / Variação / Imagem
 // ---------------------------------------------------------------------
@@ -287,8 +330,16 @@ function obterProdutosAtivos($idCategoria = null, $busca = null) {
             WHERE p.Ativo = 1";
     $params = [];
     if ($idCategoria !== null) {
-        $sql .= " AND p.FKCategoria = :idCategoria";
-        $params['idCategoria'] = $idCategoria;
+        // Aceita 1 ID ou uma lista (categoria-mãe passa ela + descendentes, pra somar os
+        // produtos das subcategorias em vez de só mostrar quem tá exatamente nela).
+        $idsCategoria = is_array($idCategoria) ? $idCategoria : [$idCategoria];
+        $placeholders = [];
+        foreach (array_values($idsCategoria) as $i => $id) {
+            $chave = "idCategoria$i";
+            $placeholders[] = ":$chave";
+            $params[$chave] = $id;
+        }
+        $sql .= " AND p.FKCategoria IN (" . implode(',', $placeholders) . ")";
     }
     if ($busca !== null && $busca !== '') {
         $sql .= " AND (p.Nome LIKE :busca OR p.Descricao LIKE :busca)";
