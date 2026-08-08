@@ -80,7 +80,14 @@ require __DIR__ . '/_topo.php';
         <tbody>
             <?php foreach ($categorias as $categoria): ?>
                 <tr>
-                    <td><?= str_repeat('— ', $categoria['Nivel']) ?><?= htmlspecialchars($categoria['Nome']) ?></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2" style="padding-left: <?= (int) $categoria['Nivel'] * 28 ?>px;">
+                            <?php if ($categoria['Nivel'] > 0): ?>
+                                <i class="bi bi-subdirectory-arrow-right text-secundario"></i>
+                            <?php endif; ?>
+                            <span class="<?= $categoria['Nivel'] > 0 ? 'text-secundario' : 'fw-semibold' ?>"><?= htmlspecialchars($categoria['Nome']) ?></span>
+                        </div>
+                    </td>
                     <td style="width: 160px; min-width: 160px; max-width: 160px;">
                         <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $categoria['IDCategoria'] ?>">
                             <i class="bi bi-pencil"></i>
@@ -117,9 +124,9 @@ require __DIR__ . '/_topo.php';
                             <input type="text" name="nome" class="form-control" value="<?= htmlspecialchars($categoria['Nome']) ?>" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Categoria pai</label>
+                            <label class="form-label">Essa categoria é subcategoria de:</label>
                             <select name="fk_categoria_pai" class="form-select">
-                                <option value="">Nenhuma (categoria de topo)</option>
+                                <option value="">Nenhuma — é uma categoria principal</option>
                                 <?php foreach ($categorias as $opcao): ?>
                                     <?php if ($opcao['IDCategoria'] !== $categoria['IDCategoria']): ?>
                                         <option value="<?= htmlspecialchars($opcao['IDCategoria']) ?>" <?= $opcao['IDCategoria'] === $categoria['FKCategoriaPai'] ? 'selected' : '' ?>>
@@ -128,6 +135,7 @@ require __DIR__ . '/_topo.php';
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                             </select>
+                            <div class="form-text">Deixe em "Nenhuma" pra categorias principais (ex: Óculos, Relógios). Escolha uma pai quando esta for um grupo dentro de outra (ex: "Smartwatches" dentro de "Relógios").</div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -154,15 +162,16 @@ require __DIR__ . '/_topo.php';
                         <input type="text" name="nome" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Categoria pai</label>
+                        <label class="form-label">Essa categoria é subcategoria de:</label>
                         <select name="fk_categoria_pai" class="form-select">
-                            <option value="">Nenhuma (categoria de topo)</option>
+                            <option value="">Nenhuma — é uma categoria principal</option>
                             <?php foreach ($categorias as $opcao): ?>
                                 <option value="<?= htmlspecialchars($opcao['IDCategoria']) ?>">
                                     <?= str_repeat('— ', $opcao['Nivel']) ?><?= htmlspecialchars($opcao['Nome']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <div class="form-text">Deixe em "Nenhuma" pra categorias principais (ex: Óculos, Relógios). Escolha uma pai quando esta for um grupo dentro de outra (ex: "Smartwatches" dentro de "Relógios").</div>
                     </div>
                 </div>
                 <div class="modal-footer">
