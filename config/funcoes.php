@@ -434,12 +434,17 @@ function uploadImagem($arquivo, $subpasta) {
     }
 
     $extensoesImagem = ['jpg', 'jpeg', 'png', 'webp', 'ico', 'svg'];
+    $extensoesComprimiveis = ['jpg', 'jpeg', 'png', 'webp'];
     $extensoesVideo = ['mp4', 'webm', 'mov'];
     $extensao = strtolower(pathinfo($arquivo['name'], PATHINFO_EXTENSION));
+    $vaiComprimir = in_array($extensao, $extensoesComprimiveis, true) && extension_loaded('gd');
 
     if (in_array($extensao, $extensoesImagem, true)) {
         $tipo = 'imagem';
-        $tamanhoMaximo = 5 * 1024 * 1024;
+        // Sem compressão o arquivo bruto É o arquivo final, por isso o teto baixo. Com
+        // compressão o bruto só passa pelo GD e vira um JPEG bem menor depois — o teto alto aqui
+        // é só pra barrar abuso, quem garante o tamanho final é a recompressão, não esse limite.
+        $tamanhoMaximo = $vaiComprimir ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
     } elseif (in_array($extensao, $extensoesVideo, true)) {
         $tipo = 'video';
         $tamanhoMaximo = 30 * 1024 * 1024;
@@ -456,12 +461,118 @@ function uploadImagem($arquivo, $subpasta) {
         mkdir($pastaDestino, 0755, true);
     }
 
+    // Foto "colada" de outro site (Ctrl+C numa imagem, Ctrl+V no campo de upload) costuma virar
+    // PNG sem compressão nenhuma pelo navegador — uma foto que seria ~200KB em JPEG vira vários
+    // MB, deixando o carregamento da página bem lento. Redimensiona e recomprime nesse caso; se
+    // o GD não tiver disponível no host, sobe o arquivo original mesmo assim (upload não pode
+    // falhar por causa de otimização).
+    if ($vaiComprimir) {
+        $otimizada = _redimensionarEComprimir($arquivo['tmp_name']);
+        if ($otimizada !== null) {
+            $nomeArquivo = gerarUuid() . '.' . $otimizada['extensao'];
+            if (file_put_contents($pastaDestino . '/' . $nomeArquivo, $otimizada['dados']) !== false) {
+                return ['url' => '/geral/img/' . $subpasta . '/' . $nomeArquivo, 'tipo' => $tipo];
+            }
+        }
+    }
+
     $nomeArquivo = gerarUuid() . '.' . $extensao;
     if (!move_uploaded_file($arquivo['tmp_name'], $pastaDestino . '/' . $nomeArquivo)) {
         return null;
     }
 
     return ['url' => '/geral/img/' . $subpasta . '/' . $nomeArquivo, 'tipo' => $tipo];
+}
+
+// Redimensiona (máximo 1600px no lado maior) e recomprime — PNG sem transparência de verdade
+// (o caso comum de "colei uma foto copiada", que sempre vem como PNG mesmo sendo uma foto comum)
+// vira JPEG, que comprime muito melhor foto/textura. PNG com transparência real continua PNG.
+// Devolve null se não conseguir processar (arquivo corrompido, GD sem suporte a esse formato
+// etc.) — nesse caso quem chamou sobe o arquivo original sem otimizar.
+function _redimensionarEComprimir($caminhoOrigem) {
+    $info = @getimagesize($caminhoOrigem);
+    if ($info === false) {
+        return null;
+    }
+    $tipoImagem = $info[2];
+
+    $imagem = match ($tipoImagem) {
+        IMAGETYPE_JPEG => @imagecreatefromjpeg($caminhoOrigem),
+        IMAGETYPE_PNG => @imagecreatefrompng($caminhoOrigem),
+        IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($caminhoOrigem) : false,
+        default => false,
+    };
+    if ($imagem === false) {
+        return null;
+    }
+
+    // Corrige rotação de foto de celular ANTES de medir/redimensionar — o GD não preserva EXIF
+    // ao resalvar, e girar depois da medição bagunçaria largura x altura.
+    if ($tipoImagem === IMAGETYPE_JPEG && function_exists('exif_read_data')) {
+        $exif = @exif_read_data($caminhoOrigem);
+        $girada = match ($exif['Orientation'] ?? 1) {
+            3 => imagerotate($imagem, 180, 0),
+            6 => imagerotate($imagem, -90, 0),
+            8 => imagerotate($imagem, 90, 0),
+            default => null,
+        };
+        if ($girada !== null) {
+            imagedestroy($imagem);
+            $imagem = $girada;
+        }
+    }
+
+    $largura = imagesx($imagem);
+    $altura = imagesy($imagem);
+
+    $maximo = 1600;
+    if ($largura > $maximo || $altura > $maximo) {
+        $escala = min($maximo / $largura, $maximo / $altura);
+        $novaLargura = max(1, (int) round($largura * $escala));
+        $novaAltura = max(1, (int) round($altura * $escala));
+        $redimensionada = imagecreatetruecolor($novaLargura, $novaAltura);
+        if ($tipoImagem === IMAGETYPE_PNG) {
+            imagealphablending($redimensionada, false);
+            imagesavealpha($redimensionada, true);
+        }
+        imagecopyresampled($redimensionada, $imagem, 0, 0, 0, 0, $novaLargura, $novaAltura, $largura, $altura);
+        imagedestroy($imagem);
+        $imagem = $redimensionada;
+        $largura = $novaLargura;
+        $altura = $novaAltura;
+    }
+
+    $temTransparenciaReal = $tipoImagem === IMAGETYPE_PNG && _pngTemTransparencia($imagem, $largura, $altura);
+
+    ob_start();
+    if ($temTransparenciaReal) {
+        imagepng($imagem, null, 8);
+        $extensaoFinal = 'png';
+    } else {
+        imagejpeg($imagem, null, 85);
+        $extensaoFinal = 'jpg';
+    }
+    $dados = ob_get_clean();
+    imagedestroy($imagem);
+
+    return ($dados !== false && $dados !== '') ? ['dados' => $dados, 'extensao' => $extensaoFinal] : null;
+}
+
+// Amostra uma grade de pixels (não todos, custaria caro numa imagem grande) pra ver se o PNG tem
+// canal alfa de verdade — PNG "de foto" (print de produto, screenshot) quase sempre é 100% opaco
+// mesmo tendo canal alfa disponível no formato.
+function _pngTemTransparencia($imagem, $largura, $altura) {
+    $passoX = max(1, (int) ($largura / 40));
+    $passoY = max(1, (int) ($altura / 40));
+    for ($x = 0; $x < $largura; $x += $passoX) {
+        for ($y = 0; $y < $altura; $y += $passoY) {
+            $alfa = (imagecolorat($imagem, $x, $y) >> 24) & 0x7F;
+            if ($alfa > 0) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 // ---------------------------------------------------------------------
