@@ -167,9 +167,10 @@ body {
 }
 
 /* Coração de favoritar — sobre a imagem do produto (cards) ou ao lado do título (detalhe) */
+/* 44px = alvo de toque mínimo recomendado (WCAG) pra elemento clicável */
 .btn-favorito {
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2.75rem;
+    height: 2.75rem;
     border-radius: 50%;
     border: none;
     display: inline-flex;
@@ -177,6 +178,26 @@ body {
     justify-content: center;
     text-decoration: none;
     flex-shrink: 0;
+}
+
+/* Etiqueta de categoria no canto oposto do coração — texto de verdade (não só cor/ícone),
+   pra não depender de percepção de cor pra entender o que é (WCAG). */
+.badge-categoria-produto {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding: .25rem .65rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    text-decoration: none;
+    max-width: calc(100% - 3.25rem);
+}
+
+.badge-categoria-produto span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Contador no botão de carrinho da navbar */

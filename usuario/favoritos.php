@@ -35,6 +35,11 @@ require __DIR__ . '/../geral/header.php';
         <?php foreach ($favoritos as $produto): ?>
             <div class="col-6 col-md-4 col-lg-3">
                 <div class="position-relative">
+                    <?php if ($produto['NomeCategoria']): ?>
+                        <a href="<?= URL_BASE ?>/categoria.php?id=<?= urlencode($produto['FKCategoria']) ?>" class="badge-categoria-produto position-absolute top-0 start-0 m-2" style="z-index: 2;">
+                            <span><?= htmlspecialchars($produto['NomeCategoria']) ?></span>
+                        </a>
+                    <?php endif; ?>
                     <form method="post" action="<?= URL_BASE ?>/usuario/favoritos.php" class="position-absolute top-0 end-0 m-2" style="z-index: 2;">
                         <input type="hidden" name="action" value="alternar">
                         <input type="hidden" name="produto_id" value="<?= htmlspecialchars($produto['IDProduto']) ?>">

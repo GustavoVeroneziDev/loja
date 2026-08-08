@@ -21,7 +21,9 @@ require __DIR__ . '/geral/header.php';
         <?php if ($busca !== ''): ?>
             <a href="<?= URL_BASE ?>/index.php" class="btn btn-outline-secondary" aria-label="Limpar busca"><i class="bi bi-x-lg"></i></a>
         <?php endif; ?>
-        <button type="submit" class="btn btn-marca">Buscar</button>
+        <button type="submit" class="btn btn-marca" aria-label="Buscar">
+            <i class="bi bi-search"></i><span class="d-none d-sm-inline"> Buscar</span>
+        </button>
     </div>
 </form>
 
@@ -35,6 +37,11 @@ require __DIR__ . '/geral/header.php';
     <?php foreach ($produtos as $produto): $favoritado = ehFavorito($produto['IDProduto']); ?>
         <div class="col-6 col-md-4 col-lg-3">
             <div class="position-relative">
+                <?php if ($produto['NomeCategoria']): ?>
+                    <a href="<?= URL_BASE ?>/categoria.php?id=<?= urlencode($produto['FKCategoria']) ?>" class="badge-categoria-produto position-absolute top-0 start-0 m-2" style="z-index: 2;">
+                        <span><?= htmlspecialchars($produto['NomeCategoria']) ?></span>
+                    </a>
+                <?php endif; ?>
                 <?php if (clienteLogado()): ?>
                     <form method="post" action="<?= URL_BASE ?>/usuario/favoritos.php" class="position-absolute top-0 end-0 m-2" style="z-index: 2;">
                         <input type="hidden" name="action" value="alternar">

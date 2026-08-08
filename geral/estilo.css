@@ -273,6 +273,17 @@ body {
     box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
 }
 
+.badge-categoria-produto {
+    background: rgba(255, 255, 255, .92);
+    color: #6b4a2f;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
+}
+
+.badge-categoria-produto:hover {
+    background: var(--cor-destaque);
+    color: #fff;
+}
+
 .btn-favorito:hover,
 .btn-favorito.ativo {
     color: #dc2626;

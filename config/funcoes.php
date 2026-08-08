@@ -281,7 +281,8 @@ function obterProdutosAtivos($idCategoria = null, $busca = null) {
                    (SELECT Url FROM ImagemProduto WHERE FKProduto = p.IDProduto ORDER BY Ordem LIMIT 1) AS ImagemCapa,
                    (SELECT COUNT(*) FROM VariacaoProduto WHERE FKProduto = p.IDProduto) AS TotalVariacoes,
                    (SELECT IDVariacao FROM VariacaoProduto WHERE FKProduto = p.IDProduto ORDER BY Preco LIMIT 1) AS IDVariacaoUnica,
-                   (SELECT Estoque FROM VariacaoProduto WHERE FKProduto = p.IDProduto ORDER BY Preco LIMIT 1) AS EstoqueVariacaoUnica
+                   (SELECT Estoque FROM VariacaoProduto WHERE FKProduto = p.IDProduto ORDER BY Preco LIMIT 1) AS EstoqueVariacaoUnica,
+                   (SELECT Nome FROM Categoria WHERE IDCategoria = p.FKCategoria) AS NomeCategoria
             FROM Produto p
             WHERE p.Ativo = 1";
     $params = [];
@@ -532,7 +533,8 @@ function obterFavoritos() {
             (SELECT Url FROM ImagemProduto WHERE FKProduto = p.IDProduto ORDER BY Ordem LIMIT 1) AS ImagemCapa,
             (SELECT COUNT(*) FROM VariacaoProduto WHERE FKProduto = p.IDProduto) AS TotalVariacoes,
             (SELECT IDVariacao FROM VariacaoProduto WHERE FKProduto = p.IDProduto ORDER BY Preco LIMIT 1) AS IDVariacaoUnica,
-            (SELECT Estoque FROM VariacaoProduto WHERE FKProduto = p.IDProduto ORDER BY Preco LIMIT 1) AS EstoqueVariacaoUnica
+            (SELECT Estoque FROM VariacaoProduto WHERE FKProduto = p.IDProduto ORDER BY Preco LIMIT 1) AS EstoqueVariacaoUnica,
+            (SELECT Nome FROM Categoria WHERE IDCategoria = p.FKCategoria) AS NomeCategoria
         FROM Favorito f
         JOIN Produto p ON p.IDProduto = f.FKProduto
         WHERE f.FKUsuario = :u
