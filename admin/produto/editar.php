@@ -26,14 +26,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $descricao = trim($_POST['descricao'] ?? '');
         $fkCategoria = $_POST['fk_categoria'] ?? '';
         $ativo = isset($_POST['ativo']) ? 1 : 0;
+        $nomeAtributo1 = trim($_POST['nome_atributo_1'] ?? '');
+        $nomeAtributo2 = trim($_POST['nome_atributo_2'] ?? '');
 
         if ($nome !== '') {
-            $stmt = $pdo->prepare("UPDATE Produto SET Nome = :nome, Descricao = :descricao, FKCategoria = :categoria, Ativo = :ativo WHERE IDProduto = :id");
+            $stmt = $pdo->prepare("UPDATE Produto SET Nome = :nome, Descricao = :descricao, FKCategoria = :categoria, Ativo = :ativo, NomeAtributo1 = :atributo1, NomeAtributo2 = :atributo2 WHERE IDProduto = :id");
             $stmt->execute([
                 'nome' => $nome,
                 'descricao' => $descricao,
                 'categoria' => $fkCategoria !== '' ? $fkCategoria : null,
                 'ativo' => $ativo,
+                'atributo1' => $nomeAtributo1 !== '' ? $nomeAtributo1 : null,
+                // Sem 1º eixo não faz sentido ter 2º — evita ficar só com NomeAtributo2 preenchido.
+                'atributo2' => ($nomeAtributo1 !== '' && $nomeAtributo2 !== '') ? $nomeAtributo2 : null,
                 'id' => $idProduto,
             ]);
             $sucesso = true;
@@ -41,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'criar_variacao') {
-        $atributo = trim($_POST['atributo'] ?? '');
+        $valor1 = trim($_POST['valor_atributo_1'] ?? '');
+        $valor2 = trim($_POST['valor_atributo_2'] ?? '');
         $sku = trim($_POST['sku'] ?? '');
         // Preço vem em centavos digitados (a máscara de JS já mostra formatado) — 5000 = R$ 50,00.
         $preco = ((int) preg_replace('/\D/', '', $_POST['preco'] ?? '0')) / 100;
@@ -52,11 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sku = 'VAR-' . strtoupper(substr($idVariacao, 0, 8));
         }
 
-        $stmt = $pdo->prepare("INSERT INTO VariacaoProduto (IDVariacao, FKProduto, Atributo, SKU, Preco, Estoque) VALUES (:id, :produto, :atributo, :sku, :preco, :estoque)");
+        $stmt = $pdo->prepare("INSERT INTO VariacaoProduto (IDVariacao, FKProduto, ValorAtributo1, ValorAtributo2, SKU, Preco, Estoque) VALUES (:id, :produto, :valor1, :valor2, :sku, :preco, :estoque)");
         $stmt->execute([
             'id' => $idVariacao,
             'produto' => $idProduto,
-            'atributo' => $atributo !== '' ? $atributo : null,
+            'valor1' => $valor1 !== '' ? $valor1 : null,
+            'valor2' => $valor2 !== '' ? $valor2 : null,
             'sku' => $sku,
             'preco' => $preco,
             'estoque' => $estoque,
@@ -66,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'editar_variacao') {
         $idVariacao = $_POST['id_variacao'] ?? '';
-        $atributo = trim($_POST['atributo'] ?? '');
+        $valor1 = trim($_POST['valor_atributo_1'] ?? '');
+        $valor2 = trim($_POST['valor_atributo_2'] ?? '');
         $sku = trim($_POST['sku'] ?? '');
         $preco = ((int) preg_replace('/\D/', '', $_POST['preco'] ?? '0')) / 100;
         $estoque = max(0, (int) ($_POST['estoque'] ?? 0));
@@ -75,9 +83,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($idVariacao !== '') {
-            $stmt = $pdo->prepare("UPDATE VariacaoProduto SET Atributo = :atributo, SKU = :sku, Preco = :preco, Estoque = :estoque WHERE IDVariacao = :id AND FKProduto = :produto");
+            $stmt = $pdo->prepare("UPDATE VariacaoProduto SET ValorAtributo1 = :valor1, ValorAtributo2 = :valor2, SKU = :sku, Preco = :preco, Estoque = :estoque WHERE IDVariacao = :id AND FKProduto = :produto");
             $stmt->execute([
-                'atributo' => $atributo !== '' ? $atributo : null,
+                'valor1' => $valor1 !== '' ? $valor1 : null,
+                'valor2' => $valor2 !== '' ? $valor2 : null,
                 'sku' => $sku,
                 'preco' => $preco,
                 'estoque' => $estoque,
@@ -189,6 +198,18 @@ require __DIR__ . '/../_topo.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Esse produto varia por (opcional)</label>
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <input type="text" name="nome_atributo_1" class="form-control" placeholder="ex: Cor" value="<?= htmlspecialchars($produto['NomeAtributo1'] ?? '') ?>">
+                        </div>
+                        <div class="col-sm-6">
+                            <input type="text" name="nome_atributo_2" class="form-control" placeholder="ex: Tamanho" value="<?= htmlspecialchars($produto['NomeAtributo2'] ?? '') ?>">
+                        </div>
+                    </div>
+                    <div class="form-text">Defina os eixos aqui antes de criar as variações. Ex: "Cor" + "Tamanho" — nem toda combinação precisa existir (pode ter Azul só no 40, sem ter Preto no 40).</div>
+                </div>
                 <div class="form-check form-switch mb-3">
                     <input type="checkbox" name="ativo" class="form-check-input" id="ativoSwitch" <?= $produto['Ativo'] ? 'checked' : '' ?>>
                     <label class="form-check-label" for="ativoSwitch">Visível na loja</label>
@@ -235,7 +256,7 @@ require __DIR__ . '/../_topo.php';
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>Atributo</th>
+                        <th><?= htmlspecialchars(implode(' / ', array_filter([$produto['NomeAtributo1'] ?? null, $produto['NomeAtributo2'] ?? null])) ?: 'Variação') ?></th>
                         <th>SKU</th>
                         <th>Preço</th>
                         <th>Estoque</th>
@@ -245,7 +266,7 @@ require __DIR__ . '/../_topo.php';
                 <tbody>
                     <?php foreach ($variacoes as $variacao): ?>
                         <tr>
-                            <td><?= htmlspecialchars($variacao['Atributo'] ?? 'Padrão') ?></td>
+                            <td><?= htmlspecialchars(descricaoVariacao($variacao) ?? 'Padrão') ?></td>
                             <td class="text-secundario"><?= htmlspecialchars($variacao['SKU']) ?></td>
                             <td><?= formatarPreco($variacao['Preco']) ?></td>
                             <td><?= $variacao['Estoque'] == 0 ? '<span class="badge-perigo px-2 py-1">0</span>' : (int) $variacao['Estoque'] ?></td>
@@ -279,10 +300,26 @@ require __DIR__ . '/../_topo.php';
                     <div class="modal-body">
                         <input type="hidden" name="action" value="editar_variacao">
                         <input type="hidden" name="id_variacao" value="<?= htmlspecialchars($variacao['IDVariacao']) ?>">
-                        <div class="mb-3">
-                            <label class="form-label">Atributo (ex: Tamanho M / Cor Azul)</label>
-                            <input type="text" name="atributo" class="form-control" value="<?= htmlspecialchars($variacao['Atributo'] ?? '') ?>">
-                        </div>
+                        <?php if ($produto['NomeAtributo1']): ?>
+                            <div class="row g-3 mb-3">
+                                <div class="<?= $produto['NomeAtributo2'] ? 'col-sm-6' : '' ?>">
+                                    <label class="form-label"><?= htmlspecialchars($produto['NomeAtributo1']) ?></label>
+                                    <input type="text" name="valor_atributo_1" class="form-control" value="<?= htmlspecialchars($variacao['ValorAtributo1'] ?? '') ?>">
+                                </div>
+                                <?php if ($produto['NomeAtributo2']): ?>
+                                    <div class="col-sm-6">
+                                        <label class="form-label"><?= htmlspecialchars($produto['NomeAtributo2']) ?></label>
+                                        <input type="text" name="valor_atributo_2" class="form-control" value="<?= htmlspecialchars($variacao['ValorAtributo2'] ?? '') ?>">
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="mb-3">
+                                <label class="form-label">Atributo (opcional)</label>
+                                <input type="text" name="valor_atributo_1" class="form-control" value="<?= htmlspecialchars($variacao['ValorAtributo1'] ?? '') ?>">
+                                <div class="form-text">Pra ter 2 eixos separados (ex: Cor + Tamanho), configure em "Esse produto varia por" nos Dados básicos.</div>
+                            </div>
+                        <?php endif; ?>
                         <div class="mb-3">
                             <label class="form-label">SKU</label>
                             <input type="text" name="sku" class="form-control" value="<?= htmlspecialchars($variacao['SKU']) ?>" placeholder="gerado automaticamente se deixar em branco">
@@ -317,10 +354,26 @@ require __DIR__ . '/../_topo.php';
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="criar_variacao">
-                    <div class="mb-3">
-                        <label class="form-label">Atributo (ex: Tamanho M / Cor Azul)</label>
-                        <input type="text" name="atributo" class="form-control">
-                    </div>
+                    <?php if ($produto['NomeAtributo1']): ?>
+                        <div class="row g-3 mb-3">
+                            <div class="<?= $produto['NomeAtributo2'] ? 'col-sm-6' : '' ?>">
+                                <label class="form-label"><?= htmlspecialchars($produto['NomeAtributo1']) ?></label>
+                                <input type="text" name="valor_atributo_1" class="form-control">
+                            </div>
+                            <?php if ($produto['NomeAtributo2']): ?>
+                                <div class="col-sm-6">
+                                    <label class="form-label"><?= htmlspecialchars($produto['NomeAtributo2']) ?></label>
+                                    <input type="text" name="valor_atributo_2" class="form-control">
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="mb-3">
+                            <label class="form-label">Atributo (opcional)</label>
+                            <input type="text" name="valor_atributo_1" class="form-control">
+                            <div class="form-text">Pra ter 2 eixos separados (ex: Cor + Tamanho), configure em "Esse produto varia por" nos Dados básicos.</div>
+                        </div>
+                    <?php endif; ?>
                     <div class="mb-3">
                         <label class="form-label">SKU</label>
                         <input type="text" name="sku" class="form-control" placeholder="gerado automaticamente se deixar em branco">

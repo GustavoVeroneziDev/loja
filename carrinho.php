@@ -124,7 +124,8 @@ require __DIR__ . '/geral/header.php';
                         </div>
                         <div class="col-9 col-md-4">
                             <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($v['IDProduto']) ?>" class="text-reset text-decoration-none fw-semibold"><?= htmlspecialchars($v['NomeProduto']) ?></a>
-                            <?php if ($v['Atributo']): ?><div class="text-secundario small"><?= htmlspecialchars($v['Atributo']) ?></div><?php endif; ?>
+                            <?php $descricaoVariacao = descricaoVariacao($v); ?>
+                            <?php if ($descricaoVariacao): ?><div class="text-secundario small"><?= htmlspecialchars($descricaoVariacao) ?></div><?php endif; ?>
                             <div class="text-secundario small"><?= formatarPreco($v['Preco']) ?> cada</div>
                             <?php if ($item['Quantidade'] > $v['Estoque']): ?>
                                 <span class="badge-atencao px-2 py-1 small d-inline-block mt-1">só temos <?= (int) $v['Estoque'] ?> em estoque</span>

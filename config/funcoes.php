@@ -128,6 +128,18 @@ function garantirTabelaProduto() {
         MomentoCriacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (FKCategoria) REFERENCES Categoria(IDCategoria) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Nome dos até 2 eixos de variação do produto (ex: "Cor", "Tamanho") — fica aqui e não em
+    // VariacaoProduto porque tem que ser o mesmo rótulo pra toda variação do mesmo produto.
+    $temNomeAtributo1 = (bool) $pdo->query("SHOW COLUMNS FROM Produto LIKE 'NomeAtributo1'")->fetchColumn();
+    if (!$temNomeAtributo1) {
+        $pdo->exec("ALTER TABLE Produto ADD COLUMN NomeAtributo1 VARCHAR(50) NULL AFTER Descricao");
+    }
+    $temNomeAtributo2 = (bool) $pdo->query("SHOW COLUMNS FROM Produto LIKE 'NomeAtributo2'")->fetchColumn();
+    if (!$temNomeAtributo2) {
+        $pdo->exec("ALTER TABLE Produto ADD COLUMN NomeAtributo2 VARCHAR(50) NULL AFTER NomeAtributo1");
+    }
+
     $jaVerificado = true;
 }
 
@@ -140,13 +152,42 @@ function garantirTabelaVariacaoProduto() {
     $pdo->exec("CREATE TABLE IF NOT EXISTS VariacaoProduto (
         IDVariacao CHAR(36) PRIMARY KEY,
         FKProduto CHAR(36) NOT NULL,
-        Atributo VARCHAR(150) NULL,
         SKU VARCHAR(60) NOT NULL UNIQUE,
         Preco DECIMAL(10,2) NOT NULL,
         Estoque INT NOT NULL DEFAULT 0,
         FOREIGN KEY (FKProduto) REFERENCES Produto(IDProduto) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Valor de cada eixo pra essa variação específica (ex: "Azul", "40") — combinação livre, não
+    // precisa existir toda combinação possível (pode ter Azul só no 40, sem ter Preto no 40).
+    $temValorAtributo1 = (bool) $pdo->query("SHOW COLUMNS FROM VariacaoProduto LIKE 'ValorAtributo1'")->fetchColumn();
+    if (!$temValorAtributo1) {
+        $pdo->exec("ALTER TABLE VariacaoProduto ADD COLUMN ValorAtributo1 VARCHAR(100) NULL AFTER FKProduto");
+    }
+    $temValorAtributo2 = (bool) $pdo->query("SHOW COLUMNS FROM VariacaoProduto LIKE 'ValorAtributo2'")->fetchColumn();
+    if (!$temValorAtributo2) {
+        $pdo->exec("ALTER TABLE VariacaoProduto ADD COLUMN ValorAtributo2 VARCHAR(100) NULL AFTER ValorAtributo1");
+    }
+
+    // Coluna antiga (Atributo, texto livre único) — migra o valor pra ValorAtributo1 e marca o
+    // produto com um rótulo genérico "Opção" (o admin renomeia pra "Cor"/"Tamanho"/etc depois).
+    $temColunaAntiga = (bool) $pdo->query("SHOW COLUMNS FROM VariacaoProduto LIKE 'Atributo'")->fetchColumn();
+    if ($temColunaAntiga) {
+        $pdo->exec("UPDATE Produto p SET NomeAtributo1 = 'Opção'
+            WHERE NomeAtributo1 IS NULL
+              AND EXISTS (SELECT 1 FROM VariacaoProduto v WHERE v.FKProduto = p.IDProduto AND v.Atributo IS NOT NULL)");
+        $pdo->exec("UPDATE VariacaoProduto SET ValorAtributo1 = Atributo WHERE Atributo IS NOT NULL AND ValorAtributo1 IS NULL");
+        $pdo->exec("ALTER TABLE VariacaoProduto DROP COLUMN Atributo");
+    }
+
     $jaVerificado = true;
+}
+
+// Texto compacto pra mostrar a variação escolhida (ex: "Azul · 40") — usado onde não dá pra
+// mostrar os 2 seletores lado a lado (carrinho, resumo de pedido).
+function descricaoVariacao($variacao) {
+    $partes = array_filter([$variacao['ValorAtributo1'] ?? null, $variacao['ValorAtributo2'] ?? null], fn($v) => $v !== null && $v !== '');
+    return $partes ? implode(' · ', $partes) : null;
 }
 
 function garantirTabelaImagemProduto() {

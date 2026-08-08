@@ -79,10 +79,55 @@ require __DIR__ . '/geral/header.php';
         </div>
         <p class="text-secundario"><?= nl2br(htmlspecialchars($produto['Descricao'] ?? '')) ?></p>
 
+        <?php
+            // Valores distintos de cada eixo, na ordem em que aparecem entre as variações —
+            // nem toda combinação de eixo 1 x eixo 2 precisa existir (ex: Azul só no 40).
+            $valoresEixo1 = [];
+            $valoresEixo2 = [];
+            foreach ($variacoes as $v) {
+                if ($v['ValorAtributo1'] !== null && !in_array($v['ValorAtributo1'], $valoresEixo1, true)) {
+                    $valoresEixo1[] = $v['ValorAtributo1'];
+                }
+                if ($v['ValorAtributo2'] !== null && !in_array($v['ValorAtributo2'], $valoresEixo2, true)) {
+                    $valoresEixo2[] = $v['ValorAtributo2'];
+                }
+            }
+            $modoEixos = count($variacoes) > 1 && $produto['NomeAtributo1'] && $valoresEixo1;
+        ?>
         <form method="post" action="<?= URL_BASE ?>/carrinho.php" id="formAdicionarCarrinho">
             <input type="hidden" name="action" value="adicionar">
 
-            <?php if (count($variacoes) > 1): ?>
+            <?php if ($modoEixos): ?>
+                <input type="hidden" name="variacao_id" id="campoVariacaoId" value="">
+                <div class="mb-3">
+                    <label class="form-label d-block"><?= htmlspecialchars($produto['NomeAtributo1']) ?></label>
+                    <div class="btn-group flex-wrap" role="group">
+                        <?php foreach ($valoresEixo1 as $i => $valor): ?>
+                            <input type="radio" class="btn-check" name="opcao_eixo_1" value="<?= htmlspecialchars($valor) ?>" id="eixo1-<?= $i ?>" <?= $i === 0 ? 'checked' : '' ?>>
+                            <label class="btn btn-outline-secondary" for="eixo1-<?= $i ?>"><?= htmlspecialchars($valor) ?></label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php if ($produto['NomeAtributo2'] && $valoresEixo2): ?>
+                    <div class="mb-3">
+                        <label class="form-label d-block"><?= htmlspecialchars($produto['NomeAtributo2']) ?></label>
+                        <div class="btn-group flex-wrap" role="group">
+                            <?php foreach ($valoresEixo2 as $i => $valor): ?>
+                                <input type="radio" class="btn-check" name="opcao_eixo_2" value="<?= htmlspecialchars($valor) ?>" id="eixo2-<?= $i ?>" <?= $i === 0 ? 'checked' : '' ?>>
+                                <label class="btn btn-outline-secondary" for="eixo2-<?= $i ?>"><?= htmlspecialchars($valor) ?></label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                <p class="badge-atencao px-2 py-1 small d-none mb-3" id="avisoIndisponivel">Essa combinação não está disponível.</p>
+                <script id="dadosVariacoes" type="application/json"><?= json_encode(array_map(fn($v) => [
+                    'id' => $v['IDVariacao'],
+                    'valor1' => $v['ValorAtributo1'],
+                    'valor2' => $v['ValorAtributo2'],
+                    'preco' => (float) $v['Preco'],
+                    'estoque' => (int) $v['Estoque'],
+                ], $variacoes)) ?></script>
+            <?php elseif (count($variacoes) > 1): ?>
                 <div class="mb-3">
                     <label class="form-label d-block">Opção</label>
                     <div class="btn-group flex-wrap" role="group">
@@ -91,7 +136,7 @@ require __DIR__ . '/geral/header.php';
                                    data-preco="<?= $variacao['Preco'] ?>" data-estoque="<?= (int) $variacao['Estoque'] ?>"
                                    <?= $i === 0 ? 'checked' : '' ?> onchange="atualizarVariacaoSelecionada(this)">
                             <label class="btn btn-outline-secondary" for="variacao<?= $variacao['IDVariacao'] ?>">
-                                <?= htmlspecialchars($variacao['Atributo'] ?? 'Padrão') ?>
+                                <?= htmlspecialchars(descricaoVariacao($variacao) ?? 'Padrão') ?>
                             </label>
                         <?php endforeach; ?>
                     </div>
@@ -133,5 +178,52 @@ function atualizarVariacaoSelecionada(input) {
 
     document.getElementById('btnAdicionar').disabled = estoque <= 0;
 }
+
+(function () {
+    var dadosEl = document.getElementById('dadosVariacoes');
+    if (!dadosEl) return;
+    var variacoes = JSON.parse(dadosEl.textContent);
+    var grupo1 = document.querySelectorAll('input[name="opcao_eixo_1"]');
+    var grupo2 = document.querySelectorAll('input[name="opcao_eixo_2"]');
+    var campoVariacaoId = document.getElementById('campoVariacaoId');
+    var aviso = document.getElementById('avisoIndisponivel');
+    var btnAdicionar = document.getElementById('btnAdicionar');
+    var campoQuantidade = document.getElementById('quantidade');
+
+    function valorMarcado(radios) {
+        for (var i = 0; i < radios.length; i++) {
+            if (radios[i].checked) return radios[i].value;
+        }
+        return null;
+    }
+
+    function atualizar() {
+        var v1 = grupo1.length ? valorMarcado(grupo1) : null;
+        var v2 = grupo2.length ? valorMarcado(grupo2) : null;
+        var encontrada = variacoes.find(function (v) {
+            return (v1 === null || v.valor1 === v1) && (v2 === null || v.valor2 === v2);
+        });
+
+        if (encontrada) {
+            campoVariacaoId.value = encontrada.id;
+            document.getElementById('precoSelecionado').textContent = encontrada.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('estoqueSelecionado').textContent = encontrada.estoque > 0 ? encontrada.estoque + ' em estoque' : 'Fora de estoque';
+            campoQuantidade.max = encontrada.estoque;
+            if (parseInt(campoQuantidade.value, 10) > encontrada.estoque) {
+                campoQuantidade.value = encontrada.estoque > 0 ? 1 : 0;
+            }
+            btnAdicionar.disabled = encontrada.estoque <= 0;
+            aviso.classList.add('d-none');
+        } else {
+            campoVariacaoId.value = '';
+            btnAdicionar.disabled = true;
+            aviso.classList.remove('d-none');
+        }
+    }
+
+    grupo1.forEach(function (r) { r.addEventListener('change', atualizar); });
+    grupo2.forEach(function (r) { r.addEventListener('change', atualizar); });
+    atualizar();
+})();
 </script>
 <?php require __DIR__ . '/geral/footer.php'; ?>
