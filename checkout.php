@@ -126,7 +126,25 @@ if ($metodoPost && $acao === 'confirmar' && $enderecoResolvido !== null && !$cup
 }
 
 $ufs = listaUfsBrasil();
-$endereco = null; // pro _campos-endereco.php quando não tem nenhum endereço salvo ainda
+// Repopula os campos de "novo endereço" com o que já tinha sido digitado no POST anterior — sem
+// isso, reenviar o formulário por qualquer motivo (aplicar cupom, tentar confirmar e faltar algum
+// campo) limpava CEP/logradouro/etc. que a pessoa já tinha preenchido, obrigando a digitar tudo
+// de novo. Só repopula quando tá no modo "novo endereço" — escolher um salvo continua começando
+// em branco se depois voltar pra "novo", não faz sentido herdar dado do endereço salvo ali.
+$endereco = null;
+if ($metodoPost && !$enderecoVeioDeSelecao) {
+    $endereco = [
+        'IDEndereco' => null,
+        'CEP' => $_POST['cep'] ?? '',
+        'Logradouro' => $_POST['logradouro'] ?? '',
+        'Numero' => $_POST['numero'] ?? '',
+        'Complemento' => $_POST['complemento'] ?? '',
+        'Bairro' => $_POST['bairro'] ?? '',
+        'Cidade' => $_POST['cidade'] ?? '',
+        'UF' => $_POST['uf'] ?? '',
+        'Principal' => isset($_POST['principal']),
+    ];
+}
 
 require __DIR__ . '/geral/header.php';
 ?>
