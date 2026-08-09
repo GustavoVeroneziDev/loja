@@ -85,7 +85,7 @@ if ($enderecoResolvido !== null) {
         if ($cupomAplicado) {
             $desconto = calcularDescontoCupom($cupomAplicado, $subtotal);
         } else {
-            $cupomErro = 'Cupom inválido ou expirado.';
+            $cupomErro = motivoCupomInvalido($cupomCodigo);
         }
     }
 } elseif ($metodoPost && $acao === 'confirmar') {
@@ -167,11 +167,15 @@ require __DIR__ . '/geral/header.php';
 
             <div class="card p-4">
                 <h2 class="h5 mb-3">Cupom de desconto</h2>
-                <?php if ($cupomErro): ?><div class="alert alert-warning py-2 small"><?= htmlspecialchars($cupomErro) ?></div><?php endif; ?>
                 <div class="d-flex gap-2">
                     <input type="text" name="cupom" class="form-control text-uppercase" placeholder="Código do cupom" value="<?= htmlspecialchars($cupomCodigo) ?>">
                     <button type="submit" name="action" value="recalcular" class="btn btn-outline-secondary rounded-pill text-nowrap">Aplicar</button>
                 </div>
+                <?php if ($cupomErro): ?>
+                    <div class="badge-atencao px-2 py-1 small d-inline-flex align-items-center gap-1 mt-2">
+                        <i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars($cupomErro) ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 

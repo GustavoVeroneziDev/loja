@@ -972,6 +972,26 @@ function validarCupom($codigo) {
     return $cupom;
 }
 
+// Motivo específico de um código não valer — só pra mensagem no checkout (aviso, não erro; o
+// cliente só digitou um código errado/vencido, não quebrou nada). validarCupom() continua
+// devolvendo só null pra quem não precisa do motivo exato (ex: criarPedido()).
+function motivoCupomInvalido($codigo) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM Cupom WHERE Codigo = :codigo");
+    $stmt->execute(['codigo' => trim($codigo)]);
+    $cupom = $stmt->fetch();
+    if (!$cupom || !$cupom['Ativo']) {
+        return 'Esse cupom não existe.';
+    }
+    if ($cupom['DataValidade'] !== null && $cupom['DataValidade'] < date('Y-m-d')) {
+        return 'Esse cupom expirou.';
+    }
+    if ($cupom['LimiteUso'] !== null && (int) $cupom['UsosAtuais'] >= (int) $cupom['LimiteUso']) {
+        return 'Esse cupom atingiu o limite de uso.';
+    }
+    return null;
+}
+
 // Desconto fixo nunca deixa o total negativo — trava no valor do subtotal.
 function calcularDescontoCupom($cupom, $subtotal) {
     if ($cupom['TipoDesconto'] === 'percentual') {
