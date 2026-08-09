@@ -143,6 +143,25 @@ body {
     box-shadow: 0 1px 2px color-mix(in srgb, var(--cor-primaria) 4%, transparent), 0 8px 24px -4px color-mix(in srgb, var(--cor-primaria) 6%, transparent);
 }
 
+/* Card com tabela encostada na borda (sem padding) — corta o cabeçalho escuro pra acompanhar o
+   canto arredondado do card em vez de sobrar quina reta pra fora. Escopado só em ":has(> table)"
+   pra não afetar cards com outro conteúdo (ex: miniatura de imagem com botão de excluir por cima). */
+.card:has(> table) {
+    overflow: hidden;
+}
+
+/* Cabeçalho das tabelas do admin (produto, variação, categoria) — café escuro combinando com a
+   navbar de madeira, mesmo o corpo da tabela continuando claro. */
+.card table thead {
+    background-color: var(--cor-primaria);
+}
+
+.card table thead th {
+    color: var(--cor-fundo);
+    border-bottom-color: var(--cor-primaria);
+    font-weight: 600;
+}
+
 .text-secundario {
     color: #6b6560;
 }
