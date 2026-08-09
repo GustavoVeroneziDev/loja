@@ -13,16 +13,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'atualizar_perfil') {
         $nome = trim($_POST['nome'] ?? '');
         $telefone = trim($_POST['telefone'] ?? '');
+        $telefoneNormalizado = $telefone !== '' ? normalizarTelefone($telefone) : null;
 
         if ($nome === '') {
             header('Location: ' . URL_BASE . '/usuario/minha-conta.php?erro=perfil');
+            exit;
+        }
+        if ($telefone !== '' && $telefoneNormalizado === null) {
+            header('Location: ' . URL_BASE . '/usuario/minha-conta.php?erro=telefone');
             exit;
         }
 
         $stmt = $pdo->prepare("UPDATE Usuario SET Nome = :nome, Telefone = :telefone WHERE IDUsuario = :id");
         $stmt->execute([
             'nome' => $nome,
-            'telefone' => $telefone !== '' ? $telefone : null,
+            'telefone' => $telefoneNormalizado,
             'id' => $_SESSION['usuario_id'],
         ]);
         $_SESSION['usuario_nome'] = $nome;
@@ -68,7 +73,11 @@ $usuario = $stmt->fetch();
 
 $sucessoPerfil = ($_GET['ok'] ?? '') === 'perfil' ? 'Perfil atualizado com sucesso.' : null;
 $sucessoSenha = ($_GET['ok'] ?? '') === 'senha' ? 'Senha atualizada com sucesso.' : null;
-$erroPerfil = ($_GET['erro'] ?? '') === 'perfil' ? 'Preencha o nome.' : null;
+$errosPerfilMap = [
+    'perfil' => 'Preencha o nome.',
+    'telefone' => 'Telefone inválido — informe DDD + número.',
+];
+$erroPerfil = $errosPerfilMap[$_GET['erro'] ?? ''] ?? null;
 $errosSenhaMap = [
     'senha_atual' => 'Senha atual incorreta.',
     'senha_curta' => 'A nova senha precisa ter pelo menos 4 caracteres.',
@@ -97,7 +106,7 @@ require __DIR__ . '/../geral/header.php';
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Telefone</label>
-                    <input type="text" name="telefone" class="form-control" value="<?= htmlspecialchars($usuario['Telefone'] ?? '') ?>" placeholder="não informado">
+                    <input type="text" name="telefone" class="form-control mascara-telefone" inputmode="numeric" value="<?= htmlspecialchars($usuario['Telefone'] ?? '') ?>" placeholder="não informado">
                 </div>
                 <button type="submit" class="btn btn-marca rounded-pill">Salvar alterações</button>
             </form>

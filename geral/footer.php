@@ -67,6 +67,19 @@
         });
     });
 
+    // Telefone BR — vai alternando entre formato de fixo (XXXX-XXXX) e celular (XXXXX-XXXX)
+    // conforme a quantidade de dígitos digitados, sem precisar escolher o tipo antes.
+    document.querySelectorAll('.mascara-telefone').forEach(function (campo) {
+        campo.addEventListener('input', function () {
+            var d = campo.value.replace(/\D/g, '').slice(0, 11);
+            if (d.length === 0) campo.value = '';
+            else if (d.length <= 2) campo.value = '(' + d;
+            else if (d.length <= 6) campo.value = '(' + d.slice(0, 2) + ') ' + d.slice(2);
+            else if (d.length <= 10) campo.value = '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+            else campo.value = '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+        });
+    });
+
     (function () {
         var modalEl = document.getElementById('modalConfirmar');
         if (!modalEl) return;

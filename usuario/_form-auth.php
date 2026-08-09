@@ -47,7 +47,7 @@
                         <label for="cadastroEmail">E-mail</label>
                     </div>
                     <div class="form-floating mb-3">
-                        <input type="text" name="telefone" id="cadastroTelefone" class="form-control" placeholder="Telefone" value="<?= htmlspecialchars($_POST['telefone'] ?? '') ?>">
+                        <input type="text" name="telefone" id="cadastroTelefone" class="form-control mascara-telefone" inputmode="numeric" placeholder="Telefone" value="<?= htmlspecialchars($_POST['telefone'] ?? '') ?>">
                         <label for="cadastroTelefone">Telefone (opcional)</label>
                     </div>
                     <div class="form-floating mb-3 tem-toggle-senha">

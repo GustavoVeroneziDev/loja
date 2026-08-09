@@ -11,6 +11,20 @@ function formatarPreco($valor) {
     return 'R$ ' . number_format((float) $valor, 2, ',', '.');
 }
 
+// Valida e reformata telefone BR (fixo 10 dígitos ou celular 11, DDD incluso) direto dos
+// dígitos — nunca confia só na máscara do JS, o servidor reformata de novo do zero. Retorna
+// null se não tiver 10 nem 11 dígitos (chamador decide se telefone vazio é erro ou não).
+function normalizarTelefone($telefone) {
+    $digitos = preg_replace('/\D/', '', $telefone ?? '');
+    if (strlen($digitos) === 11) {
+        return '(' . substr($digitos, 0, 2) . ') ' . substr($digitos, 2, 5) . '-' . substr($digitos, 7);
+    }
+    if (strlen($digitos) === 10) {
+        return '(' . substr($digitos, 0, 2) . ') ' . substr($digitos, 2, 4) . '-' . substr($digitos, 6);
+    }
+    return null;
+}
+
 // Pra saudação/menu de usuário — nome completo não cabe em navbar.
 function primeiroNome($nomeCompleto) {
     return trim(explode(' ', trim($nomeCompleto))[0]);
