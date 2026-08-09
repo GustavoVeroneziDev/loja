@@ -305,7 +305,113 @@ function garantirTabelaVariacaoProduto() {
         $pdo->exec("ALTER TABLE VariacaoProduto DROP COLUMN Atributo");
     }
 
+    // Limite pra avisar "acabando" — opcional por variação (item que gira rápido pode querer um
+    // mínimo maior que item parado). NULL usa o padrão global (ESTOQUE_MINIMO_PADRAO).
+    $temEstoqueMinimo = (bool) $pdo->query("SHOW COLUMNS FROM VariacaoProduto LIKE 'EstoqueMinimo'")->fetchColumn();
+    if (!$temEstoqueMinimo) {
+        $pdo->exec("ALTER TABLE VariacaoProduto ADD COLUMN EstoqueMinimo INT NULL AFTER Estoque");
+    }
+
     $jaVerificado = true;
+}
+
+function garantirTabelaMovimentoEstoque() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS MovimentoEstoque (
+        IDMovimento CHAR(36) PRIMARY KEY,
+        FKVariacao CHAR(36) NOT NULL,
+        Tipo ENUM('entrada','saida','ajuste','venda','cancelamento') NOT NULL,
+        Quantidade INT NOT NULL,
+        EstoqueResultante INT NOT NULL,
+        Motivo VARCHAR(200) NULL,
+        FKUsuario CHAR(36) NULL,
+        MomentoMovimento TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (FKVariacao) REFERENCES VariacaoProduto(IDVariacao) ON DELETE CASCADE,
+        FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
+}
+
+// Único jeito "manual" de mudar estoque que deixa rastro — sempre grava tipo/quantidade/motivo/
+// quem/quando junto (MovimentoEstoque), pra nunca sobrar "por que esse número tá assim" sem
+// resposta. Não abre transação própria — quem chama decide isso (ex: dentro de outra transação
+// maior), já que PDO não permite transação aninhada. 'ajuste' recebe o valor final desejado (não
+// um delta); os outros tipos recebem sempre um número positivo, o próprio tipo diz se soma ou
+// subtrai. Devolve o novo estoque, ou null se o movimento deixaria estoque negativo.
+function registrarMovimentoEstoque($idVariacao, $tipo, $quantidade, $motivo = null, $idUsuario = null) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT Estoque FROM VariacaoProduto WHERE IDVariacao = :id");
+    $stmt->execute(['id' => $idVariacao]);
+    $estoqueAtual = $stmt->fetchColumn();
+    if ($estoqueAtual === false) {
+        return null;
+    }
+
+    if ($tipo === 'ajuste') {
+        $novoEstoque = max(0, (int) $quantidade);
+        $delta = $novoEstoque - (int) $estoqueAtual;
+    } else {
+        $delta = in_array($tipo, ['saida', 'venda'], true) ? -abs((int) $quantidade) : abs((int) $quantidade);
+        $novoEstoque = (int) $estoqueAtual + $delta;
+    }
+
+    if ($novoEstoque < 0) {
+        return null;
+    }
+    if ($delta === 0) {
+        return $novoEstoque; // nada mudou de verdade, não registra movimento vazio
+    }
+
+    $pdo->prepare("UPDATE VariacaoProduto SET Estoque = :estoque WHERE IDVariacao = :id")
+        ->execute(['estoque' => $novoEstoque, 'id' => $idVariacao]);
+    $pdo->prepare("INSERT INTO MovimentoEstoque (IDMovimento, FKVariacao, Tipo, Quantidade, EstoqueResultante, Motivo, FKUsuario) VALUES (:id, :variacao, :tipo, :qtd, :resultante, :motivo, :usuario)")
+        ->execute([
+            'id' => gerarUuid(),
+            'variacao' => $idVariacao,
+            'tipo' => $tipo,
+            'qtd' => $delta,
+            'resultante' => $novoEstoque,
+            'motivo' => $motivo !== '' ? $motivo : null,
+            'usuario' => $idUsuario,
+        ]);
+    return $novoEstoque;
+}
+
+function obterMovimentosEstoque($idVariacao, $limite = 20) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT m.*, u.Nome AS NomeUsuario FROM MovimentoEstoque m
+        LEFT JOIN Usuario u ON u.IDUsuario = m.FKUsuario
+        WHERE m.FKVariacao = :id ORDER BY m.MomentoMovimento DESC LIMIT " . (int) $limite);
+    $stmt->execute(['id' => $idVariacao]);
+    return $stmt->fetchAll();
+}
+
+// Últimos movimentos de TODAS as variações — feed rápido pra ver o que andou mudando sem abrir
+// produto por produto.
+function obterMovimentosEstoqueRecentes($limite = 20) {
+    global $pdo;
+    $stmt = $pdo->query("SELECT m.*, u.Nome AS NomeUsuario, p.Nome AS NomeProduto, v.ValorAtributo1, v.ValorAtributo2
+        FROM MovimentoEstoque m
+        JOIN VariacaoProduto v ON v.IDVariacao = m.FKVariacao
+        JOIN Produto p ON p.IDProduto = v.FKProduto
+        LEFT JOIN Usuario u ON u.IDUsuario = m.FKUsuario
+        ORDER BY m.MomentoMovimento DESC LIMIT " . (int) $limite);
+    return $stmt->fetchAll();
+}
+
+// Toda variação com nome de produto junto, pra tela de Estoque — mais baixa (relativa ao próprio
+// mínimo) primeiro, é a que precisa de atenção primeiro.
+function obterEstoqueDetalhado() {
+    global $pdo;
+    return $pdo->query("SELECT v.*, p.Nome AS NomeProduto,
+            COALESCE(v.EstoqueMinimo, " . (int) ESTOQUE_MINIMO_PADRAO . ") AS EstoqueMinimoEfetivo
+        FROM VariacaoProduto v
+        JOIN Produto p ON p.IDProduto = v.FKProduto
+        ORDER BY (v.Estoque <= COALESCE(v.EstoqueMinimo, " . (int) ESTOQUE_MINIMO_PADRAO . ")) DESC, v.Estoque ASC")->fetchAll();
 }
 
 // Texto compacto pra mostrar a variação escolhida (ex: "Azul · 40") — usado onde não dá pra
@@ -1140,6 +1246,17 @@ function criarPedido($idUsuario, $endereco, $cupomCodigo) {
                 $pdo->rollBack();
                 return ['sucesso' => false, 'erro' => 'Estoque insuficiente pra "' . $item['variacao']['NomeProduto'] . '" — atualize seu carrinho e tente de novo.'];
             }
+            // Lê de novo em vez de calcular na mão (Estoque em $item pode já estar desatualizado
+            // se outra compra mexeu no meio tempo) — o histórico tem que bater com o valor real.
+            $stmtResultante = $pdo->prepare("SELECT Estoque FROM VariacaoProduto WHERE IDVariacao = :id");
+            $stmtResultante->execute(['id' => $item['IDVariacao']]);
+            $pdo->prepare("INSERT INTO MovimentoEstoque (IDMovimento, FKVariacao, Tipo, Quantidade, EstoqueResultante, Motivo) VALUES (:id, :variacao, 'venda', :qtd, :resultante, NULL)")
+                ->execute([
+                    'id' => gerarUuid(),
+                    'variacao' => $item['IDVariacao'],
+                    'qtd' => -$item['Quantidade'],
+                    'resultante' => $stmtResultante->fetchColumn(),
+                ]);
         }
 
         $stmt = $pdo->prepare("INSERT INTO Pedido (FKUsuario, Status, Simulacao, ValorSubtotal, ValorDesconto, ValorFrete, ValorTotal, FKCupom, EnderecoCep, EnderecoLogradouro, EnderecoNumero, EnderecoComplemento, EnderecoBairro, EnderecoCidade, EnderecoUF)
@@ -1249,6 +1366,16 @@ function mudarStatusPedido($idPedido, $novoStatus) {
                 if ($item['FKVariacao'] !== null) {
                     $pdo->prepare("UPDATE VariacaoProduto SET Estoque = Estoque + :qtd WHERE IDVariacao = :id")
                         ->execute(['qtd' => $item['Quantidade'], 'id' => $item['FKVariacao']]);
+                    $stmtResultante = $pdo->prepare("SELECT Estoque FROM VariacaoProduto WHERE IDVariacao = :id");
+                    $stmtResultante->execute(['id' => $item['FKVariacao']]);
+                    $pdo->prepare("INSERT INTO MovimentoEstoque (IDMovimento, FKVariacao, Tipo, Quantidade, EstoqueResultante, Motivo) VALUES (:id, :variacao, 'cancelamento', :qtd, :resultante, :motivo)")
+                        ->execute([
+                            'id' => gerarUuid(),
+                            'variacao' => $item['FKVariacao'],
+                            'qtd' => $item['Quantidade'],
+                            'resultante' => $stmtResultante->fetchColumn(),
+                            'motivo' => 'Pedido #' . $idPedido . ' cancelado',
+                        ]);
                 }
             }
         }

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../config/funcoes.php';
 exigirLoginAdmin();
 garantirTabelaPedido();
+garantirTabelaMovimentoEstoque();
 garantirTabelaItemPedido();
 garantirTabelaHistoricoStatusPedido();
 garantirTabelaUsuario();

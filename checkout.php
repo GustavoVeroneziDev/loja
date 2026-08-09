@@ -8,6 +8,7 @@ garantirTabelaUsuario();
 garantirTabelaEndereco();
 garantirTabelaCupom();
 garantirTabelaPedido();
+garantirTabelaMovimentoEstoque();
 garantirTabelaItemPedido();
 garantirTabelaHistoricoStatusPedido();
 garantirTabelaProduto();

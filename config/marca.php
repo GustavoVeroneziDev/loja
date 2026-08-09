@@ -19,3 +19,7 @@ define('FACEBOOK_URL', 'https://facebook.com/minhaloja');
 // verdade (Melhor Envio etc.) depois não muda quem chama a função, só o corpo dela.
 define('FRETE_VALOR_PADRAO', 19.90);
 define('FRETE_GRATIS_ACIMA_DE', 300.00);
+
+// A partir de quantas unidades avisa "acabando" — usado quando a variação não tem
+// EstoqueMinimo próprio definido.
+define('ESTOQUE_MINIMO_PADRAO', 5);

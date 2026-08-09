@@ -8,6 +8,7 @@ garantirTabelaProduto();
 garantirTabelaVariacaoProduto();
 garantirTabelaImagemProduto();
 garantirTabelaCaixaEnvio();
+garantirTabelaMovimentoEstoque();
 
 global $pdo;
 
@@ -108,6 +109,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'preco' => $preco,
                 'estoque' => $estoque,
             ]);
+            if ($estoque > 0) {
+                $pdo->prepare("INSERT INTO MovimentoEstoque (IDMovimento, FKVariacao, Tipo, Quantidade, EstoqueResultante, Motivo, FKUsuario) VALUES (:id, :variacao, 'entrada', :qtd, :estoque, 'Estoque inicial da variação', :usuario)")
+                    ->execute(['id' => gerarUuid(), 'variacao' => $idVariacao, 'qtd' => $estoque, 'estoque' => $estoque, 'usuario' => $_SESSION['usuario_id']]);
+            }
             $sucesso = true;
         }
     }
@@ -126,6 +131,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($preco <= 0) {
             $erroCodigo = 'preco_invalido';
         } elseif ($idVariacao !== '') {
+            // Estoque antigo antes de sobrescrever — pra saber se mudou e registrar o movimento
+            // (o form edita várias coisas juntas, só o estoque precisa virar MovimentoEstoque).
+            $stmtAntigo = $pdo->prepare("SELECT Estoque FROM VariacaoProduto WHERE IDVariacao = :id");
+            $stmtAntigo->execute(['id' => $idVariacao]);
+            $estoqueAntigo = (int) $stmtAntigo->fetchColumn();
+
             $stmt = $pdo->prepare("UPDATE VariacaoProduto SET ValorAtributo1 = :valor1, ValorAtributo2 = :valor2, SKU = :sku, Preco = :preco, Estoque = :estoque WHERE IDVariacao = :id AND FKProduto = :produto");
             $stmt->execute([
                 'valor1' => $valor1 !== '' ? $valor1 : null,
@@ -136,6 +147,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'id' => $idVariacao,
                 'produto' => $idProduto,
             ]);
+            if ($estoque !== $estoqueAntigo) {
+                $pdo->prepare("INSERT INTO MovimentoEstoque (IDMovimento, FKVariacao, Tipo, Quantidade, EstoqueResultante, Motivo, FKUsuario) VALUES (:id, :variacao, 'ajuste', :qtd, :estoque, 'Editado na tela do produto', :usuario)")
+                    ->execute([
+                        'id' => gerarUuid(),
+                        'variacao' => $idVariacao,
+                        'qtd' => $estoque - $estoqueAntigo,
+                        'estoque' => $estoque,
+                        'usuario' => $_SESSION['usuario_id'],
+                    ]);
+            }
             $sucesso = true;
         }
     }

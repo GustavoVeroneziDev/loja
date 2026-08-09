@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/funcoes.php';
 exigirLoginAdmin();
 garantirTabelaUsuario();
 garantirTabelaPedido();
+garantirTabelaMovimentoEstoque();
 garantirTabelaItemPedido();
 garantirTabelaHistoricoStatusPedido();
 garantirTabelaItemCarrinho();
