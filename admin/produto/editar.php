@@ -535,17 +535,4 @@ require __DIR__ . '/../_topo.php';
     </div>
 </div>
 <?php endif; ?>
-
-<script>
-document.querySelectorAll('.mascara-preco').forEach(function (campo) {
-    function formatar() {
-        var centavos = parseInt(campo.value.replace(/\D/g, ''), 10) || 0;
-        campo.value = (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-    campo.addEventListener('input', function () {
-        formatar();
-        campo.setSelectionRange(campo.value.length, campo.value.length);
-    });
-});
-</script>
 <?php require __DIR__ . '/../_rodape.php'; ?>

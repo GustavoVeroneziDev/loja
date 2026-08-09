@@ -52,6 +52,11 @@ $rotaAtual = $_SERVER['SCRIPT_NAME'] ?? '';
                         <i class="bi bi-box-seam"></i> Produtos
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= str_ends_with($rotaAtual, '/admin/cupom.php') ? 'active' : '' ?>" href="<?= URL_BASE ?>/admin/cupom.php">
+                        <i class="bi bi-ticket-perforated"></i> Cupons
+                    </a>
+                </li>
             </ul>
             <a href="<?= URL_BASE ?>/admin/logout.php" class="btn btn-sm btn-outline-secondary rounded-pill">
                 <i class="bi bi-box-arrow-right"></i> Sair

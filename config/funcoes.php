@@ -872,6 +872,64 @@ function obterEnderecosPorUsuario($idUsuario) {
     return $stmt->fetchAll();
 }
 
+// Placeholder isolado nesta função só — fixo, grátis acima de um valor (config/marca.php). Trocar
+// por um provedor de verdade (Melhor Envio etc.) depois é só reescrever o corpo daqui, ninguém
+// que chama calcularFrete() precisa mudar.
+function calcularFrete($cep, $subtotal) {
+    if ($subtotal >= FRETE_GRATIS_ACIMA_DE) {
+        return 0.0;
+    }
+    return FRETE_VALOR_PADRAO;
+}
+
+function garantirTabelaCupom() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS Cupom (
+        IDCupom CHAR(36) PRIMARY KEY,
+        Codigo VARCHAR(40) NOT NULL UNIQUE,
+        TipoDesconto ENUM('percentual','fixo') NOT NULL,
+        ValorDesconto DECIMAL(10,2) NOT NULL,
+        DataValidade DATE NULL,
+        LimiteUso INT NULL,
+        UsosAtuais INT NOT NULL DEFAULT 0,
+        Ativo TINYINT(1) NOT NULL DEFAULT 1,
+        MomentoCriacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
+}
+
+// Confere existência, ativo, validade e limite de uso — devolve a linha do cupom ou null. Reusado
+// tanto na prévia do checkout quanto (de novo, sempre) na hora de fechar o pedido de verdade,
+// porque o cupom pode ter expirado/esgotado entre uma coisa e outra.
+function validarCupom($codigo, $subtotal) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM Cupom WHERE Codigo = :codigo AND Ativo = 1");
+    $stmt->execute(['codigo' => trim($codigo)]);
+    $cupom = $stmt->fetch();
+    if (!$cupom) {
+        return null;
+    }
+    if ($cupom['DataValidade'] !== null && $cupom['DataValidade'] < date('Y-m-d')) {
+        return null;
+    }
+    if ($cupom['LimiteUso'] !== null && (int) $cupom['UsosAtuais'] >= (int) $cupom['LimiteUso']) {
+        return null;
+    }
+    return $cupom;
+}
+
+// Desconto fixo nunca deixa o total negativo — trava no valor do subtotal.
+function calcularDescontoCupom($cupom, $subtotal) {
+    if ($cupom['TipoDesconto'] === 'percentual') {
+        return round($subtotal * ((float) $cupom['ValorDesconto'] / 100), 2);
+    }
+    return min((float) $cupom['ValorDesconto'], $subtotal);
+}
+
 function garantirTabelaFavorito() {
     static $jaVerificado = false;
     if ($jaVerificado) {

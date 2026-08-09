@@ -18,6 +18,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+document.querySelectorAll('.mascara-preco').forEach(function (campo) {
+    function formatar() {
+        var centavos = parseInt(campo.value.replace(/\D/g, ''), 10) || 0;
+        campo.value = (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    campo.addEventListener('input', function () {
+        formatar();
+        campo.setSelectionRange(campo.value.length, campo.value.length);
+    });
+});
+
 document.querySelectorAll('.btn-toggle-senha').forEach(function (botao) {
     botao.addEventListener('click', function () {
         var campo = document.getElementById(this.dataset.alvo);

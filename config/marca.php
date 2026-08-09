@@ -14,3 +14,8 @@ define('TELEFONE_CONTATO', '(11) 99999-9999');
 define('WHATSAPP_NUMERO', '5511999999999');
 define('INSTAGRAM_URL', 'https://instagram.com/minhaloja');
 define('FACEBOOK_URL', 'https://facebook.com/minhaloja');
+
+// Frete provisório — calcularFrete() em funcoes.php isola essa regra; trocar por um provedor de
+// verdade (Melhor Envio etc.) depois não muda quem chama a função, só o corpo dela.
+define('FRETE_VALOR_PADRAO', 19.90);
+define('FRETE_GRATIS_ACIMA_DE', 300.00);
