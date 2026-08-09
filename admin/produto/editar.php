@@ -7,6 +7,7 @@ garantirTabelaCategoria();
 garantirTabelaProduto();
 garantirTabelaVariacaoProduto();
 garantirTabelaImagemProduto();
+garantirTabelaCaixaEnvio();
 
 global $pdo;
 
@@ -27,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nome = trim($_POST['nome'] ?? '');
         $descricao = trim($_POST['descricao'] ?? '');
         $fkCategoria = $_POST['fk_categoria'] ?? '';
+        $fkCaixaEnvio = $_POST['fk_caixa_envio'] ?? '';
         $ativo = isset($_POST['ativo']) ? 1 : 0;
         $tipoProduto = $_POST['tipo_produto'] ?? 'simples';
         $nomeAtributo1 = $tipoProduto === 'variavel' ? trim($_POST['nome_atributo_1'] ?? '') : '';
@@ -63,11 +65,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($nome !== '') {
-            $stmt = $pdo->prepare("UPDATE Produto SET Nome = :nome, Descricao = :descricao, FKCategoria = :categoria, Ativo = :ativo, NomeAtributo1 = :atributo1, NomeAtributo2 = :atributo2 WHERE IDProduto = :id");
+            $stmt = $pdo->prepare("UPDATE Produto SET Nome = :nome, Descricao = :descricao, FKCategoria = :categoria, FKCaixaEnvio = :caixa, Ativo = :ativo, NomeAtributo1 = :atributo1, NomeAtributo2 = :atributo2 WHERE IDProduto = :id");
             $stmt->execute([
                 'nome' => $nome,
                 'descricao' => $descricao,
                 'categoria' => $fkCategoria !== '' ? $fkCategoria : null,
+                'caixa' => $fkCaixaEnvio !== '' ? $fkCaixaEnvio : null,
                 'ativo' => $ativo,
                 'atributo1' => $nomeAtributo1 !== '' ? $nomeAtributo1 : null,
                 // Sem 1º eixo não faz sentido ter 2º — evita ficar só com NomeAtributo2 preenchido.
@@ -216,6 +219,7 @@ $erro = isset($_GET['erro']) ? ($errosMap[$_GET['erro']] ?? $errosMap['geral']) 
 $aviso = isset($_GET['aviso']) ? ($avisosMap[$_GET['aviso']] ?? null) : null;
 
 $categorias = obterCategoriasArvore();
+$caixasEnvio = obterCaixasEnvio();
 $variacoes = obterVariacoesPorProduto($idProduto);
 $imagens = obterImagensPorProduto($idProduto);
 // Sem eixo configurado = produto simples (1 variação só, sem "Cor"/"Tamanho" pra distinguir) —
@@ -268,6 +272,18 @@ require __DIR__ . '/../_topo.php';
                             </option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Caixa de envio</label>
+                    <select name="fk_caixa_envio" class="form-select">
+                        <option value="" class="opcao-titulo">Sem caixa definida</option>
+                        <?php foreach ($caixasEnvio as $caixa): ?>
+                            <option value="<?= htmlspecialchars($caixa['IDCaixaEnvio']) ?>" <?= $caixa['IDCaixaEnvio'] === $produto['FKCaixaEnvio'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($caixa['Nome']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text">Mesma caixa pra todas as variações desse produto (cor/tamanho não muda o tamanho da embalagem). <a href="<?= URL_BASE ?>/admin/entregas/index.php" class="link-marca">Gerenciar caixas</a></div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label d-block">Tipo de produto</label>

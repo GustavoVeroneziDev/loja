@@ -58,6 +58,11 @@ $rotaAtual = $_SERVER['SCRIPT_NAME'] ?? '';
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link <?= str_contains($rotaAtual, '/admin/entregas/') ? 'active' : '' ?>" href="<?= URL_BASE ?>/admin/entregas/index.php">
+                        <i class="bi bi-truck"></i> Entregas
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link <?= str_ends_with($rotaAtual, '/admin/cupom.php') ? 'active' : '' ?>" href="<?= URL_BASE ?>/admin/cupom.php">
                         <i class="bi bi-ticket-perforated"></i> Cupons
                     </a>

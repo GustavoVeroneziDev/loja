@@ -216,7 +216,49 @@ function garantirTabelaProduto() {
         $pdo->exec("ALTER TABLE Produto ADD COLUMN NomeAtributo2 VARCHAR(50) NULL AFTER NomeAtributo1");
     }
 
+    // Caixa de envio (peso/dimensão pra cotação de frete) — por produto, não por variação: cor ou
+    // tamanho raramente muda a caixa que o item cabe, e escolher por produto é bem mais rápido do
+    // que teria que repetir pra cada variação.
+    $temFkCaixaEnvio = (bool) $pdo->query("SHOW COLUMNS FROM Produto LIKE 'FKCaixaEnvio'")->fetchColumn();
+    if (!$temFkCaixaEnvio) {
+        $pdo->exec("ALTER TABLE Produto ADD COLUMN FKCaixaEnvio CHAR(36) NULL AFTER FKCategoria");
+    }
+
     $jaVerificado = true;
+}
+
+function garantirTabelaCaixaEnvio() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS CaixaEnvio (
+        IDCaixaEnvio CHAR(36) PRIMARY KEY,
+        Nome VARCHAR(60) NOT NULL,
+        Peso DECIMAL(6,3) NOT NULL,
+        Altura DECIMAL(6,2) NOT NULL,
+        Largura DECIMAL(6,2) NOT NULL,
+        Comprimento DECIMAL(6,2) NOT NULL,
+        MomentoCriacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // FKCaixaEnvio em Produto depende dessa tabela existir primeiro — só cria a FK depois que a
+    // coluna já foi adicionada por garantirTabelaProduto() (ordem de chamada não é garantida).
+    $temFk = (bool) $pdo->query("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Produto' AND COLUMN_NAME = 'FKCaixaEnvio'
+          AND REFERENCED_TABLE_NAME IS NOT NULL")->fetchColumn();
+    $temColuna = (bool) $pdo->query("SHOW COLUMNS FROM Produto LIKE 'FKCaixaEnvio'")->fetchColumn();
+    if ($temColuna && !$temFk) {
+        $pdo->exec("ALTER TABLE Produto ADD FOREIGN KEY (FKCaixaEnvio) REFERENCES CaixaEnvio(IDCaixaEnvio) ON DELETE SET NULL");
+    }
+
+    $jaVerificado = true;
+}
+
+function obterCaixasEnvio() {
+    global $pdo;
+    return $pdo->query("SELECT * FROM CaixaEnvio ORDER BY Peso ASC")->fetchAll();
 }
 
 function garantirTabelaVariacaoProduto() {
