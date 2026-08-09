@@ -943,6 +943,20 @@ function calcularDescontoCupom($cupom, $subtotal) {
 // aqui, "Pedido #00042"), diferente do padrão UUID do resto do sistema.
 // ---------------------------------------------------------------------
 
+// Rótulo + badge + ícone por status — usado na lista/detalhe do cliente e no admin, evita
+// espalhar essa tabela de tradução por várias telas.
+function statusPedidoInfo($status) {
+    $mapa = [
+        'aguardando_pagamento' => ['label' => 'Aguardando pagamento', 'badge' => 'badge-atencao', 'icone' => 'bi-clock'],
+        'pago' => ['label' => 'Pago', 'badge' => 'badge-sucesso', 'icone' => 'bi-check-circle'],
+        'preparando' => ['label' => 'Preparando', 'badge' => 'badge-atencao', 'icone' => 'bi-box-seam'],
+        'enviado' => ['label' => 'Enviado', 'badge' => 'badge-destaque', 'icone' => 'bi-truck'],
+        'entregue' => ['label' => 'Entregue', 'badge' => 'badge-sucesso', 'icone' => 'bi-check-circle-fill'],
+        'cancelado' => ['label' => 'Cancelado', 'badge' => 'badge-perigo', 'icone' => 'bi-x-circle'],
+    ];
+    return $mapa[$status] ?? ['label' => $status, 'badge' => 'badge-atencao', 'icone' => 'bi-question-circle'];
+}
+
 function garantirTabelaPedido() {
     static $jaVerificado = false;
     if ($jaVerificado) {

@@ -165,7 +165,7 @@ require __DIR__ . '/../geral/header.php';
     </div>
 </div>
 <div class="text-secundario small mt-4">
-    <i class="bi bi-clock-history"></i> Histórico de pedidos — em breve.
+    <i class="bi bi-clock-history"></i> <a href="<?= URL_BASE ?>/usuario/pedidos.php" class="link-marca">Histórico de pedidos</a>
     &nbsp;&nbsp;<i class="bi bi-geo-alt"></i> <a href="<?= URL_BASE ?>/usuario/enderecos.php" class="link-marca">Endereços salvos</a>
 </div>
 <?php require __DIR__ . '/../geral/footer.php'; ?>
