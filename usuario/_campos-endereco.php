@@ -23,21 +23,30 @@ $ufs = $ufs ?? listaUfsBrasil();
         <label class="form-label">Complemento</label>
         <input type="text" name="complemento" class="form-control" placeholder="opcional" value="<?= htmlspecialchars($endereco['Complemento'] ?? '') ?>">
     </div>
-    <div class="col-sm-6">
+    <div class="col-sm-4">
         <label class="form-label">Bairro</label>
         <input type="text" name="bairro" class="form-control" value="<?= htmlspecialchars($endereco['Bairro'] ?? '') ?>">
     </div>
-    <div class="col-sm-4">
-        <label class="form-label">Cidade</label>
-        <input type="text" name="cidade" class="form-control" value="<?= htmlspecialchars($endereco['Cidade'] ?? '') ?>" required>
-    </div>
     <div class="col-sm-2">
         <label class="form-label">UF</label>
-        <select name="uf" class="form-select" required>
+        <select name="uf" class="form-select campo-uf" required>
             <option value="" class="opcao-titulo">--</option>
             <?php foreach ($ufs as $sigla => $nome): ?>
                 <option value="<?= $sigla ?>" <?= ($endereco['UF'] ?? '') === $sigla ? 'selected' : '' ?>><?= $sigla ?></option>
             <?php endforeach; ?>
+        </select>
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label">Cidade</label>
+        <!-- Lista de município vem da API do IBGE (JS, no rodapé) — nunca hardcode, muda de vez em
+             quando e é cidade demais pra manter na mão. Começa com só a cidade atual (se tiver, ao
+             editar um endereço já salvo) até o JS trocar pela lista completa do estado escolhido. -->
+        <select name="cidade" class="form-select campo-cidade" data-cidade-inicial="<?= htmlspecialchars($endereco['Cidade'] ?? '') ?>" <?= empty($endereco['UF']) ? 'disabled' : '' ?> required>
+            <?php if (!empty($endereco['Cidade'])): ?>
+                <option value="<?= htmlspecialchars($endereco['Cidade']) ?>" selected><?= htmlspecialchars($endereco['Cidade']) ?></option>
+            <?php else: ?>
+                <option value="" class="opcao-titulo">Selecione o estado primeiro</option>
+            <?php endif; ?>
         </select>
     </div>
 </div>

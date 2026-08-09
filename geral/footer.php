@@ -99,6 +99,125 @@
         });
     });
 
+    // Endereço: Estado → Cidade em cascata (API do IBGE, nunca hardcode de município — muda de
+    // vez em quando e é cidade demais pra manter na mão) + CEP preenchendo tudo automaticamente
+    // (ViaCEP). Cada campo .form-endereco (pode ter mais de um na mesma página — um modal por
+    // endereço salvo) tem sua própria instância isolada, sem vazar estado de um form pro outro.
+    document.querySelectorAll('.form-endereco').forEach(function (form) {
+        var campoUf = form.querySelector('.campo-uf');
+        var campoCidade = form.querySelector('.campo-cidade');
+        if (!campoUf || !campoCidade) return;
+
+        // Nome de cidade vem de API externa — escapa antes de virar HTML (cobre tanto texto
+        // quanto dentro de atributo, tipo o htmlspecialchars() do PHP), nunca confia cegamente em
+        // dado de fora mesmo sendo fonte oficial (IBGE).
+        function escaparHtml(texto) {
+            return String(texto)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Remove acento e caixa pra comparar nome de cidade entre ViaCEP e IBGE sem depender de
+        // bater a grafia exata (as duas fontes são oficiais e devem bater, mas não custa nada
+        // tratar com cuidado em vez de confiar cegamente).
+        function normalizar(texto) {
+            var codigoInicio = 0x0300;
+            var codigoFim = 0x036f;
+            var semAcento = (texto || '').normalize('NFD').split('').filter(function (ch) {
+                var codigo = ch.charCodeAt(0);
+                return codigo < codigoInicio || codigo > codigoFim;
+            }).join('');
+            return semAcento.toLowerCase().trim();
+        }
+
+        // Contador de geração — se o estado mudar nesse meio tempo (ou o CEP for trocado de novo
+        // rapidinho), a resposta antiga que chegar depois é descartada em vez de sobrescrever o
+        // que já é mais recente. Sem isso, duas respostas fora de ordem podem deixar a cidade
+        // errada (ex: número de outra requisição indo parar onde devia ser nome de cidade).
+        var geracaoAtual = 0;
+
+        function carregarCidades(uf, cidadeParaSelecionar) {
+            var minhaGeracao = ++geracaoAtual;
+            campoCidade.disabled = true;
+            campoCidade.innerHTML = '<option value="">Carregando...</option>';
+
+            if (!uf) {
+                campoCidade.innerHTML = '<option value="">Selecione o estado primeiro</option>';
+                return;
+            }
+
+            fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados/' + uf + '/municipios')
+                .then(function (r) {
+                    if (!r.ok) throw new Error('IBGE respondeu ' + r.status);
+                    return r.json();
+                })
+                .then(function (cidades) {
+                    if (minhaGeracao !== geracaoAtual) return; // já tem requisição mais nova em andamento
+                    var alvo = cidadeParaSelecionar ? normalizar(cidadeParaSelecionar) : null;
+                    campoCidade.innerHTML = '<option value="">Selecione a cidade</option>' + cidades.map(function (c) {
+                        var selecionada = alvo && normalizar(c.nome) === alvo;
+                        var nomeEscapado = escaparHtml(c.nome);
+                        return '<option value="' + nomeEscapado + '"' + (selecionada ? ' selected' : '') + '>' + nomeEscapado + '</option>';
+                    }).join('');
+                    campoCidade.disabled = false;
+                })
+                .catch(function () {
+                    if (minhaGeracao !== geracaoAtual) return;
+                    campoCidade.innerHTML = '<option value="">Não deu pra carregar as cidades agora — recarregue a página</option>';
+                });
+        }
+
+        campoUf.addEventListener('change', function () {
+            carregarCidades(campoUf.value, null);
+        });
+
+        // Endereço já vem com UF preenchido (editando um salvo) — carrega a cidade certa, mas só
+        // quando o modal aparece de verdade, não em toda carga de página (evita 1 chamada de API
+        // por endereço salvo mesmo pra quem nunca abre o modal de editar).
+        var modal = form.closest('.modal');
+        var cidadeInicial = campoCidade.dataset.cidadeInicial || null;
+        if (modal) {
+            modal.addEventListener('shown.bs.modal', function () {
+                if (campoUf.value) carregarCidades(campoUf.value, cidadeInicial);
+            }, { once: true });
+        } else if (campoUf.value) {
+            carregarCidades(campoUf.value, cidadeInicial);
+        }
+
+        var campoCep = form.querySelector('.campo-cep');
+        if (!campoCep) return;
+        var geracaoCep = 0;
+
+        campoCep.addEventListener('blur', function () {
+            var cep = campoCep.value.replace(/\D/g, '');
+            if (cep.length !== 8) return;
+            var minhaGeracaoCep = ++geracaoCep;
+
+            fetch('https://viacep.com.br/ws/' + cep + '/json/')
+                .then(function (r) {
+                    if (!r.ok) throw new Error('ViaCEP respondeu ' + r.status);
+                    return r.json();
+                })
+                .then(function (dados) {
+                    if (minhaGeracaoCep !== geracaoCep || dados.erro) return;
+                    // CEP é a fonte de verdade a partir daqui — sempre sobrescreve o que já
+                    // estava no campo, não só completa o que tava vazio.
+                    ['logradouro', 'bairro'].forEach(function (nome) {
+                        var campo = form.querySelector('[name="' + nome + '"]');
+                        if (campo && dados[nome]) campo.value = dados[nome];
+                    });
+                    if (dados.uf) {
+                        campoUf.value = dados.uf;
+                        carregarCidades(dados.uf, dados.localidade);
+                    }
+                })
+                .catch(function () { /* falha na consulta não deve travar o preenchimento manual */ });
+        });
+    });
+
     (function () {
         var modalEl = document.getElementById('modalConfirmar');
         if (!modalEl) return;

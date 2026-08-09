@@ -197,35 +197,4 @@ require __DIR__ . '/../geral/header.php';
     </div>
 </div>
 
-<script>
-// Autopreenche Logradouro/Bairro/Cidade/UF a partir do CEP (ViaCEP, API pública sem chave) — só
-// completa o que veio vazio, nunca sobrescreve o que a pessoa já tinha digitado/editado na mão.
-document.querySelectorAll('.form-endereco').forEach(function (form) {
-    var campoCep = form.querySelector('.campo-cep');
-    if (!campoCep) return;
-
-    campoCep.addEventListener('blur', function () {
-        var cep = campoCep.value.replace(/\D/g, '');
-        if (cep.length !== 8) return;
-
-        fetch('https://viacep.com.br/ws/' + cep + '/json/')
-            .then(function (r) { return r.json(); })
-            .then(function (dados) {
-                if (dados.erro) return;
-                var mapa = {
-                    logradouro: dados.logradouro,
-                    bairro: dados.bairro,
-                    cidade: dados.localidade,
-                };
-                Object.keys(mapa).forEach(function (nome) {
-                    var campo = form.querySelector('[name="' + nome + '"]');
-                    if (campo && !campo.value && mapa[nome]) campo.value = mapa[nome];
-                });
-                var campoUf = form.querySelector('[name="uf"]');
-                if (campoUf && !campoUf.value && dados.uf) campoUf.value = dados.uf;
-            })
-            .catch(function () { /* falha na consulta não deve travar o preenchimento manual */ });
-    });
-});
-</script>
 <?php require __DIR__ . '/../geral/footer.php'; ?>
