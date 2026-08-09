@@ -57,6 +57,14 @@ function normalizarCpf($cpf) {
     return substr($digitos, 0, 3) . '.' . substr($digitos, 3, 3) . '.' . substr($digitos, 6, 3) . '-' . substr($digitos, 9, 2);
 }
 
+// Só aceita caminho relativo do próprio site (começa com "/" e não "//", que o navegador trata
+// como outro host) — evita open redirect via voltar_para. Devolve null se inválido/vazio, quem
+// chama decide o destino padrão nesse caso.
+function caminhoSeguro($caminho) {
+    $caminho = $caminho ?? '';
+    return ($caminho !== '' && $caminho[0] === '/' && ($caminho[1] ?? '') !== '/') ? $caminho : null;
+}
+
 // Pra saudação/menu de usuário — nome completo não cabe em navbar.
 function primeiroNome($nomeCompleto) {
     return trim(explode(' ', trim($nomeCompleto))[0]);
@@ -928,6 +936,231 @@ function calcularDescontoCupom($cupom, $subtotal) {
         return round($subtotal * ((float) $cupom['ValorDesconto'] / 100), 2);
     }
     return min((float) $cupom['ValorDesconto'], $subtotal);
+}
+
+// ---------------------------------------------------------------------
+// Pedido — IDPedido é AUTO_INCREMENT de propósito (numeração sequencial é valor de negócio
+// aqui, "Pedido #00042"), diferente do padrão UUID do resto do sistema.
+// ---------------------------------------------------------------------
+
+function garantirTabelaPedido() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS Pedido (
+        IDPedido INT AUTO_INCREMENT PRIMARY KEY,
+        FKUsuario CHAR(36) NOT NULL,
+        Status ENUM('aguardando_pagamento','pago','preparando','enviado','entregue','cancelado') NOT NULL DEFAULT 'aguardando_pagamento',
+        ValorSubtotal DECIMAL(10,2) NOT NULL,
+        ValorDesconto DECIMAL(10,2) NOT NULL DEFAULT 0,
+        ValorFrete DECIMAL(10,2) NOT NULL DEFAULT 0,
+        ValorTotal DECIMAL(10,2) NOT NULL,
+        FKCupom CHAR(36) NULL,
+        EnderecoCep VARCHAR(9) NOT NULL,
+        EnderecoLogradouro VARCHAR(200) NOT NULL,
+        EnderecoNumero VARCHAR(20) NOT NULL,
+        EnderecoComplemento VARCHAR(100) NULL,
+        EnderecoBairro VARCHAR(100) NULL,
+        EnderecoCidade VARCHAR(100) NOT NULL,
+        EnderecoUF CHAR(2) NOT NULL,
+        CodigoRastreio VARCHAR(100) NULL,
+        ReferenciaPagamento VARCHAR(100) NULL,
+        MomentoCriacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario),
+        FOREIGN KEY (FKCupom) REFERENCES Cupom(IDCupom) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
+}
+
+function garantirTabelaItemPedido() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS ItemPedido (
+        IDItemPedido CHAR(36) PRIMARY KEY,
+        FKPedido INT NOT NULL,
+        FKVariacao CHAR(36) NULL,
+        NomeProduto VARCHAR(200) NOT NULL,
+        DescricaoVariacao VARCHAR(200) NULL,
+        Quantidade INT NOT NULL,
+        PrecoUnitario DECIMAL(10,2) NOT NULL,
+        FOREIGN KEY (FKPedido) REFERENCES Pedido(IDPedido) ON DELETE CASCADE,
+        FOREIGN KEY (FKVariacao) REFERENCES VariacaoProduto(IDVariacao) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
+}
+
+function garantirTabelaHistoricoStatusPedido() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS HistoricoStatusPedido (
+        IDHistorico CHAR(36) PRIMARY KEY,
+        FKPedido INT NOT NULL,
+        StatusAnterior VARCHAR(30) NULL,
+        StatusNovo VARCHAR(30) NOT NULL,
+        MomentoMudanca TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (FKPedido) REFERENCES Pedido(IDPedido) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
+}
+
+// Cria o pedido inteiro numa transação: desconta estoque item a item com proteção contra vender
+// abaixo de zero (a checagem "de verdade" é aqui, não antes), grava Pedido + ItemPedido (com
+// nome/descrição/preço copiados — não ligados por FK viva, pedido antigo não pode mudar
+// retroativamente se o produto for editado depois), primeiro HistoricoStatusPedido, soma uso do
+// cupom se tiver, e limpa o carrinho só se tudo deu certo. $endereco é um array com
+// cep/logradouro/numero/complemento/bairro/cidade/uf (de um Endereco salvo ou digitado na hora).
+function criarPedido($idUsuario, $endereco, $cupomCodigo) {
+    global $pdo;
+
+    $itens = obterCarrinho();
+    if (!$itens) {
+        return ['sucesso' => false, 'erro' => 'Seu carrinho está vazio.'];
+    }
+
+    $subtotal = array_sum(array_column($itens, 'subtotal'));
+    $frete = calcularFrete($endereco['cep'], $subtotal);
+
+    // Nunca confia no cupom "aplicado" antes — valida de novo aqui, pode ter expirado ou
+    // esgotado o limite de uso entre a prévia do checkout e a confirmação de verdade.
+    $cupom = $cupomCodigo !== '' ? validarCupom($cupomCodigo, $subtotal) : null;
+    $desconto = $cupom ? calcularDescontoCupom($cupom, $subtotal) : 0;
+    $total = max(0, $subtotal - $desconto) + $frete;
+
+    $pdo->beginTransaction();
+    try {
+        foreach ($itens as $item) {
+            $stmt = $pdo->prepare("UPDATE VariacaoProduto SET Estoque = Estoque - :qtd WHERE IDVariacao = :id AND Estoque >= :qtd");
+            $stmt->execute(['qtd' => $item['Quantidade'], 'id' => $item['IDVariacao']]);
+            if ($stmt->rowCount() !== 1) {
+                $pdo->rollBack();
+                return ['sucesso' => false, 'erro' => 'Estoque insuficiente pra "' . $item['variacao']['NomeProduto'] . '" — atualize seu carrinho e tente de novo.'];
+            }
+        }
+
+        $stmt = $pdo->prepare("INSERT INTO Pedido (FKUsuario, Status, ValorSubtotal, ValorDesconto, ValorFrete, ValorTotal, FKCupom, EnderecoCep, EnderecoLogradouro, EnderecoNumero, EnderecoComplemento, EnderecoBairro, EnderecoCidade, EnderecoUF)
+            VALUES (:usuario, 'aguardando_pagamento', :subtotal, :desconto, :frete, :total, :cupom, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf)");
+        $stmt->execute([
+            'usuario' => $idUsuario,
+            'subtotal' => $subtotal,
+            'desconto' => $desconto,
+            'frete' => $frete,
+            'total' => $total,
+            'cupom' => $cupom['IDCupom'] ?? null,
+            'cep' => $endereco['cep'],
+            'logradouro' => $endereco['logradouro'],
+            'numero' => $endereco['numero'],
+            'complemento' => ($endereco['complemento'] ?? '') !== '' ? $endereco['complemento'] : null,
+            'bairro' => ($endereco['bairro'] ?? '') !== '' ? $endereco['bairro'] : null,
+            'cidade' => $endereco['cidade'],
+            'uf' => $endereco['uf'],
+        ]);
+        $idPedido = (int) $pdo->lastInsertId();
+
+        foreach ($itens as $item) {
+            $stmt = $pdo->prepare("INSERT INTO ItemPedido (IDItemPedido, FKPedido, FKVariacao, NomeProduto, DescricaoVariacao, Quantidade, PrecoUnitario) VALUES (:id, :pedido, :variacao, :nome, :descricao, :quantidade, :preco)");
+            $stmt->execute([
+                'id' => gerarUuid(),
+                'pedido' => $idPedido,
+                'variacao' => $item['IDVariacao'],
+                'nome' => $item['variacao']['NomeProduto'],
+                'descricao' => descricaoVariacao($item['variacao']),
+                'quantidade' => $item['Quantidade'],
+                'preco' => $item['variacao']['Preco'],
+            ]);
+        }
+
+        $pdo->prepare("INSERT INTO HistoricoStatusPedido (IDHistorico, FKPedido, StatusAnterior, StatusNovo) VALUES (:id, :pedido, NULL, 'aguardando_pagamento')")
+            ->execute(['id' => gerarUuid(), 'pedido' => $idPedido]);
+
+        if ($cupom) {
+            $pdo->prepare("UPDATE Cupom SET UsosAtuais = UsosAtuais + 1 WHERE IDCupom = :id")->execute(['id' => $cupom['IDCupom']]);
+        }
+
+        $pdo->commit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log('Erro ao criar pedido: ' . $e->getMessage());
+        return ['sucesso' => false, 'erro' => 'Não foi possível concluir o pedido. Tente novamente em instantes.'];
+    }
+
+    limparCarrinho();
+    return ['sucesso' => true, 'id_pedido' => $idPedido];
+}
+
+function obterPedidosPorUsuario($idUsuario) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM Pedido WHERE FKUsuario = :u ORDER BY IDPedido DESC");
+    $stmt->execute(['u' => $idUsuario]);
+    return $stmt->fetchAll();
+}
+
+function obterPedidoPorId($idPedido) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM Pedido WHERE IDPedido = :id");
+    $stmt->execute(['id' => $idPedido]);
+    $pedido = $stmt->fetch();
+    return $pedido ?: null;
+}
+
+function obterItensPedido($idPedido) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM ItemPedido WHERE FKPedido = :id");
+    $stmt->execute(['id' => $idPedido]);
+    return $stmt->fetchAll();
+}
+
+function obterHistoricoPedido($idPedido) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM HistoricoStatusPedido WHERE FKPedido = :id ORDER BY MomentoMudanca ASC");
+    $stmt->execute(['id' => $idPedido]);
+    return $stmt->fetchAll();
+}
+
+// Muda o status e grava no histórico numa transação só. Cancelar devolve o estoque reservado na
+// criação do pedido pra cada item (nunca desconta 2x, StatusAtual !== 'cancelado' já garante que
+// só devolve uma vez).
+function mudarStatusPedido($idPedido, $novoStatus) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT Status FROM Pedido WHERE IDPedido = :id");
+    $stmt->execute(['id' => $idPedido]);
+    $statusAtual = $stmt->fetchColumn();
+    if ($statusAtual === false || $statusAtual === $novoStatus) {
+        return false;
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare("UPDATE Pedido SET Status = :status WHERE IDPedido = :id")
+            ->execute(['status' => $novoStatus, 'id' => $idPedido]);
+        $pdo->prepare("INSERT INTO HistoricoStatusPedido (IDHistorico, FKPedido, StatusAnterior, StatusNovo) VALUES (:id, :pedido, :anterior, :novo)")
+            ->execute(['id' => gerarUuid(), 'pedido' => $idPedido, 'anterior' => $statusAtual, 'novo' => $novoStatus]);
+
+        if ($novoStatus === 'cancelado') {
+            $stmtItens = $pdo->prepare("SELECT FKVariacao, Quantidade FROM ItemPedido WHERE FKPedido = :id");
+            $stmtItens->execute(['id' => $idPedido]);
+            foreach ($stmtItens->fetchAll() as $item) {
+                if ($item['FKVariacao'] !== null) {
+                    $pdo->prepare("UPDATE VariacaoProduto SET Estoque = Estoque + :qtd WHERE IDVariacao = :id")
+                        ->execute(['qtd' => $item['Quantidade'], 'id' => $item['FKVariacao']]);
+                }
+            }
+        }
+
+        $pdo->commit();
+        return true;
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log('Erro ao mudar status do pedido: ' . $e->getMessage());
+        return false;
+    }
 }
 
 function garantirTabelaFavorito() {

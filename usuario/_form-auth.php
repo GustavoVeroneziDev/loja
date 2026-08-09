@@ -5,6 +5,9 @@
  * @var string|null $erroLogin
  * @var string|null $erroCadastro
  */
+// "Finalizar compra" deslogado manda voltar_para na URL — carrega num hidden pra sobreviver ao
+// POST do form (senão se perde, já que o form não tem query string na action).
+$voltarParaAtual = caminhoSeguro($_GET['voltar_para'] ?? null);
 ?>
 <div class="row">
     <div class="col-md-5 mx-auto">
@@ -13,6 +16,7 @@
                 <h1 class="h4 mb-4">Bem-vindo de volta</h1>
                 <?php if ($erroLogin): ?><div class="alert alert-danger"><?= htmlspecialchars($erroLogin) ?></div><?php endif; ?>
                 <form method="post" action="<?= URL_BASE ?>/usuario/login.php">
+                    <?php if ($voltarParaAtual): ?><input type="hidden" name="voltar_para" value="<?= htmlspecialchars($voltarParaAtual) ?>"><?php endif; ?>
                     <div class="form-floating mb-3">
                         <input type="email" name="email" id="loginEmail" class="form-control" placeholder="seuemail@exemplo.com" required>
                         <label for="loginEmail">E-mail</label>
@@ -38,6 +42,7 @@
                 <p class="text-secundario mb-4">Leva menos de um minuto.</p>
                 <?php if ($erroCadastro): ?><div class="alert alert-danger"><?= htmlspecialchars($erroCadastro) ?></div><?php endif; ?>
                 <form method="post" action="<?= URL_BASE ?>/usuario/cadastro.php">
+                    <?php if ($voltarParaAtual): ?><input type="hidden" name="voltar_para" value="<?= htmlspecialchars($voltarParaAtual) ?>"><?php endif; ?>
                     <div class="form-floating mb-3">
                         <input type="text" name="nome" id="cadastroNome" class="form-control" placeholder="Seu nome" value="<?= htmlspecialchars($_POST['nome'] ?? '') ?>" required>
                         <label for="cadastroNome">Nome</label>

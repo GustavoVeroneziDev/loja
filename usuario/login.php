@@ -8,12 +8,16 @@ garantirTabelaProduto();
 garantirTabelaVariacaoProduto();
 garantirTabelaItemCarrinho();
 
+// "Finalizar compra" deslogado manda voltar_para=/checkout.php — depois do login, volta direto
+// pra lá em vez de cair na Minha Conta e precisar de mais um clique.
+$voltarPara = caminhoSeguro($_GET['voltar_para'] ?? $_POST['voltar_para'] ?? null);
+
 if (adminLogado()) {
-    header('Location: ' . URL_BASE . '/admin/index.php');
+    header('Location: ' . ($voltarPara ?? (URL_BASE . '/admin/index.php')));
     exit;
 }
 if (clienteLogado()) {
-    header('Location: ' . URL_BASE . '/usuario/minha-conta.php');
+    header('Location: ' . ($voltarPara ?? (URL_BASE . '/usuario/minha-conta.php')));
     exit;
 }
 
@@ -38,7 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($usuario['TipoUsuario'] === 'cliente') {
             mesclarCarrinhoVisitante();
         }
-        header('Location: ' . URL_BASE . ($usuario['TipoUsuario'] === 'admin' ? '/admin/index.php' : '/usuario/minha-conta.php'));
+        $destinoPadrao = URL_BASE . ($usuario['TipoUsuario'] === 'admin' ? '/admin/index.php' : '/usuario/minha-conta.php');
+        header('Location: ' . ($voltarPara ?? $destinoPadrao));
         exit;
     }
     $erroLogin = 'E-mail ou senha inválidos.';

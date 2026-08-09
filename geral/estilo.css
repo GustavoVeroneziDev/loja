@@ -66,6 +66,10 @@
     color: var(--cor-destaque);
 }
 
+.text-sucesso {
+    color: #15803d;
+}
+
 .link-marca {
     color: var(--cor-secundaria);
 }

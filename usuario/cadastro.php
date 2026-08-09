@@ -8,12 +8,14 @@ garantirTabelaProduto();
 garantirTabelaVariacaoProduto();
 garantirTabelaItemCarrinho();
 
+$voltarPara = caminhoSeguro($_GET['voltar_para'] ?? $_POST['voltar_para'] ?? null);
+
 if (adminLogado()) {
-    header('Location: ' . URL_BASE . '/admin/index.php');
+    header('Location: ' . ($voltarPara ?? (URL_BASE . '/admin/index.php')));
     exit;
 }
 if (clienteLogado()) {
-    header('Location: ' . URL_BASE . '/usuario/minha-conta.php');
+    header('Location: ' . ($voltarPara ?? (URL_BASE . '/usuario/minha-conta.php')));
     exit;
 }
 
@@ -61,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ativarLoginLembrado($idUsuario);
             }
             mesclarCarrinhoVisitante();
-            header('Location: ' . URL_BASE . '/usuario/minha-conta.php');
+            header('Location: ' . ($voltarPara ?? (URL_BASE . '/usuario/minha-conta.php')));
             exit;
         }
     }

@@ -46,16 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // "Adicionar ao carrinho" na grade de produtos manda voltar_para pra continuar na mesma
-    // página em vez de pular pro carrinho; só aceita caminho relativo do próprio site (começa
-    // com "/" e não "//", que o navegador trata como outro host — evita open redirect). Checar
-    // só com strpos($x, URL_BASE) quebrava em produção: lá URL_BASE é string vazia (site na raiz
-    // do domínio, sem subpasta), e strpos(qualquercoisa, "") sempre dá 0 — validação nunca falhava
-    // mesmo com voltar_para vazio, e "Location: " sem valor nenhum dá tela em branco no navegador.
-    $voltarPara = $_POST['voltar_para'] ?? '';
-    $mesmoSite = $voltarPara !== '' && $voltarPara[0] === '/' && ($voltarPara[1] ?? '') !== '/';
-    if (!$mesmoSite) {
-        $voltarPara = URL_BASE . '/carrinho.php';
-    }
+    // página em vez de pular pro carrinho.
+    $voltarPara = caminhoSeguro($_POST['voltar_para'] ?? null) ?? (URL_BASE . '/carrinho.php');
     if ($falhou) {
         $voltarPara .= (strpos($voltarPara, '?') !== false ? '&' : '?') . 'erro=1';
     }
@@ -171,9 +163,13 @@ require __DIR__ . '/geral/header.php';
                 <span class="text-secundario">Total</span>
                 <span class="fw-semibold h4 mb-0"><?= formatarPreco($total) ?></span>
             </div>
-            <button type="button" class="btn btn-marca rounded-pill w-100 py-2" <?= $itens ? '' : 'disabled' ?> disabled title="Checkout chega na próxima etapa">
-                Finalizar compra — em breve
-            </button>
+            <?php if ($itens): ?>
+                <a href="<?= URL_BASE ?><?= clienteLogado() ? '/checkout.php' : ('/usuario/login.php?voltar_para=' . urlencode(URL_BASE . '/checkout.php')) ?>" class="btn btn-marca rounded-pill w-100 py-2 text-center">
+                    Finalizar compra
+                </a>
+            <?php else: ?>
+                <button type="button" class="btn btn-marca rounded-pill w-100 py-2" disabled>Finalizar compra</button>
+            <?php endif; ?>
         </div>
     </div>
 </div>
