@@ -913,7 +913,7 @@ function garantirTabelaCupom() {
 // Confere existência, ativo, validade e limite de uso — devolve a linha do cupom ou null. Reusado
 // tanto na prévia do checkout quanto (de novo, sempre) na hora de fechar o pedido de verdade,
 // porque o cupom pode ter expirado/esgotado entre uma coisa e outra.
-function validarCupom($codigo, $subtotal) {
+function validarCupom($codigo) {
     global $pdo;
     $stmt = $pdo->prepare("SELECT * FROM Cupom WHERE Codigo = :codigo AND Ativo = 1");
     $stmt->execute(['codigo' => trim($codigo)]);
@@ -1044,7 +1044,7 @@ function criarPedido($idUsuario, $endereco, $cupomCodigo) {
 
     // Nunca confia no cupom "aplicado" antes — valida de novo aqui, pode ter expirado ou
     // esgotado o limite de uso entre a prévia do checkout e a confirmação de verdade.
-    $cupom = $cupomCodigo !== '' ? validarCupom($cupomCodigo, $subtotal) : null;
+    $cupom = $cupomCodigo !== '' ? validarCupom($cupomCodigo) : null;
     $desconto = $cupom ? calcularDescontoCupom($cupom, $subtotal) : 0;
     $total = max(0, $subtotal - $desconto) + $frete;
 
@@ -1118,7 +1118,8 @@ function obterPedidosPorUsuario($idUsuario) {
 
 function obterPedidoPorId($idPedido) {
     global $pdo;
-    $stmt = $pdo->prepare("SELECT * FROM Pedido WHERE IDPedido = :id");
+    $stmt = $pdo->prepare("SELECT p.*, u.Nome AS NomeCliente, u.Email AS EmailCliente
+        FROM Pedido p JOIN Usuario u ON u.IDUsuario = p.FKUsuario WHERE p.IDPedido = :id");
     $stmt->execute(['id' => $idPedido]);
     $pedido = $stmt->fetch();
     return $pedido ?: null;

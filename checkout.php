@@ -81,7 +81,7 @@ $enderecoResolvido = resolverEndereco($enderecos, $enderecoSelecionadoId, $_POST
 if ($enderecoResolvido !== null) {
     $frete = calcularFrete($enderecoResolvido['cep'], $subtotal);
     if ($cupomCodigo !== '') {
-        $cupomAplicado = validarCupom($cupomCodigo, $subtotal);
+        $cupomAplicado = validarCupom($cupomCodigo);
         if ($cupomAplicado) {
             $desconto = calcularDescontoCupom($cupomAplicado, $subtotal);
         } else {
