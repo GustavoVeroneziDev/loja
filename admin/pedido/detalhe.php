@@ -52,7 +52,10 @@ $statusOpcoes = ['aguardando_pagamento', 'pago', 'preparando', 'enviado', 'entre
 require __DIR__ . '/../_topo.php';
 ?>
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
-    <h1 class="h4 mb-0">Pedido #<?= str_pad($pedido['IDPedido'], 5, '0', STR_PAD_LEFT) ?></h1>
+    <h1 class="h4 mb-0">
+        Pedido #<?= str_pad($pedido['IDPedido'], 5, '0', STR_PAD_LEFT) ?>
+        <?php if ($pedido['Simulacao']): ?><span class="badge-destaque px-2 py-1 small"><i class="bi bi-flask"></i> Pedido de simulação</span><?php endif; ?>
+    </h1>
     <a href="<?= URL_BASE ?>/admin/pedido/index.php" class="btn btn-sm btn-outline-secondary rounded-pill"><i class="bi bi-arrow-left"></i> Voltar</a>
 </div>
 

@@ -45,6 +45,12 @@ $totalCarrinho = contarItensCarrinho();
     <link href="<?= URL_BASE ?>/geral/estilo.css" rel="stylesheet">
 </head>
 <body>
+<?php if (!empty($_SESSION['simulacao_admin_id'])): ?>
+    <div class="faixa-simulacao text-center py-2 small fw-semibold">
+        <i class="bi bi-flask"></i> Modo simulação — nada aqui afeta pedidos, estoque ou relatório de verdade.
+        <a href="<?= URL_BASE ?>/usuario/sair-simulacao.php" class="link-faixa-simulacao">Sair da simulação</a>
+    </div>
+<?php endif; ?>
 <nav class="navbar navbar-expand-lg navbar-marca navbar-loja navbar-dark">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="<?= URL_BASE ?>/index.php">

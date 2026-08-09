@@ -190,6 +190,24 @@ body {
     font-weight: 500;
 }
 
+/* Faixa fixa no topo enquanto o admin tá testando como o cliente de simulação — bronze (mesma cor
+   de "isso é especial"/destaque) pra ser bem visível e não ter dúvida nenhuma de que é modo teste. */
+.faixa-simulacao {
+    background: var(--cor-destaque);
+    color: #fff;
+}
+
+.link-faixa-simulacao {
+    color: #fff;
+    text-decoration: underline;
+    font-weight: 700;
+}
+
+.link-faixa-simulacao:hover {
+    color: #fff;
+    opacity: .85;
+}
+
 .badge-perigo {
     background: rgba(239, 68, 68, .12);
     color: #dc2626;

@@ -134,6 +134,13 @@ function garantirTabelaUsuario() {
         $pdo->exec("ALTER TABLE Usuario ADD COLUMN CPF CHAR(11) NULL AFTER Telefone");
     }
 
+    // Marca o cliente de teste reaproveitado pelo Admin > Simulação — nunca aparece em relatório/
+    // lista de cliente de verdade, só existe pra admin testar o fluxo completo de compra sem medo.
+    $temSimulacao = (bool) $pdo->query("SHOW COLUMNS FROM Usuario LIKE 'Simulacao'")->fetchColumn();
+    if (!$temSimulacao) {
+        $pdo->exec("ALTER TABLE Usuario ADD COLUMN Simulacao TINYINT(1) NOT NULL DEFAULT 0 AFTER TipoUsuario");
+    }
+
     // Token de "manter conectado" — igual TokenRecuperacao/DataExpiracaoToken (mesmo padrão),
     // só que dura semanas em vez de 1 hora e vive num cookie à parte, não no fluxo de senha.
     $temTokenLembrar = (bool) $pdo->query("SHOW COLUMNS FROM Usuario LIKE 'TokenLembrar'")->fetchColumn();
@@ -1047,6 +1054,14 @@ function garantirTabelaPedido() {
         FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario),
         FOREIGN KEY (FKCupom) REFERENCES Cupom(IDCupom) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Copiado do Usuario.Simulacao do dono no momento da criação — não muda com FK viva porque
+    // relatório precisa continuar batendo mesmo se o cliente de simulação for recriado depois.
+    $temSimulacao = (bool) $pdo->query("SHOW COLUMNS FROM Pedido LIKE 'Simulacao'")->fetchColumn();
+    if (!$temSimulacao) {
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN Simulacao TINYINT(1) NOT NULL DEFAULT 0 AFTER Status");
+    }
+
     $jaVerificado = true;
 }
 
@@ -1110,6 +1125,12 @@ function criarPedido($idUsuario, $endereco, $cupomCodigo) {
     $desconto = $cupom ? calcularDescontoCupom($cupom, $subtotal) : 0;
     $total = max(0, $subtotal - $desconto) + $frete;
 
+    // Detecta sozinho se é o cliente de simulação (Admin > Simulação) — checkout.php não precisa
+    // saber nada sobre simulação, o pedido já nasce marcado certo automaticamente.
+    $stmtSimulacao = $pdo->prepare("SELECT Simulacao FROM Usuario WHERE IDUsuario = :id");
+    $stmtSimulacao->execute(['id' => $idUsuario]);
+    $ehSimulacao = (bool) $stmtSimulacao->fetchColumn();
+
     $pdo->beginTransaction();
     try {
         foreach ($itens as $item) {
@@ -1121,10 +1142,11 @@ function criarPedido($idUsuario, $endereco, $cupomCodigo) {
             }
         }
 
-        $stmt = $pdo->prepare("INSERT INTO Pedido (FKUsuario, Status, ValorSubtotal, ValorDesconto, ValorFrete, ValorTotal, FKCupom, EnderecoCep, EnderecoLogradouro, EnderecoNumero, EnderecoComplemento, EnderecoBairro, EnderecoCidade, EnderecoUF)
-            VALUES (:usuario, 'aguardando_pagamento', :subtotal, :desconto, :frete, :total, :cupom, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf)");
+        $stmt = $pdo->prepare("INSERT INTO Pedido (FKUsuario, Status, Simulacao, ValorSubtotal, ValorDesconto, ValorFrete, ValorTotal, FKCupom, EnderecoCep, EnderecoLogradouro, EnderecoNumero, EnderecoComplemento, EnderecoBairro, EnderecoCidade, EnderecoUF)
+            VALUES (:usuario, 'aguardando_pagamento', :simulacao, :subtotal, :desconto, :frete, :total, :cupom, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf)");
         $stmt->execute([
             'usuario' => $idUsuario,
+            'simulacao' => $ehSimulacao ? 1 : 0,
             'subtotal' => $subtotal,
             'desconto' => $desconto,
             'frete' => $frete,
@@ -1238,6 +1260,46 @@ function mudarStatusPedido($idPedido, $novoStatus) {
         error_log('Erro ao mudar status do pedido: ' . $e->getMessage());
         return false;
     }
+}
+
+// ---------------------------------------------------------------------
+// Simulação — Admin > Simulação usa 1 cliente de teste reaproveitado (não cria um novo a cada
+// clique), pra deixar o admin passar pelo fluxo de compra de verdade sem misturar com cliente real.
+// ---------------------------------------------------------------------
+
+function obterOuCriarClienteSimulacao() {
+    global $pdo;
+    $stmt = $pdo->query("SELECT * FROM Usuario WHERE Simulacao = 1 LIMIT 1");
+    $cliente = $stmt->fetch();
+    if ($cliente) {
+        return $cliente;
+    }
+
+    $id = gerarUuid();
+    $stmt = $pdo->prepare("INSERT INTO Usuario (IDUsuario, Nome, Email, Senha, TipoUsuario, Simulacao) VALUES (:id, :nome, :email, :senha, 'cliente', 1)");
+    $stmt->execute([
+        'id' => $id,
+        'nome' => 'Cliente de Simulação',
+        'email' => 'simulacao-' . substr($id, 0, 8) . '@interno.loja',
+        'senha' => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
+    ]);
+
+    $stmt = $pdo->prepare("SELECT * FROM Usuario WHERE IDUsuario = :id");
+    $stmt->execute(['id' => $id]);
+    return $stmt->fetch();
+}
+
+// Cancela (restaura estoque) todo pedido de teste que ainda não tava cancelado e esvazia o
+// carrinho — deixa o cliente de simulação limpo pra uma próxima rodada de teste, sem sobrar
+// rastro de estoque puxado à toa.
+function resetarDadosSimulacao($idClienteSimulacao) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT IDPedido FROM Pedido WHERE FKUsuario = :u AND Status != 'cancelado'");
+    $stmt->execute(['u' => $idClienteSimulacao]);
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $idPedido) {
+        mudarStatusPedido($idPedido, 'cancelado');
+    }
+    $pdo->prepare("DELETE FROM ItemCarrinho WHERE FKUsuario = :u")->execute(['u' => $idClienteSimulacao]);
 }
 
 function garantirTabelaFavorito() {

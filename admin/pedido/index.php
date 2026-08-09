@@ -9,13 +9,23 @@ garantirTabelaUsuario();
 global $pdo;
 
 $filtro = $_GET['filtro'] ?? '';
+$mostrarSimulacao = isset($_GET['simulacao']);
 $sql = "SELECT p.*, u.Nome AS NomeCliente FROM Pedido p JOIN Usuario u ON u.IDUsuario = p.FKUsuario";
+$condicoes = [];
 $params = [];
+// Pedido de simulação (Admin > Simulação) fica fora por padrão — não é pedido de cliente de
+// verdade, só polui a lista real. Só aparece com ?simulacao=1 explícito.
+if (!$mostrarSimulacao) {
+    $condicoes[] = "p.Simulacao = 0";
+}
 // Filtro inválido cai em "sem filtro" — nunca passa um status inexistente direto pro WHERE.
 $statusValidos = ['aguardando_pagamento', 'pago', 'preparando', 'enviado', 'entregue', 'cancelado'];
 if (in_array($filtro, $statusValidos, true)) {
-    $sql .= " WHERE p.Status = :status";
+    $condicoes[] = "p.Status = :status";
     $params['status'] = $filtro;
+}
+if ($condicoes) {
+    $sql .= " WHERE " . implode(' AND ', $condicoes);
 }
 $sql .= " ORDER BY p.IDPedido DESC";
 $stmt = $pdo->prepare($sql);
@@ -26,6 +36,9 @@ require __DIR__ . '/../_topo.php';
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h4 mb-0">Pedidos</h1>
+    <a href="<?= URL_BASE ?>/admin/pedido/index.php<?= $mostrarSimulacao ? '' : '?simulacao=1' ?>" class="btn btn-sm btn-outline-secondary rounded-pill">
+        <i class="bi bi-flask"></i> <?= $mostrarSimulacao ? 'Esconder' : 'Mostrar' ?> pedidos de simulação
+    </a>
 </div>
 
 <?php if ($filtro !== ''): ?>
@@ -50,7 +63,10 @@ require __DIR__ . '/../_topo.php';
         <tbody>
             <?php foreach ($pedidos as $pedido): $info = statusPedidoInfo($pedido['Status']); ?>
                 <tr>
-                    <td class="fw-semibold">#<?= str_pad($pedido['IDPedido'], 5, '0', STR_PAD_LEFT) ?></td>
+                    <td class="fw-semibold">
+                        #<?= str_pad($pedido['IDPedido'], 5, '0', STR_PAD_LEFT) ?>
+                        <?php if ($pedido['Simulacao']): ?><span class="badge-destaque px-2 py-1 small"><i class="bi bi-flask"></i> teste</span><?php endif; ?>
+                    </td>
                     <td><?= htmlspecialchars($pedido['NomeCliente']) ?></td>
                     <td class="text-secundario"><?= date('d/m/Y H:i', strtotime($pedido['MomentoCriacao'])) ?></td>
                     <td><?= formatarPreco($pedido['ValorTotal']) ?></td>

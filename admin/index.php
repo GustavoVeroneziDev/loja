@@ -14,7 +14,7 @@ $totalProdutosAtivos = (int) $pdo->query("SELECT COUNT(*) FROM Produto WHERE Ati
 $totalCategorias = (int) $pdo->query("SELECT COUNT(*) FROM Categoria")->fetchColumn();
 $totalRascunho = (int) $pdo->query("SELECT COUNT(*) FROM Produto WHERE Ativo = 0")->fetchColumn();
 $totalSemEstoque = (int) $pdo->query("SELECT COUNT(DISTINCT FKProduto) FROM VariacaoProduto WHERE Estoque = 0")->fetchColumn();
-$totalPedidosAguardando = (int) $pdo->query("SELECT COUNT(*) FROM Pedido WHERE Status = 'aguardando_pagamento'")->fetchColumn();
+$totalPedidosAguardando = (int) $pdo->query("SELECT COUNT(*) FROM Pedido WHERE Status = 'aguardando_pagamento' AND Simulacao = 0")->fetchColumn();
 
 require __DIR__ . '/_topo.php';
 ?>
