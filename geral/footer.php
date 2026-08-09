@@ -80,6 +80,25 @@
         });
     });
 
+    // CPF — formato fixo (sempre 11 dígitos), sem precisar alternar como o telefone.
+    document.querySelectorAll('.mascara-cpf').forEach(function (campo) {
+        campo.addEventListener('input', function () {
+            var d = campo.value.replace(/\D/g, '').slice(0, 11);
+            if (d.length <= 3) campo.value = d;
+            else if (d.length <= 6) campo.value = d.slice(0, 3) + '.' + d.slice(3);
+            else if (d.length <= 9) campo.value = d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
+            else campo.value = d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+        });
+    });
+
+    // CEP — 00000-000, mesmo padrão dos outros (não mexe se já tiver menos de 6 dígitos digitados).
+    document.querySelectorAll('.campo-cep').forEach(function (campo) {
+        campo.addEventListener('input', function () {
+            var d = campo.value.replace(/\D/g, '').slice(0, 8);
+            campo.value = d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d;
+        });
+    });
+
     (function () {
         var modalEl = document.getElementById('modalConfirmar');
         if (!modalEl) return;

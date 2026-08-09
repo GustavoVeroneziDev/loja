@@ -25,6 +25,38 @@ function normalizarTelefone($telefone) {
     return null;
 }
 
+// Dígito verificador de CPF — só confirma que o número "bate" matematicamente, não que existe de
+// verdade na Receita Federal (isso exigiria uma consulta paga, não vale a pena por enquanto).
+function cpfValido($cpf) {
+    $cpf = preg_replace('/\D/', '', $cpf ?? '');
+    if (strlen($cpf) !== 11 || preg_match('/^(\d)\1{10}$/', $cpf)) {
+        return false; // 11 dígitos iguais passa na conta mas nunca é CPF de verdade
+    }
+    for ($posicao = 9; $posicao <= 10; $posicao++) {
+        $soma = 0;
+        for ($i = 0; $i < $posicao; $i++) {
+            $soma += (int) $cpf[$i] * (($posicao + 1) - $i);
+        }
+        $digito = (10 * $soma) % 11;
+        if ($digito >= 10) {
+            $digito = 0;
+        }
+        if ((int) $cpf[$posicao] !== $digito) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Retorna formatado (XXX.XXX.XXX-XX) se válido, null se não — mesmo padrão de normalizarTelefone().
+function normalizarCpf($cpf) {
+    $digitos = preg_replace('/\D/', '', $cpf ?? '');
+    if (!cpfValido($digitos)) {
+        return null;
+    }
+    return substr($digitos, 0, 3) . '.' . substr($digitos, 3, 3) . '.' . substr($digitos, 6, 3) . '-' . substr($digitos, 9, 2);
+}
+
 // Pra saudação/menu de usuário — nome completo não cabe em navbar.
 function primeiroNome($nomeCompleto) {
     return trim(explode(' ', trim($nomeCompleto))[0]);
@@ -85,6 +117,13 @@ function garantirTabelaUsuario() {
     $colunaTipoExiste = (bool) $pdo->query("SHOW COLUMNS FROM Usuario LIKE 'TipoUsuario'")->fetchColumn();
     if (!$colunaTipoExiste) {
         $pdo->exec("ALTER TABLE Usuario ADD COLUMN TipoUsuario ENUM('cliente','admin') NOT NULL DEFAULT 'cliente' AFTER Telefone");
+    }
+
+    // CPF — pedido só na hora do checkout (nota fiscal, documento do pagador no Mercado Pago),
+    // não no cadastro, por isso NULL aqui pra quem já tinha conta antes desta coluna existir.
+    $temCpf = (bool) $pdo->query("SHOW COLUMNS FROM Usuario LIKE 'CPF'")->fetchColumn();
+    if (!$temCpf) {
+        $pdo->exec("ALTER TABLE Usuario ADD COLUMN CPF CHAR(11) NULL AFTER Telefone");
     }
 
     // Token de "manter conectado" — igual TokenRecuperacao/DataExpiracaoToken (mesmo padrão),
@@ -788,6 +827,50 @@ function mesclarCarrinhoVisitante() {
 // ---------------------------------------------------------------------
 // Favoritos — exige conta (não é por sessão de visitante, é lista salva de verdade)
 // ---------------------------------------------------------------------
+
+function garantirTabelaEndereco() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS Endereco (
+        IDEndereco CHAR(36) PRIMARY KEY,
+        FKUsuario CHAR(36) NOT NULL,
+        CEP VARCHAR(9) NOT NULL,
+        Logradouro VARCHAR(200) NOT NULL,
+        Numero VARCHAR(20) NOT NULL,
+        Complemento VARCHAR(100) NULL,
+        Bairro VARCHAR(100) NULL,
+        Cidade VARCHAR(100) NOT NULL,
+        UF CHAR(2) NOT NULL,
+        Principal TINYINT(1) NOT NULL DEFAULT 0,
+        MomentoCriacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
+}
+
+// Lista fixa das 27 UFs — usada no form de endereço (aqui e no checkout), fallback manual quando
+// o autopreenchimento por CEP falhar ou a pessoa preferir digitar direto.
+function listaUfsBrasil() {
+    return [
+        'AC' => 'Acre', 'AL' => 'Alagoas', 'AP' => 'Amapá', 'AM' => 'Amazonas', 'BA' => 'Bahia',
+        'CE' => 'Ceará', 'DF' => 'Distrito Federal', 'ES' => 'Espírito Santo', 'GO' => 'Goiás',
+        'MA' => 'Maranhão', 'MT' => 'Mato Grosso', 'MS' => 'Mato Grosso do Sul', 'MG' => 'Minas Gerais',
+        'PA' => 'Pará', 'PB' => 'Paraíba', 'PR' => 'Paraná', 'PE' => 'Pernambuco', 'PI' => 'Piauí',
+        'RJ' => 'Rio de Janeiro', 'RN' => 'Rio Grande do Norte', 'RS' => 'Rio Grande do Sul',
+        'RO' => 'Rondônia', 'RR' => 'Roraima', 'SC' => 'Santa Catarina', 'SP' => 'São Paulo',
+        'SE' => 'Sergipe', 'TO' => 'Tocantins',
+    ];
+}
+
+function obterEnderecosPorUsuario($idUsuario) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM Endereco WHERE FKUsuario = :u ORDER BY Principal DESC, MomentoCriacao DESC");
+    $stmt->execute(['u' => $idUsuario]);
+    return $stmt->fetchAll();
+}
 
 function garantirTabelaFavorito() {
     static $jaVerificado = false;

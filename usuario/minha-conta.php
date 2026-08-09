@@ -14,6 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nome = trim($_POST['nome'] ?? '');
         $telefone = trim($_POST['telefone'] ?? '');
         $telefoneNormalizado = $telefone !== '' ? normalizarTelefone($telefone) : null;
+        $cpf = trim($_POST['cpf'] ?? '');
+        $cpfNormalizado = $cpf !== '' ? normalizarCpf($cpf) : null;
 
         if ($nome === '') {
             header('Location: ' . URL_BASE . '/usuario/minha-conta.php?erro=perfil');
@@ -23,11 +25,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: ' . URL_BASE . '/usuario/minha-conta.php?erro=telefone');
             exit;
         }
+        if ($cpf !== '' && $cpfNormalizado === null) {
+            header('Location: ' . URL_BASE . '/usuario/minha-conta.php?erro=cpf');
+            exit;
+        }
 
-        $stmt = $pdo->prepare("UPDATE Usuario SET Nome = :nome, Telefone = :telefone WHERE IDUsuario = :id");
+        $stmt = $pdo->prepare("UPDATE Usuario SET Nome = :nome, Telefone = :telefone, CPF = :cpf WHERE IDUsuario = :id");
         $stmt->execute([
             'nome' => $nome,
             'telefone' => $telefoneNormalizado,
+            'cpf' => $cpfNormalizado !== null ? preg_replace('/\D/', '', $cpfNormalizado) : null,
             'id' => $_SESSION['usuario_id'],
         ]);
         $_SESSION['usuario_nome'] = $nome;
@@ -76,6 +83,7 @@ $sucessoSenha = ($_GET['ok'] ?? '') === 'senha' ? 'Senha atualizada com sucesso.
 $errosPerfilMap = [
     'perfil' => 'Preencha o nome.',
     'telefone' => 'Telefone inválido — informe DDD + número.',
+    'cpf' => 'CPF inválido — confira os números.',
 ];
 $erroPerfil = $errosPerfilMap[$_GET['erro'] ?? ''] ?? null;
 $errosSenhaMap = [
@@ -107,6 +115,11 @@ require __DIR__ . '/../geral/header.php';
                 <div class="mb-3">
                     <label class="form-label">Telefone</label>
                     <input type="text" name="telefone" class="form-control mascara-telefone" inputmode="numeric" value="<?= htmlspecialchars($usuario['Telefone'] ?? '') ?>" placeholder="não informado">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">CPF</label>
+                    <input type="text" name="cpf" class="form-control mascara-cpf" inputmode="numeric" value="<?= htmlspecialchars(normalizarCpf($usuario['CPF'] ?? '') ?? '') ?>" placeholder="não informado">
+                    <div class="form-text">Só pedimos na hora da compra (nota fiscal), mas você já pode deixar salvo aqui.</div>
                 </div>
                 <button type="submit" class="btn btn-marca rounded-pill">Salvar alterações</button>
             </form>
@@ -153,6 +166,6 @@ require __DIR__ . '/../geral/header.php';
 </div>
 <div class="text-secundario small mt-4">
     <i class="bi bi-clock-history"></i> Histórico de pedidos — em breve.
-    &nbsp;&nbsp;<i class="bi bi-geo-alt"></i> Endereços salvos — em breve.
+    &nbsp;&nbsp;<i class="bi bi-geo-alt"></i> <a href="<?= URL_BASE ?>/usuario/enderecos.php" class="link-marca">Endereços salvos</a>
 </div>
 <?php require __DIR__ . '/../geral/footer.php'; ?>
