@@ -155,7 +155,7 @@ require __DIR__ . '/geral/header.php';
 
 <form method="post">
     <div class="row g-4">
-        <div class="col-lg-7">
+        <div class="col-12 col-lg-7">
             <div class="card p-4 mb-4">
                 <h2 class="h5 mb-3">Endereço de entrega</h2>
                 <?php if ($enderecos): ?>
@@ -198,7 +198,7 @@ require __DIR__ . '/geral/header.php';
             </div>
         </div>
 
-        <div class="col-lg-5">
+        <div class="col-12 col-lg-5">
             <div class="card p-4">
                 <h2 class="h5 mb-3">Resumo do pedido</h2>
                 <?php foreach ($itens as $item): $v = $item['variacao']; ?>

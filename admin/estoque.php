@@ -55,7 +55,7 @@ require __DIR__ . '/_topo.php';
 <?php if ($erro): ?><div class="alert alert-danger"><?= $erro ?></div><?php endif; ?>
 
 <div class="row g-4">
-    <div class="col-lg-8">
+    <div class="col-12 col-lg-8">
         <div class="card">
             <table class="table table-hover align-middle mb-0">
                 <thead>
@@ -83,11 +83,11 @@ require __DIR__ . '/_topo.php';
                             <td class="fw-semibold"><?= (int) $v['Estoque'] ?></td>
                             <td>
                                 <?php if ($zerado): ?>
-                                    <span class="badge-perigo px-2 py-1">Esgotado</span>
+                                    <span class="badge-perigo px-2 py-1 d-inline-flex align-items-center gap-1">Esgotado</span>
                                 <?php elseif ($baixo): ?>
-                                    <span class="badge-atencao px-2 py-1"><i class="bi bi-fire"></i> Baixo</span>
+                                    <span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-fire"></i> Baixo</span>
                                 <?php else: ?>
-                                    <span class="badge-sucesso px-2 py-1">OK</span>
+                                    <span class="badge-sucesso px-2 py-1 d-inline-flex align-items-center gap-1">OK</span>
                                 <?php endif; ?>
                             </td>
                             <td style="width: 90px; min-width: 90px; max-width: 90px;">
@@ -105,7 +105,7 @@ require __DIR__ . '/_topo.php';
         </div>
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-12 col-lg-4">
         <div class="card p-4">
             <h2 class="h6 text-secundario text-uppercase mb-3">Movimentações recentes</h2>
             <?php if (!$movimentosRecentes): ?>

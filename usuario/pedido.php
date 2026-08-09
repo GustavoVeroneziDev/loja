@@ -35,7 +35,7 @@ require __DIR__ . '/../geral/header.php';
 <?php endif; ?>
 
 <div class="row g-4">
-    <div class="col-lg-7">
+    <div class="col-12 col-lg-7">
         <div class="card p-4 mb-4">
             <h2 class="h5 mb-3">Itens</h2>
             <?php foreach ($itens as $item): ?>
@@ -77,7 +77,7 @@ require __DIR__ . '/../geral/header.php';
         </div>
     </div>
 
-    <div class="col-lg-5">
+    <div class="col-12 col-lg-5">
         <div class="card p-4">
             <h2 class="h5 mb-3">Status</h2>
             <p class="mb-3"><span class="<?= $info['badge'] ?> px-2 py-1"><i class="bi <?= $info['icone'] ?>"></i> <?= $info['label'] ?></span></p>

@@ -63,7 +63,7 @@ $total = array_sum(array_column($itens, 'subtotal'));
 require __DIR__ . '/geral/header.php';
 ?>
 <div class="row">
-    <div class="col-lg-8">
+    <div class="col-12 col-lg-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0 titulo-estilizado">Seu carrinho</h1>
             <?php if ($itens): ?>
@@ -156,7 +156,7 @@ require __DIR__ . '/geral/header.php';
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
-    <div class="col-lg-4">
+    <div class="col-12 col-lg-4">
         <div class="card p-4">
             <h2 class="h5 mb-3">Resumo</h2>
             <div class="d-flex justify-content-between align-items-center mb-3">

@@ -270,7 +270,7 @@ require __DIR__ . '/../_topo.php';
 <?php if ($aviso): ?><div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> <?= $aviso ?></div><?php endif; ?>
 
 <div class="row g-4">
-    <div class="col-lg-6">
+    <div class="col-12 col-lg-6">
         <div class="card p-4">
             <h2 class="h5 mb-3">Dados básicos</h2>
             <form method="post">
@@ -396,7 +396,7 @@ require __DIR__ . '/../_topo.php';
         </div>
     </div>
 
-    <div class="col-lg-6">
+    <div class="col-12 col-lg-6">
         <div class="card p-4">
             <?php if ($modoSimples): ?>
                 <h2 class="h5 mb-3">Preço e estoque</h2>

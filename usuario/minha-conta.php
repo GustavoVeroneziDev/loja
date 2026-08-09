@@ -97,7 +97,7 @@ require __DIR__ . '/../geral/header.php';
 ?>
 <h1 class="h3 mb-4 titulo-estilizado">Minha conta</h1>
 <div class="row g-4">
-    <div class="col-lg-6">
+    <div class="col-12 col-lg-6">
         <div class="card p-4 h-100">
             <h2 class="h5 mb-3">Perfil</h2>
             <?php if ($sucessoPerfil): ?><script>document.addEventListener('DOMContentLoaded', function () { mostrarToastSucesso(<?= json_encode($sucessoPerfil) ?>); });</script><?php endif; ?>
@@ -125,7 +125,7 @@ require __DIR__ . '/../geral/header.php';
             </form>
         </div>
     </div>
-    <div class="col-lg-6">
+    <div class="col-12 col-lg-6">
         <div class="card p-4 h-100">
             <h2 class="h5 mb-3">Segurança</h2>
             <?php if ($sucessoSenha): ?><script>document.addEventListener('DOMContentLoaded', function () { mostrarToastSucesso(<?= json_encode($sucessoSenha) ?>); });</script><?php endif; ?>
