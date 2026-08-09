@@ -66,7 +66,7 @@ require __DIR__ . '/../_topo.php';
 </div>
 <p class="text-secundario">Peso e tamanho de embalagem, pra calcular o frete de verdade. Cadastre uma vez (ex: "Caixa P", "Caixa M") e escolha qual cada produto usa na própria tela de produto.</p>
 
-<?php if ($sucesso): ?><div class="alert alert-success"><?= $sucesso ?></div><?php endif; ?>
+<?php if ($sucesso): ?><script>document.addEventListener('DOMContentLoaded', function () { mostrarToastSucesso(<?= json_encode($sucesso) ?>); });</script><?php endif; ?>
 <?php if ($erro): ?><div class="alert alert-danger"><?= $erro ?></div><?php endif; ?>
 
 <div class="card">
@@ -122,20 +122,20 @@ require __DIR__ . '/../_topo.php';
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Peso (kg)</label>
-                            <input type="text" name="peso" class="form-control" inputmode="decimal" value="<?= number_format($caixa['Peso'], 3, ',', '.') ?>" required>
+                            <input type="text" name="peso" class="form-control mascara-peso" inputmode="decimal" value="<?= number_format($caixa['Peso'], 3, ',', '.') ?>" required>
                         </div>
                         <div class="row g-3">
                             <div class="col-4">
                                 <label class="form-label">Altura (cm)</label>
-                                <input type="text" name="altura" class="form-control" inputmode="decimal" value="<?= number_format($caixa['Altura'], 1, ',', '.') ?>" required>
+                                <input type="text" name="altura" class="form-control mascara-dimensao" inputmode="decimal" value="<?= number_format($caixa['Altura'], 1, ',', '.') ?>" required>
                             </div>
                             <div class="col-4">
                                 <label class="form-label">Largura (cm)</label>
-                                <input type="text" name="largura" class="form-control" inputmode="decimal" value="<?= number_format($caixa['Largura'], 1, ',', '.') ?>" required>
+                                <input type="text" name="largura" class="form-control mascara-dimensao" inputmode="decimal" value="<?= number_format($caixa['Largura'], 1, ',', '.') ?>" required>
                             </div>
                             <div class="col-4">
                                 <label class="form-label">Comprimento (cm)</label>
-                                <input type="text" name="comprimento" class="form-control" inputmode="decimal" value="<?= number_format($caixa['Comprimento'], 1, ',', '.') ?>" required>
+                                <input type="text" name="comprimento" class="form-control mascara-dimensao" inputmode="decimal" value="<?= number_format($caixa['Comprimento'], 1, ',', '.') ?>" required>
                             </div>
                         </div>
                     </div>
@@ -164,20 +164,20 @@ require __DIR__ . '/../_topo.php';
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Peso (kg)</label>
-                        <input type="text" name="peso" class="form-control" inputmode="decimal" placeholder="0,300" required>
+                        <input type="text" name="peso" class="form-control mascara-peso" inputmode="decimal" placeholder="0,300" required>
                     </div>
                     <div class="row g-3">
                         <div class="col-4">
                             <label class="form-label">Altura (cm)</label>
-                            <input type="text" name="altura" class="form-control" inputmode="decimal" required>
+                            <input type="text" name="altura" class="form-control mascara-dimensao" inputmode="decimal" required>
                         </div>
                         <div class="col-4">
                             <label class="form-label">Largura (cm)</label>
-                            <input type="text" name="largura" class="form-control" inputmode="decimal" required>
+                            <input type="text" name="largura" class="form-control mascara-dimensao" inputmode="decimal" required>
                         </div>
                         <div class="col-4">
                             <label class="form-label">Comprimento (cm)</label>
-                            <input type="text" name="comprimento" class="form-control" inputmode="decimal" required>
+                            <input type="text" name="comprimento" class="form-control mascara-dimensao" inputmode="decimal" required>
                         </div>
                     </div>
                 </div>

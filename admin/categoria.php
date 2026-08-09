@@ -66,7 +66,7 @@ require __DIR__ . '/_topo.php';
     </button>
 </div>
 
-<?php if ($sucesso): ?><div class="alert alert-success"><?= $sucesso ?></div><?php endif; ?>
+<?php if ($sucesso): ?><script>document.addEventListener('DOMContentLoaded', function () { mostrarToastSucesso(<?= json_encode($sucesso) ?>); });</script><?php endif; ?>
 <?php if ($erro): ?><div class="alert alert-danger"><?= $erro ?></div><?php endif; ?>
 
 <div class="card">

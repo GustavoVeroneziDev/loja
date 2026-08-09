@@ -16,8 +16,26 @@
     </div>
 </div>
 
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090">
+    <div id="toastSucesso" class="toast toast-sucesso align-items-center border-0" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body"><i class="bi bi-check-circle-fill"></i> <span id="toastSucessoTexto"></span></div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Confirmação de ação passa rápido no canto e some sozinha — nunca trava a tela pedindo pra
+// "confirmar que confirmou". Erro continua sendo alert-danger persistente (isso o usuário
+// precisa de fato ler), só o "deu certo" que virou passageiro.
+function mostrarToastSucesso(mensagem) {
+    var toastEl = document.getElementById('toastSucesso');
+    if (!toastEl) return;
+    document.getElementById('toastSucessoTexto').textContent = mensagem;
+    new bootstrap.Toast(toastEl, { delay: 1200 }).show();
+}
+
 document.querySelectorAll('.mascara-preco').forEach(function (campo) {
     function formatar() {
         var centavos = parseInt(campo.value.replace(/\D/g, ''), 10) || 0;
@@ -28,6 +46,21 @@ document.querySelectorAll('.mascara-preco').forEach(function (campo) {
         campo.setSelectionRange(campo.value.length, campo.value.length);
     });
 });
+
+// Peso (kg, 3 casas) e dimensão (cm, 1 casa) — mesmo princípio do preço, mas com quantidade de
+// casas decimais diferente (peso precisa de mais precisão que altura/largura/comprimento).
+function aplicarMascaraDecimal(seletor, casas) {
+    var divisor = Math.pow(10, casas);
+    document.querySelectorAll(seletor).forEach(function (campo) {
+        campo.addEventListener('input', function () {
+            var numeros = parseInt(campo.value.replace(/\D/g, ''), 10) || 0;
+            campo.value = (numeros / divisor).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+            campo.setSelectionRange(campo.value.length, campo.value.length);
+        });
+    });
+}
+aplicarMascaraDecimal('.mascara-peso', 3);
+aplicarMascaraDecimal('.mascara-dimensao', 1);
 
 document.querySelectorAll('.btn-toggle-senha').forEach(function (botao) {
     botao.addEventListener('click', function () {

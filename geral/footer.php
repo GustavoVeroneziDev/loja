@@ -55,8 +55,25 @@
     </div>
 </div>
 
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090">
+    <div id="toastSucesso" class="toast toast-sucesso align-items-center border-0" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body"><i class="bi bi-check-circle-fill"></i> <span id="toastSucessoTexto"></span></div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Confirmação de ação passa rápido no canto e some sozinha — nunca trava a tela pedindo pra
+    // "confirmar que confirmou". Erro continua sendo alert-danger persistente, só o "deu certo" virou passageiro.
+    function mostrarToastSucesso(mensagem) {
+        var toastEl = document.getElementById('toastSucesso');
+        if (!toastEl) return;
+        document.getElementById('toastSucessoTexto').textContent = mensagem;
+        new bootstrap.Toast(toastEl, { delay: 1200 }).show();
+    }
+
     document.querySelectorAll('.btn-toggle-senha').forEach(function(botao) {
         botao.addEventListener('click', function() {
             var campo = document.getElementById(this.dataset.alvo);
@@ -106,7 +123,26 @@
     document.querySelectorAll('.form-endereco').forEach(function (form) {
         var campoUf = form.querySelector('.campo-uf');
         var campoCidade = form.querySelector('.campo-cidade');
+        var campoCep = form.querySelector('.campo-cep');
         if (!campoUf || !campoCidade) return;
+
+        // Depois que o CEP resolve, Estado/Cidade travam — não dá mais pra editar na mão (o CEP
+        // já é a fonte de verdade). Select desabilitado não manda o valor no POST, por isso cria
+        // um hidden espelhando o valor logo ao lado — trava a interação sem perder o dado no envio.
+        // Idempotente: se já tava travado (ex: corrigiu o CEP pra outro válido depois), só
+        // atualiza o valor do espelho em vez de pular — senão o espelho ficaria com o valor antigo.
+        function travarComEspelho(select) {
+            var espelho = select.parentNode.querySelector('.campo-espelho-' + select.name);
+            if (!espelho) {
+                espelho = document.createElement('input');
+                espelho.type = 'hidden';
+                espelho.name = select.name;
+                espelho.className = 'campo-espelho-' + select.name;
+                select.insertAdjacentElement('afterend', espelho);
+            }
+            espelho.value = select.value;
+            select.disabled = true;
+        }
 
         // Nome de cidade vem de API externa — escapa antes de virar HTML (cobre tanto texto
         // quanto dentro de atributo, tipo o htmlspecialchars() do PHP), nunca confia cegamente em
@@ -139,7 +175,7 @@
         // errada (ex: número de outra requisição indo parar onde devia ser nome de cidade).
         var geracaoAtual = 0;
 
-        function carregarCidades(uf, cidadeParaSelecionar) {
+        function carregarCidades(uf, cidadeParaSelecionar, aoConcluir) {
             var minhaGeracao = ++geracaoAtual;
             campoCidade.disabled = true;
             campoCidade.innerHTML = '<option value="">Carregando...</option>';
@@ -163,6 +199,7 @@
                         return '<option value="' + nomeEscapado + '"' + (selecionada ? ' selected' : '') + '>' + nomeEscapado + '</option>';
                     }).join('');
                     campoCidade.disabled = false;
+                    if (aoConcluir) aoConcluir();
                 })
                 .catch(function () {
                     if (minhaGeracao !== geracaoAtual) return;
@@ -170,24 +207,32 @@
                 });
         }
 
+        // Estado escolhido na mão (sem CEP) continua editável normalmente — só trava depois que
+        // o CEP resolver de verdade (mais abaixo).
         campoUf.addEventListener('change', function () {
             carregarCidades(campoUf.value, null);
         });
 
         // Endereço já vem com UF preenchido (editando um salvo) — carrega a cidade certa, mas só
         // quando o modal aparece de verdade, não em toda carga de página (evita 1 chamada de API
-        // por endereço salvo mesmo pra quem nunca abre o modal de editar).
+        // por endereço salvo mesmo pra quem nunca abre o modal de editar). Se já tinha CEP salvo,
+        // já nasce travado — o CEP dele já determinou UF/cidade em algum momento antes.
         var modal = form.closest('.modal');
         var cidadeInicial = campoCidade.dataset.cidadeInicial || null;
+        var travarSeJaTemCep = function () {
+            if (campoCep && campoCep.value.replace(/\D/g, '').length === 8) {
+                travarComEspelho(campoUf);
+                travarComEspelho(campoCidade);
+            }
+        };
         if (modal) {
             modal.addEventListener('shown.bs.modal', function () {
-                if (campoUf.value) carregarCidades(campoUf.value, cidadeInicial);
+                if (campoUf.value) carregarCidades(campoUf.value, cidadeInicial, travarSeJaTemCep);
             }, { once: true });
         } else if (campoUf.value) {
-            carregarCidades(campoUf.value, cidadeInicial);
+            carregarCidades(campoUf.value, cidadeInicial, travarSeJaTemCep);
         }
 
-        var campoCep = form.querySelector('.campo-cep');
         if (!campoCep) return;
         var geracaoCep = 0;
 
@@ -211,7 +256,12 @@
                     });
                     if (dados.uf) {
                         campoUf.value = dados.uf;
-                        carregarCidades(dados.uf, dados.localidade);
+                        // Só trava depois que a cidade certa já estiver selecionada de verdade —
+                        // travar demais cedo travaria com a lista ainda vazia/carregando.
+                        carregarCidades(dados.uf, dados.localidade, function () {
+                            travarComEspelho(campoUf);
+                            travarComEspelho(campoCidade);
+                        });
                     }
                 })
                 .catch(function () { /* falha na consulta não deve travar o preenchimento manual */ });

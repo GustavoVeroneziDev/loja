@@ -176,6 +176,20 @@ body {
     border: 1px solid rgba(34, 197, 94, .3);
 }
 
+/* Toast de confirmação — passa rápido no canto, some sozinho. Não é alerta que precisa de leitura
+   com atenção (isso continua sendo alert-danger, persistente); é só o "deu certo" de uma ação de
+   CRUD, não deveria travar o usuário pedindo confirmação de que confirmou. */
+.toast-sucesso {
+    background: #ffffff;
+    border-left: 4px solid #22c55e;
+    box-shadow: 0 4px 16px -2px color-mix(in srgb, var(--cor-primaria) 14%, transparent), 0 12px 28px -6px color-mix(in srgb, var(--cor-primaria) 10%, transparent);
+}
+
+.toast-sucesso .toast-body {
+    color: #15803d;
+    font-weight: 500;
+}
+
 .badge-perigo {
     background: rgba(239, 68, 68, .12);
     color: #dc2626;

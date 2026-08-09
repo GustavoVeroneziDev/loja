@@ -100,7 +100,7 @@ require __DIR__ . '/../geral/header.php';
     <div class="col-lg-6">
         <div class="card p-4 h-100">
             <h2 class="h5 mb-3">Perfil</h2>
-            <?php if ($sucessoPerfil): ?><div class="alert alert-success"><?= $sucessoPerfil ?></div><?php endif; ?>
+            <?php if ($sucessoPerfil): ?><script>document.addEventListener('DOMContentLoaded', function () { mostrarToastSucesso(<?= json_encode($sucessoPerfil) ?>); });</script><?php endif; ?>
             <?php if ($erroPerfil): ?><div class="alert alert-danger"><?= $erroPerfil ?></div><?php endif; ?>
             <form method="post">
                 <input type="hidden" name="action" value="atualizar_perfil">
@@ -128,7 +128,7 @@ require __DIR__ . '/../geral/header.php';
     <div class="col-lg-6">
         <div class="card p-4 h-100">
             <h2 class="h5 mb-3">Segurança</h2>
-            <?php if ($sucessoSenha): ?><div class="alert alert-success"><?= $sucessoSenha ?></div><?php endif; ?>
+            <?php if ($sucessoSenha): ?><script>document.addEventListener('DOMContentLoaded', function () { mostrarToastSucesso(<?= json_encode($sucessoSenha) ?>); });</script><?php endif; ?>
             <?php if ($erroSenha): ?><div class="alert alert-danger"><?= $erroSenha ?></div><?php endif; ?>
             <form method="post">
                 <input type="hidden" name="action" value="atualizar_senha">

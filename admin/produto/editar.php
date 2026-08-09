@@ -244,7 +244,7 @@ require __DIR__ . '/../_topo.php';
     </div>
 </div>
 
-<?php if ($sucesso): ?><div class="alert alert-success">Operação realizada com sucesso.</div><?php endif; ?>
+<?php if ($sucesso): ?><script>document.addEventListener('DOMContentLoaded', function () { mostrarToastSucesso('Operação realizada com sucesso.'); });</script><?php endif; ?>
 <?php if ($erro): ?><div class="alert alert-danger"><?= $erro ?></div><?php endif; ?>
 <?php if ($aviso): ?><div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> <?= $aviso ?></div><?php endif; ?>
 

@@ -78,7 +78,7 @@ require __DIR__ . '/../_topo.php';
     </button>
 </div>
 
-<?php if ($sucesso): ?><div class="alert alert-success"><?= $sucesso ?></div><?php endif; ?>
+<?php if ($sucesso): ?><script>document.addEventListener('DOMContentLoaded', function () { mostrarToastSucesso(<?= json_encode($sucesso) ?>); });</script><?php endif; ?>
 
 <?php if ($filtro === 'rascunho' || $filtro === 'sem_estoque'): ?>
     <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">

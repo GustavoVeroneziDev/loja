@@ -57,6 +57,10 @@ body {
     border-radius: 16px;
 }
 
+.toast-sucesso {
+    border-radius: 12px;
+}
+
 .card,
 .card-admin {
     border-radius: 16px;

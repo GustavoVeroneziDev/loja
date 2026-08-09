@@ -23,11 +23,11 @@ $ufs = $ufs ?? listaUfsBrasil();
         <label class="form-label">Complemento</label>
         <input type="text" name="complemento" class="form-control" placeholder="opcional" value="<?= htmlspecialchars($endereco['Complemento'] ?? '') ?>">
     </div>
-    <div class="col-sm-4">
+    <div class="col-sm-3">
         <label class="form-label">Bairro</label>
         <input type="text" name="bairro" class="form-control" value="<?= htmlspecialchars($endereco['Bairro'] ?? '') ?>">
     </div>
-    <div class="col-sm-2">
+    <div class="col-sm-3">
         <label class="form-label">UF</label>
         <select name="uf" class="form-select campo-uf" required>
             <option value="" class="opcao-titulo">--</option>
