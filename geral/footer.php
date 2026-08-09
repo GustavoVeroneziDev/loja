@@ -32,7 +32,11 @@
                 <p class="mt-2 mb-0"><?= nl2br(htmlspecialchars(TEXTO_POLITICA_TROCA)) ?></p>
             </div>
         </div>
-        <p class="mt-4 mb-0">&copy; <?= date('Y') ?> <?= htmlspecialchars($nomeLoja) ?>. Todos os direitos reservados. <span class="opacity-50">v<?= htmlspecialchars(obterVersaoSistema()) ?></span></p>
+        <p class="mt-4 mb-0">
+            &copy; <?= date('Y') ?> <?= htmlspecialchars($nomeLoja) ?>. Todos os direitos reservados.
+            <a href="<?= URL_BASE ?>/termos-de-uso.php" class="link-marca">Termos de Uso</a>
+            <span class="opacity-50">v<?= htmlspecialchars(obterVersaoSistema()) ?></span>
+        </p>
     </div>
 </footer>
 

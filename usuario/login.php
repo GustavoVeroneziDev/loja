@@ -32,6 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['usuario_id'] = $usuario['IDUsuario'];
         $_SESSION['usuario_nome'] = $usuario['Nome'];
         $_SESSION['usuario_tipo'] = $usuario['TipoUsuario'];
+        if (isset($_POST['lembrar'])) {
+            ativarLoginLembrado($usuario['IDUsuario']);
+        }
         if ($usuario['TipoUsuario'] === 'cliente') {
             mesclarCarrinhoVisitante();
         }

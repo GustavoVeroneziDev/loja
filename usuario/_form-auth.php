@@ -24,6 +24,10 @@
                             <i class="bi bi-eye"></i>
                         </button>
                     </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" name="lembrar" class="form-check-input" id="loginLembrar">
+                        <label class="form-check-label" for="loginLembrar">Manter conectado</label>
+                    </div>
                     <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Entrar</button>
                 </form>
                 <p class="text-secundario small mt-3 mb-1"><a href="<?= URL_BASE ?>/usuario/recuperar-senha.php" class="link-marca">Esqueci minha senha</a></p>
@@ -52,6 +56,16 @@
                         <button type="button" class="btn-toggle-senha" data-alvo="cadastroSenha" aria-label="Mostrar senha">
                             <i class="bi bi-eye"></i>
                         </button>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input type="checkbox" name="lembrar" class="form-check-input" id="cadastroLembrar">
+                        <label class="form-check-label" for="cadastroLembrar">Manter conectado</label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" name="aceite_termos" class="form-check-input" id="cadastroAceiteTermos" required>
+                        <label class="form-check-label" for="cadastroAceiteTermos">
+                            Li e concordo com os <a href="<?= URL_BASE ?>/termos-de-uso.php" target="_blank" rel="noopener" class="link-marca">Termos de Uso</a>
+                        </label>
                     </div>
                     <button type="submit" class="btn btn-marca rounded-pill w-100 py-2">Criar conta</button>
                 </form>

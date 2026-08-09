@@ -73,6 +73,21 @@ function garantirTabelaUsuario() {
         $pdo->exec("ALTER TABLE Usuario ADD COLUMN TipoUsuario ENUM('cliente','admin') NOT NULL DEFAULT 'cliente' AFTER Telefone");
     }
 
+    // Token de "manter conectado" — igual TokenRecuperacao/DataExpiracaoToken (mesmo padrão),
+    // só que dura semanas em vez de 1 hora e vive num cookie à parte, não no fluxo de senha.
+    $temTokenLembrar = (bool) $pdo->query("SHOW COLUMNS FROM Usuario LIKE 'TokenLembrar'")->fetchColumn();
+    if (!$temTokenLembrar) {
+        $pdo->exec("ALTER TABLE Usuario ADD COLUMN TokenLembrar VARCHAR(64) NULL AFTER DataExpiracaoToken");
+        $pdo->exec("ALTER TABLE Usuario ADD COLUMN DataExpiracaoLembrar DATETIME NULL AFTER TokenLembrar");
+    }
+
+    // Registro de quando a pessoa aceitou os termos de uso no cadastro — prova de consentimento,
+    // não só a checkbox marcada na hora (isso não fica guardado em lugar nenhum sozinho).
+    $temMomentoAceite = (bool) $pdo->query("SHOW COLUMNS FROM Usuario LIKE 'MomentoAceiteTermos'")->fetchColumn();
+    if (!$temMomentoAceite) {
+        $pdo->exec("ALTER TABLE Usuario ADD COLUMN MomentoAceiteTermos DATETIME NULL AFTER MomentoCadastro");
+    }
+
     // Migra quem tava na tabela Admin separada (versão anterior) pra dentro de Usuario, e descarta a tabela velha.
     $tabelaAdminExiste = (bool) $pdo->query("SHOW TABLES LIKE 'Admin'")->fetchColumn();
     if ($tabelaAdminExiste) {
@@ -263,11 +278,63 @@ function imagensParaVariacao($imagens, $variacao) {
 // ---------------------------------------------------------------------
 
 function clienteLogado() {
+    _tentarLoginLembrado();
     return !empty($_SESSION['usuario_id']) && ($_SESSION['usuario_tipo'] ?? '') === 'cliente';
 }
 
 function adminLogado() {
+    _tentarLoginLembrado();
     return !empty($_SESSION['usuario_id']) && ($_SESSION['usuario_tipo'] ?? '') === 'admin';
+}
+
+// Cookie de "manter conectado" sobrevive ao fim da sessão do navegador — se a sessão PHP não tem
+// usuário mas existe um token válido, loga sozinho antes de qualquer checagem de acesso. Roda no
+// máximo 1x por request (mesmo padrão de memoização dos garantirTabelaX()).
+function _tentarLoginLembrado() {
+    static $jaTentou = false;
+    if ($jaTentou || !empty($_SESSION['usuario_id']) || empty($_COOKIE['lembrar_token'])) {
+        $jaTentou = true;
+        return;
+    }
+    $jaTentou = true;
+
+    global $pdo;
+    garantirTabelaUsuario(); // garante que a coluna já existe, não importa a ordem de chamada da página
+    $stmt = $pdo->prepare("SELECT * FROM Usuario WHERE TokenLembrar = :token AND DataExpiracaoLembrar > NOW()");
+    $stmt->execute(['token' => $_COOKIE['lembrar_token']]);
+    $usuario = $stmt->fetch();
+    if ($usuario) {
+        $_SESSION['usuario_id'] = $usuario['IDUsuario'];
+        $_SESSION['usuario_nome'] = $usuario['Nome'];
+        $_SESSION['usuario_tipo'] = $usuario['TipoUsuario'];
+    }
+}
+
+// Gera um novo token de "manter conectado", grava no banco (30 dias) e manda no cookie —
+// chamado no login/cadastro só quando a pessoa marca a caixinha.
+function ativarLoginLembrado($idUsuario) {
+    global $pdo;
+    $token = bin2hex(random_bytes(32));
+    $pdo->prepare("UPDATE Usuario SET TokenLembrar = :token, DataExpiracaoLembrar = DATE_ADD(NOW(), INTERVAL 30 DAY) WHERE IDUsuario = :id")
+        ->execute(['token' => $token, 'id' => $idUsuario]);
+    setcookie('lembrar_token', $token, [
+        'expires' => time() + 30 * 24 * 3600,
+        'path' => '/',
+        'secure' => !empty($_SERVER['HTTPS']),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
+// Invalida o token no banco (não só o cookie) — senão o logout não logout de verdade, a próxima
+// visita loga sozinho de novo pelo token antigo ainda válido.
+function encerrarLoginLembrado() {
+    if (!empty($_COOKIE['lembrar_token'])) {
+        global $pdo;
+        $pdo->prepare("UPDATE Usuario SET TokenLembrar = NULL, DataExpiracaoLembrar = NULL WHERE TokenLembrar = :token")
+            ->execute(['token' => $_COOKIE['lembrar_token']]);
+        setcookie('lembrar_token', '', ['expires' => time() - 3600, 'path' => '/']);
+    }
 }
 
 // Admin logado nunca vê tela de cliente — manda direto pro painel em vez de pra tela de login.

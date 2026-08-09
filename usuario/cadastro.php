@@ -26,9 +26,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $telefone = trim($_POST['telefone'] ?? '');
     $senha = $_POST['senha'] ?? '';
+    $aceitouTermos = isset($_POST['aceite_termos']);
 
     if ($nome === '' || $email === '' || strlen($senha) < 4) {
         $erroCadastro = 'Preencha nome, e-mail e uma senha com pelo menos 4 caracteres.';
+    } elseif (!$aceitouTermos) {
+        $erroCadastro = 'Você precisa ler e concordar com os termos de uso pra criar uma conta.';
     } else {
         $stmt = $pdo->prepare("SELECT IDUsuario FROM Usuario WHERE Email = :email");
         $stmt->execute(['email' => $email]);
@@ -37,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $idUsuario = gerarUuid();
             // Cadastro público sempre cria cliente — virar admin só acontece manual, dentro do painel.
-            $stmt = $pdo->prepare("INSERT INTO Usuario (IDUsuario, Nome, Email, Senha, Telefone, TipoUsuario) VALUES (:id, :nome, :email, :senha, :telefone, 'cliente')");
+            $stmt = $pdo->prepare("INSERT INTO Usuario (IDUsuario, Nome, Email, Senha, Telefone, TipoUsuario, MomentoAceiteTermos) VALUES (:id, :nome, :email, :senha, :telefone, 'cliente', NOW())");
             $stmt->execute([
                 'id' => $idUsuario,
                 'nome' => $nome,
@@ -48,6 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['usuario_id'] = $idUsuario;
             $_SESSION['usuario_nome'] = $nome;
             $_SESSION['usuario_tipo'] = 'cliente';
+            if (isset($_POST['lembrar'])) {
+                ativarLoginLembrado($idUsuario);
+            }
             mesclarCarrinhoVisitante();
             header('Location: ' . URL_BASE . '/usuario/minha-conta.php');
             exit;
