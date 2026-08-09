@@ -662,10 +662,7 @@ function obterCarrinho() {
 
     $itens = [];
     foreach ($bruto as $idVariacao => $quantidade) {
-        $stmt = $pdo->prepare("SELECT v.*, p.IDProduto, p.Nome AS NomeProduto,
-                (SELECT Url FROM ImagemProduto
-                    WHERE FKProduto = p.IDProduto AND (FKVariacao = v.IDVariacao OR FKVariacao IS NULL)
-                    ORDER BY (FKVariacao = v.IDVariacao) DESC, Ordem LIMIT 1) AS ImagemCapa
+        $stmt = $pdo->prepare("SELECT v.*, p.IDProduto, p.Nome AS NomeProduto
             FROM VariacaoProduto v
             JOIN Produto p ON p.IDProduto = v.FKProduto
             WHERE v.IDVariacao = :id");
@@ -674,6 +671,8 @@ function obterCarrinho() {
         if (!$variacao) {
             continue; // variação foi excluída pelo admin depois de ter sido adicionada ao carrinho
         }
+        $imagens = imagensParaVariacao(obterImagensPorProduto($variacao['IDProduto']), $variacao);
+        $variacao['ImagemCapa'] = $imagens[0]['Url'] ?? null;
         $itens[] = [
             'IDVariacao' => $idVariacao,
             'Quantidade' => (int) $quantidade,
