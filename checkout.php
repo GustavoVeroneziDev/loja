@@ -213,6 +213,9 @@ require __DIR__ . '/geral/header.php';
                 <div id="camposNovoEndereco" class="form-endereco <?= ($enderecos && $enderecoVeioDeSelecao) ? 'd-none' : '' ?>">
                     <?php require __DIR__ . '/usuario/_campos-endereco.php'; ?>
                 </div>
+                <button type="submit" name="action" value="recalcular" class="btn btn-outline-secondary rounded-pill mt-3">
+                    <i class="bi bi-truck"></i> Calcular frete
+                </button>
             </div>
 
             <?php if ($enderecoResolvido !== null): ?>
@@ -285,7 +288,13 @@ require __DIR__ . '/geral/header.php';
                             <span class="d-block text-secundario small"><?= htmlspecialchars($freteInfo['transportadora']) ?><?= $freteInfo['servico'] ? ' — ' . htmlspecialchars($freteInfo['servico']) : '' ?></span>
                         <?php endif; ?>
                     </span>
-                    <span><?= $frete > 0 ? formatarPreco($frete) : 'Grátis' ?></span>
+                    <span>
+                        <?php if ($enderecoResolvido === null): ?>
+                            <span class="text-secundario">A calcular</span>
+                        <?php else: ?>
+                            <?= $frete > 0 ? formatarPreco($frete) : 'Grátis' ?>
+                        <?php endif; ?>
+                    </span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="fw-semibold">Total</span>
