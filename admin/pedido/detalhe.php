@@ -2,6 +2,8 @@
 session_start();
 require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../config/funcoes.php';
+require_once __DIR__ . '/../../config/marca.php';
+require_once __DIR__ . '/../../config/chaves.php';
 exigirLoginAdmin();
 garantirTabelaPedido();
 garantirTabelaMovimentoEstoque();
@@ -37,12 +39,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sucesso = true;
     }
 
+    // Só um passo (adicionar ao carrinho, comprar, gerar+imprimir) por clique — assim, se falhar no
+    // meio, o admin sabe exatamente qual passo tentar de novo em vez de repetir tudo (e "comprar" de
+    // novo o que já foi comprado). "Comprar" é o único que debita saldo de verdade — não roda
+    // automático encadeado com os outros, exige clique explícito próprio.
+    if ($action === 'etiqueta_adicionar_carrinho') {
+        $resultado = melhorEnvioAdicionarAoCarrinho($idPedido);
+        $sucesso = $resultado['sucesso'];
+        if (!$sucesso) {
+            $_SESSION['flash_erro_etiqueta'] = $resultado['erro'];
+        }
+    }
+
+    if ($action === 'etiqueta_comprar') {
+        $resultado = melhorEnvioComprarEtiqueta($idPedido);
+        $sucesso = $resultado['sucesso'];
+        if (!$sucesso) {
+            $_SESSION['flash_erro_etiqueta'] = $resultado['erro'];
+        }
+    }
+
+    if ($action === 'etiqueta_gerar_imprimir') {
+        $resultado = melhorEnvioGerarEImprimirEtiqueta($idPedido);
+        $sucesso = $resultado['sucesso'];
+        if (!$sucesso) {
+            $_SESSION['flash_erro_etiqueta'] = $resultado['erro'];
+        }
+    }
+
     header('Location: ' . URL_BASE . '/admin/pedido/detalhe.php?id=' . $idPedido . ($sucesso ? '&ok=1' : '&erro=1'));
     exit;
 }
 
 $sucesso = isset($_GET['ok']) ? 'Operação realizada com sucesso.' : null;
-$erro = isset($_GET['erro']) ? 'Não foi possível concluir a ação.' : null;
+$erro = isset($_GET['erro']) ? (isset($_SESSION['flash_erro_etiqueta']) ? $_SESSION['flash_erro_etiqueta'] : 'Não foi possível concluir a ação.') : null;
+unset($_SESSION['flash_erro_etiqueta']);
 
 $pedido = obterPedidoPorId($idPedido);
 $itens = obterItensPedido($idPedido);
@@ -135,6 +166,35 @@ require __DIR__ . '/../_topo.php';
                 <input type="text" name="codigo_rastreio" class="form-control" placeholder="Código de rastreio" value="<?= htmlspecialchars($pedido['CodigoRastreio'] ?? '') ?>">
                 <button type="submit" class="btn btn-outline-secondary rounded-pill text-nowrap">Salvar</button>
             </form>
+        </div>
+
+        <div class="card p-4 mb-4">
+            <h2 class="h5 mb-3">Etiqueta de envio</h2>
+            <?php if (!$pedido['FreteServicoId']): ?>
+                <p class="text-secundario small mb-0">Esse pedido não tem um serviço de frete cotado pelo Melhor Envio (caiu no frete fixo, ou é de antes dessa funcionalidade) — anexe o código de rastreio manualmente ali em cima.</p>
+            <?php elseif ($pedido['EtiquetaUrl']): ?>
+                <p class="mb-2"><span class="badge-sucesso px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-check-circle-fill"></i> Etiqueta gerada</span></p>
+                <?php if ($pedido['CodigoRastreio']): ?><p class="mb-2">Rastreio: <strong><?= htmlspecialchars($pedido['CodigoRastreio']) ?></strong></p><?php endif; ?>
+                <a href="<?= htmlspecialchars($pedido['EtiquetaUrl']) ?>" target="_blank" class="btn btn-marca rounded-pill"><i class="bi bi-printer"></i> Abrir etiqueta pra imprimir</a>
+            <?php elseif ($pedido['EtiquetaComprada']): ?>
+                <p class="mb-3"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-check-circle"></i> Comprada</span> — falta gerar e pegar o link de impressão.</p>
+                <form method="post">
+                    <input type="hidden" name="action" value="etiqueta_gerar_imprimir">
+                    <button type="submit" class="btn btn-marca rounded-pill"><i class="bi bi-file-earmark-arrow-down"></i> Gerar etiqueta e link de impressão</button>
+                </form>
+            <?php elseif ($pedido['MelhorEnvioOrderId']): ?>
+                <p class="mb-3"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-cart"></i> No carrinho do Melhor Envio</span> — falta comprar de verdade.</p>
+                <form method="post" data-confirmar="Comprar essa etiqueta agora vai descontar <?= formatarPreco($pedido['ValorFrete']) ?> do saldo da sua conta no Melhor Envio. Confirma?">
+                    <input type="hidden" name="action" value="etiqueta_comprar">
+                    <button type="submit" class="btn btn-marca rounded-pill"><i class="bi bi-wallet2"></i> Comprar etiqueta (<?= formatarPreco($pedido['ValorFrete']) ?>)</button>
+                </form>
+            <?php else: ?>
+                <p class="text-secundario small mb-3">Ainda não iniciado. Primeiro passo é só reservar no Melhor Envio — não custa nada ainda.</p>
+                <form method="post">
+                    <input type="hidden" name="action" value="etiqueta_adicionar_carrinho">
+                    <button type="submit" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-cart-plus"></i> Adicionar ao carrinho do Melhor Envio</button>
+                </form>
+            <?php endif; ?>
         </div>
 
         <div class="card p-4">

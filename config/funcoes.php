@@ -1103,7 +1103,11 @@ function melhorEnvioTokenExpiraEm() {
 
 // User-Agent identificando a aplicação não é boa prática opcional aqui — o Melhor Envio rejeita
 // requisição sem isso.
-function _melhorEnvioRequisicao($metodo, $url, $corpo = null, $token = null) {
+// $repassarErro=true devolve o corpo decodificado mesmo em erro HTTP (4xx/5xx) em vez de null —
+// cotação (obterOpcoesFrete) quer null pra cair no frete fixo sem se importar com o motivo exato,
+// mas as funções de etiqueta precisam da mensagem real da API (ex: "saldo insuficiente", "CPF
+// inválido") pra mostrar pro admin, não só "falhou".
+function _melhorEnvioRequisicao($metodo, $url, $corpo = null, $token = null, $repassarErro = false) {
     $headers = ['Accept: application/json', 'Content-Type: application/json', 'User-Agent: ' . NOME_LOJA . ' (' . TEXTO_CONTATO . ')'];
     if ($token) {
         $headers[] = 'Authorization: Bearer ' . $token;
@@ -1129,7 +1133,7 @@ function _melhorEnvioRequisicao($metodo, $url, $corpo = null, $token = null) {
     }
     if ($codigoHttp >= 400) {
         error_log('Melhor Envio — HTTP ' . $codigoHttp . ': ' . $resposta);
-        return null;
+        return $repassarErro ? json_decode($resposta, true) : null;
     }
     return json_decode($resposta, true);
 }
@@ -1210,6 +1214,202 @@ function obterOpcoesFrete($cepDestino, $itens) {
     }
     usort($opcoes, fn($a, $b) => $a['preco'] <=> $b['preco']);
     return $opcoes ?: null;
+}
+
+// ---------------------------------------------------------------------
+// Melhor Envio — compra e geração de etiqueta de verdade (não é mais só cotação). Fluxo deles é em
+// 3 passos separados: adicionar ao carrinho (grátis, só reserva) -> comprar (debita saldo da
+// carteira, dinheiro de verdade) -> gerar+imprimir a etiqueta. Reusa o MESMO service_id que foi
+// cotado no checkout (Pedido.FreteServicoId) — nunca recota aqui, o preço já foi combinado com o
+// cliente. Volumes usam a mesma quebra por produto do carrinho (1 "produto" por linha do pedido,
+// cada um com a caixa do PRODUTO) — sem tentar consolidar numa caixa única por enquanto.
+function _melhorEnvioMontarEnvio($idPedido) {
+    global $pdo;
+
+    $pedido = obterPedidoPorId($idPedido);
+    if (!$pedido) {
+        return ['erro' => 'Pedido não encontrado.'];
+    }
+    if (!$pedido['FreteServicoId']) {
+        return ['erro' => 'Esse pedido não tem um serviço de frete cotado (caiu no frete fixo, ou é anterior a essa funcionalidade) — não dá pra comprar etiqueta automaticamente.'];
+    }
+
+    $stmtCliente = $pdo->prepare("SELECT Nome, Email, Telefone, CPF FROM Usuario WHERE IDUsuario = :id");
+    $stmtCliente->execute(['id' => $pedido['FKUsuario']]);
+    $cliente = $stmtCliente->fetch();
+    if (!$cliente['CPF'] || !$cliente['Telefone']) {
+        return ['erro' => 'Cliente sem CPF ou telefone cadastrado — peça pra completar o cadastro em "Minha conta" antes de gerar a etiqueta (o Melhor Envio exige os dois).'];
+    }
+
+    $stmtItens = $pdo->prepare("SELECT ip.NomeProduto, ip.Quantidade, ip.PrecoUnitario, v.FKProduto
+        FROM ItemPedido ip LEFT JOIN VariacaoProduto v ON v.IDVariacao = ip.FKVariacao WHERE ip.FKPedido = :id");
+    $stmtItens->execute(['id' => $idPedido]);
+    $itens = $stmtItens->fetchAll();
+    if (!$itens) {
+        return ['erro' => 'Pedido sem itens.'];
+    }
+
+    $produtos = [];
+    $volumes = [];
+    foreach ($itens as $item) {
+        if (!$item['FKProduto']) {
+            return ['erro' => 'Item "' . $item['NomeProduto'] . '" não tem mais a variação original (foi excluída do catálogo) — não dá pra saber peso/dimensão pra gerar a etiqueta.'];
+        }
+        $stmtCaixa = $pdo->prepare("SELECT c.Peso, c.Altura, c.Largura, c.Comprimento FROM Produto p
+            JOIN CaixaEnvio c ON c.IDCaixaEnvio = p.FKCaixaEnvio WHERE p.IDProduto = :id");
+        $stmtCaixa->execute(['id' => $item['FKProduto']]);
+        $caixa = $stmtCaixa->fetch();
+        if (!$caixa) {
+            return ['erro' => 'Produto "' . $item['NomeProduto'] . '" está sem caixa de envio definida agora — defina uma em Admin > Produtos antes de gerar a etiqueta.'];
+        }
+        $produtos[] = [
+            'name' => mb_substr($item['NomeProduto'], 0, 100),
+            'quantity' => (string) (int) $item['Quantidade'],
+            'unitary_value' => (float) $item['PrecoUnitario'],
+        ];
+        $volumes[] = [
+            'height' => (float) $caixa['Altura'],
+            'width' => (float) $caixa['Largura'],
+            'length' => (float) $caixa['Comprimento'],
+            'weight' => (float) $caixa['Peso'],
+        ];
+    }
+
+    return ['erro' => null, 'payload' => [
+        'service' => (int) $pedido['FreteServicoId'],
+        'from' => [
+            'name' => MELHOR_ENVIO_REMETENTE_NOME,
+            'phone' => MELHOR_ENVIO_REMETENTE_TELEFONE,
+            'email' => MELHOR_ENVIO_REMETENTE_EMAIL,
+            'document' => MELHOR_ENVIO_REMETENTE_DOCUMENTO,
+            'address' => MELHOR_ENVIO_REMETENTE_LOGRADOURO,
+            'number' => MELHOR_ENVIO_REMETENTE_NUMERO,
+            'complement' => MELHOR_ENVIO_REMETENTE_COMPLEMENTO !== '' ? MELHOR_ENVIO_REMETENTE_COMPLEMENTO : null,
+            'district' => MELHOR_ENVIO_REMETENTE_BAIRRO,
+            'city' => MELHOR_ENVIO_REMETENTE_CIDADE,
+            'state_abbr' => MELHOR_ENVIO_REMETENTE_UF,
+            'postal_code' => MELHOR_ENVIO_CEP_ORIGEM,
+            'country_id' => 'BR',
+        ],
+        'to' => [
+            'name' => $cliente['Nome'],
+            'phone' => preg_replace('/\D/', '', $cliente['Telefone']),
+            'email' => $cliente['Email'],
+            'document' => $cliente['CPF'],
+            'address' => $pedido['EnderecoLogradouro'],
+            'number' => $pedido['EnderecoNumero'],
+            'complement' => $pedido['EnderecoComplemento'],
+            'district' => $pedido['EnderecoBairro'],
+            'city' => $pedido['EnderecoCidade'],
+            'state_abbr' => $pedido['EnderecoUF'],
+            'postal_code' => preg_replace('/\D/', '', $pedido['EnderecoCep']),
+            'country_id' => 'BR',
+        ],
+        'products' => $produtos,
+        'volumes' => $volumes,
+        'options' => [
+            'insurance_value' => (float) $pedido['ValorSubtotal'],
+            'receipt' => false,
+            'own_hand' => false,
+            'reverse' => false,
+            'non_commercial' => false,
+            'platform' => defined('NOME_LOJA') ? NOME_LOJA : 'Loja',
+        ],
+    ]];
+}
+
+// A API do Melhor Envio devolve o motivo do erro em formatos diferentes dependendo do endpoint —
+// {"error": "texto"} (string única), {"errors": {...}} (objeto/array), ou {"message": "texto"}.
+// Tenta os 3 antes de cair no genérico.
+function _melhorEnvioMensagemErro($dados, $padrao) {
+    if (is_string($dados['error'] ?? null)) {
+        return $dados['error'];
+    }
+    if (is_string($dados['message'] ?? null)) {
+        return $dados['message'];
+    }
+    if (!empty($dados['errors']) && is_array($dados['errors'])) {
+        return implode('; ', array_map(fn($e) => is_array($e) ? implode(', ', $e) : (string) $e, $dados['errors']));
+    }
+    return $padrao;
+}
+
+// Passo 1 — adiciona ao carrinho deles. Grátis, não debita nada, só reserva o frete pra compra.
+// Guarda o MelhorEnvioOrderId no Pedido, precisa dele pro checkout de verdade (passo 2).
+function melhorEnvioAdicionarAoCarrinho($idPedido) {
+    global $pdo;
+    $montado = _melhorEnvioMontarEnvio($idPedido);
+    if ($montado['erro']) {
+        return ['sucesso' => false, 'erro' => $montado['erro']];
+    }
+    $dados = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/api/v2/me/cart', $montado['payload'], MELHOR_ENVIO_TOKEN, true);
+    if (!$dados || empty($dados['id'])) {
+        return ['sucesso' => false, 'erro' => _melhorEnvioMensagemErro($dados, 'Falha ao adicionar ao carrinho do Melhor Envio.')];
+    }
+    $pdo->prepare("UPDATE Pedido SET MelhorEnvioOrderId = :id WHERE IDPedido = :pedido")
+        ->execute(['id' => $dados['id'], 'pedido' => $idPedido]);
+    return ['sucesso' => true, 'order_id' => $dados['id']];
+}
+
+// Passo 2 — COMPRA DE VERDADE. Debita da carteira/saldo do Melhor Envio (dinheiro real da conta
+// deles, não do cliente direto — ver conversa sobre o fluxo). Só chama isso com confirmação
+// explícita do admin, nunca automático.
+function melhorEnvioComprarEtiqueta($idPedido) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT MelhorEnvioOrderId FROM Pedido WHERE IDPedido = :id");
+    $stmt->execute(['id' => $idPedido]);
+    $orderId = $stmt->fetchColumn();
+    if (!$orderId) {
+        return ['sucesso' => false, 'erro' => 'Pedido ainda não foi adicionado ao carrinho do Melhor Envio.'];
+    }
+    $dados = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/api/v2/me/shipment/checkout', ['orders' => [$orderId]], MELHOR_ENVIO_TOKEN, true);
+    if (!$dados || !empty($dados['error']) || !empty($dados['errors'])) {
+        return ['sucesso' => false, 'erro' => _melhorEnvioMensagemErro($dados, 'Falha ao comprar a etiqueta.')];
+    }
+    $pdo->prepare("UPDATE Pedido SET EtiquetaComprada = 1 WHERE IDPedido = :id")->execute(['id' => $idPedido]);
+    return ['sucesso' => true];
+}
+
+// Passo 3 — gera a etiqueta (necessário antes de imprimir) e já busca o link de impressão junto.
+// Guarda CodigoRastreio + EtiquetaUrl no Pedido.
+function melhorEnvioGerarEImprimirEtiqueta($idPedido) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT MelhorEnvioOrderId FROM Pedido WHERE IDPedido = :id");
+    $stmt->execute(['id' => $idPedido]);
+    $orderId = $stmt->fetchColumn();
+    if (!$orderId) {
+        return ['sucesso' => false, 'erro' => 'Pedido sem etiqueta comprada ainda.'];
+    }
+
+    $gerar = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/api/v2/me/shipment/generate', ['orders' => [$orderId]], MELHOR_ENVIO_TOKEN, true);
+    if (!$gerar || !empty($gerar['error']) || !empty($gerar['errors'])) {
+        return ['sucesso' => false, 'erro' => _melhorEnvioMensagemErro($gerar, 'Falha ao gerar a etiqueta.')];
+    }
+
+    $imprimir = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/api/v2/me/shipment/print', ['orders' => [$orderId], 'mode' => 'private'], MELHOR_ENVIO_TOKEN, true);
+    $urlEtiqueta = $imprimir['url'] ?? null;
+
+    // O código de rastreio vem no retorno de /generate num formato ligeiramente diferente
+    // dependendo de como a API devolve a lista — tenta os 2 formatos mais comuns antes de desistir
+    // e deixar CodigoRastreio null (admin preenche manual se precisar).
+    $rastreio = null;
+    if (isset($gerar[$orderId]['tracking'])) {
+        $rastreio = $gerar[$orderId]['tracking'];
+    } elseif (isset($gerar[0]['tracking'])) {
+        $rastreio = $gerar[0]['tracking'];
+    }
+
+    $pdo->prepare("UPDATE Pedido SET EtiquetaUrl = :url WHERE IDPedido = :id")
+        ->execute(['url' => $urlEtiqueta, 'id' => $idPedido]);
+    if ($rastreio) {
+        $pdo->prepare("UPDATE Pedido SET CodigoRastreio = :rastreio WHERE IDPedido = :id")
+            ->execute(['rastreio' => $rastreio, 'id' => $idPedido]);
+    }
+
+    if (!$urlEtiqueta) {
+        return ['sucesso' => false, 'erro' => 'Etiqueta comprada e gerada, mas não consegui o link de impressão — tenta de novo em alguns segundos ou confere direto no painel do Melhor Envio.'];
+    }
+    return ['sucesso' => true, 'url' => $urlEtiqueta, 'rastreio' => $rastreio];
 }
 
 function garantirTabelaCupom() {
@@ -1344,6 +1544,17 @@ function garantirTabelaPedido() {
         $pdo->exec("ALTER TABLE Pedido ADD COLUMN FretePrazoDias INT NULL AFTER FreteServico");
     }
 
+    // ID numérico do serviço cotado (ex: "2" pro SEDEX) — precisa disso pra comprar a etiqueta
+    // depois com o MESMO serviço que foi cotado, o nome ("SEDEX") sozinho não é suficiente pra API.
+    // MelhorEnvioOrderId/EtiquetaUrl guardam o progresso da compra (carrinho deles -> etiqueta).
+    $temFreteServicoId = (bool) $pdo->query("SHOW COLUMNS FROM Pedido LIKE 'FreteServicoId'")->fetchColumn();
+    if (!$temFreteServicoId) {
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN FreteServicoId VARCHAR(20) NULL AFTER FretePrazoDias");
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN MelhorEnvioOrderId VARCHAR(100) NULL AFTER FreteServicoId");
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN EtiquetaComprada TINYINT(1) NOT NULL DEFAULT 0 AFTER MelhorEnvioOrderId");
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN EtiquetaUrl VARCHAR(255) NULL AFTER EtiquetaComprada");
+    }
+
     $jaVerificado = true;
 }
 
@@ -1438,8 +1649,8 @@ function criarPedido($idUsuario, $endereco, $cupomCodigo, $frete, $freteInfo = n
                 ]);
         }
 
-        $stmt = $pdo->prepare("INSERT INTO Pedido (FKUsuario, Status, Simulacao, ValorSubtotal, ValorDesconto, ValorFrete, FreteTransportadora, FreteServico, FretePrazoDias, ValorTotal, FKCupom, EnderecoCep, EnderecoLogradouro, EnderecoNumero, EnderecoComplemento, EnderecoBairro, EnderecoCidade, EnderecoUF)
-            VALUES (:usuario, 'aguardando_pagamento', :simulacao, :subtotal, :desconto, :frete, :transportadora, :servico, :prazo, :total, :cupom, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf)");
+        $stmt = $pdo->prepare("INSERT INTO Pedido (FKUsuario, Status, Simulacao, ValorSubtotal, ValorDesconto, ValorFrete, FreteTransportadora, FreteServico, FretePrazoDias, FreteServicoId, ValorTotal, FKCupom, EnderecoCep, EnderecoLogradouro, EnderecoNumero, EnderecoComplemento, EnderecoBairro, EnderecoCidade, EnderecoUF)
+            VALUES (:usuario, 'aguardando_pagamento', :simulacao, :subtotal, :desconto, :frete, :transportadora, :servico, :prazo, :servico_id, :total, :cupom, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf)");
         $stmt->execute([
             'usuario' => $idUsuario,
             'simulacao' => $ehSimulacao ? 1 : 0,
@@ -1449,6 +1660,7 @@ function criarPedido($idUsuario, $endereco, $cupomCodigo, $frete, $freteInfo = n
             'transportadora' => $freteInfo['transportadora'] ?? null,
             'servico' => $freteInfo['servico'] ?? null,
             'prazo' => $freteInfo['prazo_dias'] ?? null,
+            'servico_id' => $freteInfo['id'] ?? null,
             'total' => $total,
             'cupom' => $cupom['IDCupom'] ?? null,
             'cep' => $endereco['cep'],
