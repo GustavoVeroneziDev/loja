@@ -275,6 +275,17 @@ require __DIR__ . '/geral/header.php';
     var btnConfirmar = document.getElementById('btnConfirmarPedido');
     var btnCalcularFrete = document.getElementById('btnCalcularFrete');
 
+    // Cópia local — a escaparHtml() de geral/footer.php vive dentro de outro escopo (não é global de
+    // verdade), chamar ela daqui dá ReferenceError. Mesma lógica (cobre texto E atributo).
+    function escaparHtml(texto) {
+        return String(texto)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function formatarPrecoJs(valor) {
         return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
