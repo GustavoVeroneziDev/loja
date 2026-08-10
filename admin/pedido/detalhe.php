@@ -20,6 +20,11 @@ if (!$pedido) {
     exit;
 }
 
+// Gera/compra etiqueta só faz sentido pra pedido pago de verdade — comprar etiqueta (gasta saldo
+// real) pra um pedido ainda não pago, ou cancelado (estoque já foi devolvido), não devia nem ser
+// possível clicar, e muito menos aceitar via POST direto se alguém tentar pular a tela.
+$statusPermiteEtiqueta = !in_array($pedido['Status'], ['aguardando_pagamento', 'cancelado'], true);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $sucesso = null;
@@ -42,24 +47,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Só um passo (adicionar ao carrinho, comprar, gerar+imprimir) por clique — assim, se falhar no
     // meio, o admin sabe exatamente qual passo tentar de novo em vez de repetir tudo (e "comprar" de
     // novo o que já foi comprado). "Comprar" é o único que debita saldo de verdade — não roda
-    // automático encadeado com os outros, exige clique explícito próprio.
-    if ($action === 'etiqueta_adicionar_carrinho') {
+    // automático encadeado com os outros, exige clique explícito próprio. Confere de novo aqui (não
+    // só esconder o botão) porque nada impede um POST direto pulando a tela.
+    if (in_array($action, ['etiqueta_adicionar_carrinho', 'etiqueta_comprar', 'etiqueta_gerar_imprimir'], true) && !$statusPermiteEtiqueta) {
+        $_SESSION['flash_erro_etiqueta'] = 'Esse pedido está "' . statusPedidoInfo($pedido['Status'])['label'] . '" — só dá pra gerar etiqueta de pedido pago (ou em status posterior), nunca aguardando pagamento ou cancelado.';
+        $sucesso = false;
+    } elseif ($action === 'etiqueta_adicionar_carrinho') {
         $resultado = melhorEnvioAdicionarAoCarrinho($idPedido);
         $sucesso = $resultado['sucesso'];
         if (!$sucesso) {
             $_SESSION['flash_erro_etiqueta'] = $resultado['erro'];
         }
-    }
-
-    if ($action === 'etiqueta_comprar') {
+    } elseif ($action === 'etiqueta_comprar') {
         $resultado = melhorEnvioComprarEtiqueta($idPedido);
         $sucesso = $resultado['sucesso'];
         if (!$sucesso) {
             $_SESSION['flash_erro_etiqueta'] = $resultado['erro'];
         }
-    }
-
-    if ($action === 'etiqueta_gerar_imprimir') {
+    } elseif ($action === 'etiqueta_gerar_imprimir') {
         $resultado = melhorEnvioGerarEImprimirEtiqueta($idPedido);
         $sucesso = $resultado['sucesso'];
         if (!$sucesso) {
@@ -170,12 +175,17 @@ require __DIR__ . '/../_topo.php';
 
         <div class="card p-4 mb-4">
             <h2 class="h5 mb-3">Etiqueta de envio</h2>
-            <?php if (!$pedido['FreteServicoId']): ?>
-                <p class="text-secundario small mb-0">Esse pedido não tem um serviço de frete cotado pelo Melhor Envio (caiu no frete fixo, ou é de antes dessa funcionalidade) — anexe o código de rastreio manualmente ali em cima.</p>
-            <?php elseif ($pedido['EtiquetaUrl']): ?>
+            <?php if ($pedido['EtiquetaUrl']): ?>
                 <p class="mb-2"><span class="badge-sucesso px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-check-circle-fill"></i> Etiqueta gerada</span></p>
                 <?php if ($pedido['CodigoRastreio']): ?><p class="mb-2">Rastreio: <strong><?= htmlspecialchars($pedido['CodigoRastreio']) ?></strong></p><?php endif; ?>
                 <a href="<?= htmlspecialchars($pedido['EtiquetaUrl']) ?>" target="_blank" class="btn btn-marca rounded-pill"><i class="bi bi-printer"></i> Abrir etiqueta pra imprimir</a>
+            <?php elseif (!$statusPermiteEtiqueta): ?>
+                <p class="text-secundario small mb-0">
+                    <i class="bi bi-hourglass-split"></i> Pedido "<?= htmlspecialchars(statusPedidoInfo($pedido['Status'])['label']) ?>" —
+                    <?= $pedido['Status'] === 'cancelado' ? 'pedido cancelado não gera etiqueta.' : 'só dá pra gerar etiqueta depois que o pagamento for confirmado.' ?>
+                </p>
+            <?php elseif (!$pedido['FreteServicoId']): ?>
+                <p class="text-secundario small mb-0">Esse pedido não tem um serviço de frete cotado pelo Melhor Envio (caiu no frete fixo, ou é de antes dessa funcionalidade) — anexe o código de rastreio manualmente ali em cima.</p>
             <?php elseif ($pedido['EtiquetaComprada']): ?>
                 <p class="mb-3"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-check-circle"></i> Comprada</span> — falta gerar e pegar o link de impressão.</p>
                 <form method="post">
