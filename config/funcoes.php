@@ -1035,6 +1035,29 @@ function obterEnderecosPorUsuario($idUsuario) {
     return $stmt->fetchAll();
 }
 
+// Resolve o endereço de entrega — de um salvo (por ID) ou digitado na hora ($dados = $_POST).
+// Compartilhada entre checkout.php (confirmar o pedido) e checkout_frete.php (cotação via AJAX) —
+// as duas precisam da mesma lógica pra não divergir sobre o que conta como endereço válido.
+function resolverEndereco($enderecos, $idSelecionado, $dados) {
+    if ($idSelecionado !== '' && $idSelecionado !== 'novo') {
+        foreach ($enderecos as $e) {
+            if ($e['IDEndereco'] === $idSelecionado) {
+                return ['cep' => $e['CEP'], 'logradouro' => $e['Logradouro'], 'numero' => $e['Numero'], 'complemento' => $e['Complemento'] ?? '', 'bairro' => $e['Bairro'] ?? '', 'cidade' => $e['Cidade'], 'uf' => $e['UF']];
+            }
+        }
+        return null;
+    }
+    $cep = preg_replace('/\D/', '', $dados['cep'] ?? '');
+    $logradouro = trim($dados['logradouro'] ?? '');
+    $numero = trim($dados['numero'] ?? '');
+    $cidade = trim($dados['cidade'] ?? '');
+    $uf = strtoupper(trim($dados['uf'] ?? ''));
+    if (strlen($cep) !== 8 || $logradouro === '' || $numero === '' || $cidade === '' || !array_key_exists($uf, listaUfsBrasil())) {
+        return null;
+    }
+    return ['cep' => substr($cep, 0, 5) . '-' . substr($cep, 5), 'logradouro' => $logradouro, 'numero' => $numero, 'complemento' => trim($dados['complemento'] ?? ''), 'bairro' => trim($dados['bairro'] ?? ''), 'cidade' => $cidade, 'uf' => $uf];
+}
+
 // Reserva pra quando obterOpcoesFrete() não consegue cotar de verdade (Melhor Envio desconectado,
 // API fora do ar, produto sem CaixaEnvio definida) — fixo, grátis acima de um valor (config/marca.php).
 // Checkout nunca trava por causa de uma integração externa fora do ar.
@@ -1043,62 +1066,6 @@ function calcularFrete($cep, $subtotal) {
         return 0.0;
     }
     return FRETE_VALOR_PADRAO;
-}
-
-// ---------------------------------------------------------------------
-// Configuração genérica do sistema (chave/valor) — reaproveitável por qualquer flag/config nova
-// que precise persistir no banco, em vez de criar coluna em Usuario ou tabela nova toda hora.
-// ---------------------------------------------------------------------
-
-function garantirTabelaConfiguracaoSistema() {
-    static $jaVerificado = false;
-    if ($jaVerificado) {
-        return;
-    }
-    global $pdo;
-    $pdo->exec("CREATE TABLE IF NOT EXISTS ConfiguracaoSistema (
-        IDConfiguracao CHAR(36) PRIMARY KEY,
-        Chave VARCHAR(100) NOT NULL,
-        Valor TEXT NULL,
-        FKUsuario CHAR(36) NULL,
-        MomentoAtualizacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $jaVerificado = true;
-}
-
-function obterConfiguracaoSistema($chave, $idUsuario = null) {
-    global $pdo;
-    if ($idUsuario === null) {
-        $stmt = $pdo->prepare("SELECT Valor FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario IS NULL");
-        $stmt->execute(['chave' => $chave]);
-    } else {
-        $stmt = $pdo->prepare("SELECT Valor FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario = :usuario");
-        $stmt->execute(['chave' => $chave, 'usuario' => $idUsuario]);
-    }
-    $valor = $stmt->fetchColumn();
-    return $valor !== false ? $valor : null;
-}
-
-function definirConfiguracaoSistema($chave, $valor, $idUsuario = null) {
-    global $pdo;
-    // Nunca confia em ON DUPLICATE KEY UPDATE aqui — não existe UNIQUE KEY garantida cobrindo
-    // (Chave, FKUsuario) porque FKUsuario NULL não é comparável de forma confiável num UNIQUE do
-    // MySQL. SELECT pra checar se existe, UPDATE se existir, INSERT se não.
-    if ($idUsuario === null) {
-        $stmt = $pdo->prepare("SELECT IDConfiguracao FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario IS NULL");
-        $stmt->execute(['chave' => $chave]);
-    } else {
-        $stmt = $pdo->prepare("SELECT IDConfiguracao FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario = :usuario");
-        $stmt->execute(['chave' => $chave, 'usuario' => $idUsuario]);
-    }
-    $id = $stmt->fetchColumn();
-    if ($id) {
-        $pdo->prepare("UPDATE ConfiguracaoSistema SET Valor = :valor WHERE IDConfiguracao = :id")->execute(['valor' => $valor, 'id' => $id]);
-    } else {
-        $pdo->prepare("INSERT INTO ConfiguracaoSistema (IDConfiguracao, Chave, Valor, FKUsuario) VALUES (:id, :chave, :valor, :usuario)")
-            ->execute(['id' => gerarUuid(), 'chave' => $chave, 'valor' => $valor, 'usuario' => $idUsuario]);
-    }
 }
 
 // ---------------------------------------------------------------------
@@ -1177,26 +1144,36 @@ function obterOpcoesFrete($cepDestino, $itens) {
     $token = MELHOR_ENVIO_TOKEN;
 
     global $pdo;
+    $idsProdutos = array_values(array_unique(array_map(fn($item) => $item['variacao']['IDProduto'], $itens)));
+    $placeholders = implode(',', array_fill(0, count($idsProdutos), '?'));
+    $stmt = $pdo->prepare("SELECT p.IDProduto, c.Peso, c.Altura, c.Largura, c.Comprimento FROM Produto p
+        JOIN CaixaEnvio c ON c.IDCaixaEnvio = p.FKCaixaEnvio WHERE p.IDProduto IN ($placeholders)");
+    $stmt->execute($idsProdutos);
+    $caixasPorProduto = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $caixasPorProduto[$row['IDProduto']] = $row;
+    }
+
     $produtos = [];
     foreach ($itens as $item) {
         $idProduto = $item['variacao']['IDProduto'];
-        $stmt = $pdo->prepare("SELECT c.Peso, c.Altura, c.Largura, c.Comprimento FROM Produto p
-            JOIN CaixaEnvio c ON c.IDCaixaEnvio = p.FKCaixaEnvio WHERE p.IDProduto = :id");
-        $stmt->execute(['id' => $idProduto]);
-        $caixa = $stmt->fetch();
-        if (!$caixa) {
+        if (!isset($caixasPorProduto[$idProduto])) {
             // Sem caixa definida pra pelo menos 1 item do carrinho — não dá pra cotar o pedido
             // inteiro direito, melhor cair no frete fixo do que subcotar por faltar peso/dimensão.
             error_log('Melhor Envio — produto ' . $idProduto . ' sem CaixaEnvio definida, cotação abortada.');
             return null;
         }
+        $caixa = $caixasPorProduto[$idProduto];
         $produtos[] = [
             'id' => $idProduto,
             'width' => (float) $caixa['Largura'],
             'height' => (float) $caixa['Altura'],
             'length' => (float) $caixa['Comprimento'],
             'weight' => (float) $caixa['Peso'],
-            'insurance_value' => (float) $item['subtotal'],
+            // Valor unitário, não o subtotal da linha — a API já multiplica isso por "quantity"
+            // pra chegar no valor total declarado; mandar o subtotal aqui dobraria (ou pior,
+            // multiplicaria pela quantidade de novo) o valor segurado declarado.
+            'insurance_value' => (float) $item['variacao']['Preco'],
             'quantity' => (int) $item['Quantidade'],
         ];
     }

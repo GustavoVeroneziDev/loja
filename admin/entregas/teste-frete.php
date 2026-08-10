@@ -8,6 +8,8 @@ require_once __DIR__ . '/../../config/funcoes.php';
 require_once __DIR__ . '/../../config/marca.php';
 require_once __DIR__ . '/../../config/chaves.php';
 exigirLoginAdmin();
+garantirTabelaProduto();
+garantirTabelaCaixaEnvio();
 
 header('Content-Type: text/plain; charset=utf-8');
 

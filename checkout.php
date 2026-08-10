@@ -27,28 +27,6 @@ if (!$itens) {
 $subtotal = array_sum(array_column($itens, 'subtotal'));
 $enderecos = obterEnderecosPorUsuario($_SESSION['usuario_id']);
 
-// Resolve o endereço de entrega — de um salvo (por ID) ou digitado na hora ($dados = $_POST).
-// Usada tanto pra recalcular a prévia quanto pra confirmar de verdade, sempre a mesma lógica.
-function resolverEndereco($enderecos, $idSelecionado, $dados) {
-    if ($idSelecionado !== '' && $idSelecionado !== 'novo') {
-        foreach ($enderecos as $e) {
-            if ($e['IDEndereco'] === $idSelecionado) {
-                return ['cep' => $e['CEP'], 'logradouro' => $e['Logradouro'], 'numero' => $e['Numero'], 'complemento' => $e['Complemento'] ?? '', 'bairro' => $e['Bairro'] ?? '', 'cidade' => $e['Cidade'], 'uf' => $e['UF']];
-            }
-        }
-        return null;
-    }
-    $cep = preg_replace('/\D/', '', $dados['cep'] ?? '');
-    $logradouro = trim($dados['logradouro'] ?? '');
-    $numero = trim($dados['numero'] ?? '');
-    $cidade = trim($dados['cidade'] ?? '');
-    $uf = strtoupper(trim($dados['uf'] ?? ''));
-    if (strlen($cep) !== 8 || $logradouro === '' || $numero === '' || $cidade === '' || !array_key_exists($uf, listaUfsBrasil())) {
-        return null;
-    }
-    return ['cep' => substr($cep, 0, 5) . '-' . substr($cep, 5), 'logradouro' => $logradouro, 'numero' => $numero, 'complemento' => trim($dados['complemento'] ?? ''), 'bairro' => trim($dados['bairro'] ?? ''), 'cidade' => $cidade, 'uf' => $uf];
-}
-
 $metodoPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 $acao = $_POST['action'] ?? '';
 
@@ -72,88 +50,92 @@ foreach ($enderecos as $e) {
         break;
     }
 }
+$enderecoResolvido = resolverEndereco($enderecos, $enderecoSelecionadoId, $_POST);
 
+// Cupom não depende de endereço — validar isso aqui não devia travar em "escolha um endereço".
 $cupomCodigo = trim($_POST['cupom'] ?? '');
 $erro = null;
 $cupomErro = null;
-$frete = 0;
-$freteInfo = null;
-$opcoesFrete = [];
-$freteEscolhidoId = $_POST['frete_servico'] ?? '';
-$freteGratis = $subtotal >= FRETE_GRATIS_ACIMA_DE;
 $desconto = 0;
-
-$enderecoResolvido = resolverEndereco($enderecos, $enderecoSelecionadoId, $_POST);
-if ($enderecoResolvido !== null) {
-    if ($freteGratis) {
-        $frete = 0.0;
+if ($cupomCodigo !== '') {
+    $cupomAplicado = validarCupom($cupomCodigo);
+    if ($cupomAplicado) {
+        $desconto = calcularDescontoCupom($cupomAplicado, $subtotal);
     } else {
-        $opcoesFrete = obterOpcoesFrete($enderecoResolvido['cep'], $itens) ?? [];
-        if ($opcoesFrete) {
-            $escolhida = null;
-            foreach ($opcoesFrete as $op) {
-                if ($op['id'] === $freteEscolhidoId) {
-                    $escolhida = $op;
-                    break;
-                }
-            }
-            // Nada selecionado ainda (primeira carga) ou seleção antiga não existe mais nessa
-            // cotação nova (endereço mudou) — cai na mais barata por padrão.
-            if (!$escolhida) {
-                $escolhida = $opcoesFrete[0];
-                $freteEscolhidoId = $escolhida['id'];
-            }
-            $frete = $escolhida['preco'];
-            $freteInfo = $escolhida;
-        } else {
-            // Melhor Envio desconectado, fora do ar, ou algum produto do carrinho sem CaixaEnvio
-            // definida — cai no fixo em vez de travar o checkout.
-            $frete = calcularFrete($enderecoResolvido['cep'], $subtotal);
-        }
+        $cupomErro = motivoCupomInvalido($cupomCodigo);
     }
-    if ($cupomCodigo !== '') {
-        $cupomAplicado = validarCupom($cupomCodigo);
-        if ($cupomAplicado) {
-            $desconto = calcularDescontoCupom($cupomAplicado, $subtotal);
-        } else {
-            $cupomErro = motivoCupomInvalido($cupomCodigo);
-        }
-    }
-} elseif ($metodoPost && $acao === 'confirmar') {
-    $erro = 'Escolha ou preencha um endereço de entrega válido.';
 }
 
-$total = max(0, $subtotal - $desconto) + $frete;
+$freteGratis = $subtotal >= FRETE_GRATIS_ACIMA_DE;
 
-if ($metodoPost && $acao === 'confirmar' && $enderecoResolvido !== null && !$cupomErro) {
-    $resultado = criarPedido($_SESSION['usuario_id'], $enderecoResolvido, $cupomCodigo, $frete, $freteInfo);
-    if ($resultado['sucesso']) {
-        // Endereço digitado na hora (não veio de um já salvo) também vira Endereco salvo pra
-        // próxima compra — se isso falhar por algum motivo não trava nada, o pedido já foi
-        // criado e é o que importa de verdade.
-        if (!$enderecoVeioDeSelecao) {
-            try {
-                $stmt = $pdo->prepare("INSERT INTO Endereco (IDEndereco, FKUsuario, CEP, Logradouro, Numero, Complemento, Bairro, Cidade, UF, Principal) VALUES (:id, :u, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf, :principal)");
-                $stmt->execute([
-                    'id' => gerarUuid(),
-                    'u' => $_SESSION['usuario_id'],
-                    'cep' => $enderecoResolvido['cep'],
-                    'logradouro' => $enderecoResolvido['logradouro'],
-                    'numero' => $enderecoResolvido['numero'],
-                    'complemento' => $enderecoResolvido['complemento'] !== '' ? $enderecoResolvido['complemento'] : null,
-                    'bairro' => $enderecoResolvido['bairro'] !== '' ? $enderecoResolvido['bairro'] : null,
-                    'cidade' => $enderecoResolvido['cidade'],
-                    'uf' => $enderecoResolvido['uf'],
-                    'principal' => count($enderecos) === 0 ? 1 : 0,
-                ]);
-            } catch (PDOException $e) {
-                error_log('Erro ao salvar novo endereço do checkout: ' . $e->getMessage());
+if ($metodoPost && $acao === 'confirmar') {
+    if ($enderecoResolvido === null) {
+        $erro = 'Escolha ou preencha um endereço de entrega válido.';
+    } elseif ($cupomErro) {
+        $erro = 'Corrija o cupom antes de confirmar.';
+    } else {
+        // Nunca confia no frete que a tela mostrou — recota aqui e cobra o valor real de agora.
+        // Se a opção escolhida sumiu da cotação nova (rota mudou, preço mudou), não substitui pela
+        // mais barata sem avisar: erro claro pedindo pra calcular de novo, é o cliente que escolhe.
+        $frete = 0.0;
+        $freteInfo = null;
+        if ($freteGratis) {
+            // segue com frete 0
+        } else {
+            $freteEscolhidoId = $_POST['frete_servico'] ?? '';
+            $opcoesFrete = obterOpcoesFrete($enderecoResolvido['cep'], $itens) ?? [];
+            if ($opcoesFrete) {
+                $escolhida = null;
+                foreach ($opcoesFrete as $op) {
+                    if ($op['id'] === $freteEscolhidoId) {
+                        $escolhida = $op;
+                        break;
+                    }
+                }
+                if (!$escolhida) {
+                    $erro = 'A forma de envio escolhida não está mais disponível — calcule o frete de novo.';
+                } else {
+                    $frete = $escolhida['preco'];
+                    $freteInfo = $escolhida;
+                }
+            } else {
+                // Sem cotação real disponível (desconectado, API fora, produto sem caixa) — só
+                // esse caso aceita seguir sem uma opção escolhida, porque só existia 1 valor possível.
+                $frete = calcularFrete($enderecoResolvido['cep'], $subtotal);
             }
         }
-        header('Location: ' . URL_BASE . '/usuario/pedido.php?id=' . $resultado['id_pedido'] . '&novo=1');
-        exit;
+
+        if (!$erro) {
+            $resultado = criarPedido($_SESSION['usuario_id'], $enderecoResolvido, $cupomCodigo, $frete, $freteInfo);
+            if ($resultado['sucesso']) {
+                // Endereço digitado na hora (não veio de um já salvo) também vira Endereco salvo pra
+                // próxima compra — se isso falhar por algum motivo não trava nada, o pedido já foi
+                // criado e é o que importa de verdade.
+                if (!$enderecoVeioDeSelecao) {
+                    try {
+                        $stmt = $pdo->prepare("INSERT INTO Endereco (IDEndereco, FKUsuario, CEP, Logradouro, Numero, Complemento, Bairro, Cidade, UF, Principal) VALUES (:id, :u, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf, :principal)");
+                        $stmt->execute([
+                            'id' => gerarUuid(),
+                            'u' => $_SESSION['usuario_id'],
+                            'cep' => $enderecoResolvido['cep'],
+                            'logradouro' => $enderecoResolvido['logradouro'],
+                            'numero' => $enderecoResolvido['numero'],
+                            'complemento' => $enderecoResolvido['complemento'] !== '' ? $enderecoResolvido['complemento'] : null,
+                            'bairro' => $enderecoResolvido['bairro'] !== '' ? $enderecoResolvido['bairro'] : null,
+                            'cidade' => $enderecoResolvido['cidade'],
+                            'uf' => $enderecoResolvido['uf'],
+                            'principal' => count($enderecos) === 0 ? 1 : 0,
+                        ]);
+                    } catch (PDOException $e) {
+                        error_log('Erro ao salvar novo endereço do checkout: ' . $e->getMessage());
+                    }
+                }
+                header('Location: ' . URL_BASE . '/usuario/pedido.php?id=' . $resultado['id_pedido'] . '&novo=1');
+                exit;
+            }
+            $erro = $resultado['erro'];
+        }
     }
-    $erro = $resultado['erro'];
 }
 
 $ufs = listaUfsBrasil();
@@ -184,7 +166,6 @@ require __DIR__ . '/geral/header.php';
 <?php if ($erro): ?><div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div><?php endif; ?>
 
 <form method="post" id="formCheckout">
-    <button type="submit" name="action" value="recalcular" id="btnRecalcular" class="d-none" aria-hidden="true" tabindex="-1"></button>
     <div class="row g-4">
         <div class="col-12 col-lg-7">
             <div class="card p-4 mb-4">
@@ -213,39 +194,23 @@ require __DIR__ . '/geral/header.php';
                 <div id="camposNovoEndereco" class="form-endereco <?= ($enderecos && $enderecoVeioDeSelecao) ? 'd-none' : '' ?>">
                     <?php require __DIR__ . '/usuario/_campos-endereco.php'; ?>
                 </div>
-                <button type="submit" name="action" value="recalcular" class="btn btn-outline-secondary rounded-pill mt-3">
-                    <i class="bi bi-truck"></i> Calcular frete
-                </button>
+                <?php if (!$freteGratis): ?>
+                    <button type="button" id="btnCalcularFrete" class="btn btn-outline-secondary rounded-pill mt-3">
+                        <i class="bi bi-truck"></i> Calcular frete
+                    </button>
+                <?php endif; ?>
             </div>
 
-            <?php if ($enderecoResolvido !== null): ?>
-                <div class="card p-4 mb-4">
-                    <h2 class="h5 mb-3">Frete</h2>
+            <div class="card p-4 mb-4">
+                <h2 class="h5 mb-3">Frete</h2>
+                <div id="freteConteudo">
                     <?php if ($freteGratis): ?>
                         <p class="text-sucesso fw-semibold mb-0"><i class="bi bi-check-circle-fill"></i> Frete grátis nessa compra!</p>
-                    <?php elseif ($opcoesFrete): ?>
-                        <div class="d-flex flex-column gap-2">
-                            <?php foreach ($opcoesFrete as $op): ?>
-                                <label class="card p-3 mb-0" style="cursor: pointer;">
-                                    <div class="d-flex justify-content-between align-items-center gap-3">
-                                        <div class="d-flex gap-2 align-items-start">
-                                            <input type="radio" name="frete_servico" value="<?= htmlspecialchars($op['id']) ?>" class="form-check-input mt-1" <?= $freteEscolhidoId === $op['id'] ? 'checked' : '' ?> onchange="document.getElementById('formCheckout').requestSubmit(document.getElementById('btnRecalcular'))">
-                                            <div>
-                                                <div class="fw-semibold"><?= htmlspecialchars($op['transportadora']) ?><?= $op['servico'] ? ' — ' . htmlspecialchars($op['servico']) : '' ?></div>
-                                                <span class="text-secundario small"><?= $op['prazo_dias'] > 0 ? 'Chega em até ' . (int) $op['prazo_dias'] . ' dia(s) útil(eis)' : 'Prazo a confirmar' ?></span>
-                                            </div>
-                                        </div>
-                                        <span class="fw-semibold text-nowrap"><?= formatarPreco($op['preco']) ?></span>
-                                    </div>
-                                </label>
-                            <?php endforeach; ?>
-                        </div>
                     <?php else: ?>
-                        <p class="mb-0">Frete: <strong><?= $frete > 0 ? formatarPreco($frete) : 'Grátis' ?></strong></p>
-                        <p class="text-secundario small mb-0 mt-1">Não foi possível consultar as transportadoras agora — usando valor padrão.</p>
+                        <p class="text-secundario mb-0"><i class="bi bi-hourglass-split"></i> Escolha o endereço e clique em "Calcular frete".</p>
                     <?php endif; ?>
                 </div>
-            <?php endif; ?>
+            </div>
 
             <div class="card p-4">
                 <h2 class="h5 mb-3">Cupom de desconto</h2>
@@ -284,26 +249,144 @@ require __DIR__ . '/geral/header.php';
                 <div class="d-flex justify-content-between mb-3">
                     <span class="text-secundario">
                         Frete
-                        <?php if ($freteInfo): ?>
-                            <span class="d-block text-secundario small"><?= htmlspecialchars($freteInfo['transportadora']) ?><?= $freteInfo['servico'] ? ' — ' . htmlspecialchars($freteInfo['servico']) : '' ?></span>
-                        <?php endif; ?>
+                        <span class="d-block text-secundario small" id="resumoFreteInfo"></span>
                     </span>
-                    <span>
-                        <?php if ($enderecoResolvido === null): ?>
-                            <span class="text-secundario">A calcular</span>
-                        <?php else: ?>
-                            <?= $frete > 0 ? formatarPreco($frete) : 'Grátis' ?>
-                        <?php endif; ?>
-                    </span>
+                    <span id="resumoFreteValor" class="<?= $freteGratis ? '' : 'text-secundario' ?>"><?= $freteGratis ? 'Grátis' : 'A calcular' ?></span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="fw-semibold">Total</span>
-                    <span class="fw-semibold h4 mb-0"><?= formatarPreco($total) ?></span>
+                    <span class="fw-semibold h4 mb-0" id="resumoTotal"><?= formatarPreco($subtotal - $desconto) ?></span>
                 </div>
-                <button type="submit" name="action" value="confirmar" class="btn btn-marca rounded-pill w-100 py-2">Confirmar pedido</button>
+                <button type="submit" name="action" value="confirmar" id="btnConfirmarPedido" class="btn btn-marca rounded-pill w-100 py-2" <?= $freteGratis ? '' : 'disabled' ?>>Confirmar pedido</button>
                 <p class="text-secundario small mt-2 mb-0 text-center">O pagamento é configurado na próxima etapa.</p>
             </div>
         </div>
     </div>
 </form>
+
+<?php if (!$freteGratis): ?>
+<script>
+(function () {
+    var subtotalComDesconto = <?= json_encode(round($subtotal - $desconto, 2)) ?>;
+    var freteConteudo = document.getElementById('freteConteudo');
+    var resumoFreteValor = document.getElementById('resumoFreteValor');
+    var resumoFreteInfo = document.getElementById('resumoFreteInfo');
+    var resumoTotal = document.getElementById('resumoTotal');
+    var btnConfirmar = document.getElementById('btnConfirmarPedido');
+    var btnCalcularFrete = document.getElementById('btnCalcularFrete');
+
+    function formatarPrecoJs(valor) {
+        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function atualizarResumo(valorFrete, infoTexto) {
+        resumoFreteValor.textContent = valorFrete > 0 ? formatarPrecoJs(valorFrete) : 'Grátis';
+        resumoFreteValor.classList.remove('text-secundario');
+        resumoFreteInfo.textContent = infoTexto || '';
+        resumoTotal.textContent = formatarPrecoJs(subtotalComDesconto + valorFrete);
+    }
+
+    function estadoEsperando(mensagem) {
+        btnConfirmar.disabled = true;
+        resumoFreteValor.textContent = 'A calcular';
+        resumoFreteValor.classList.add('text-secundario');
+        resumoFreteInfo.textContent = '';
+        resumoTotal.textContent = formatarPrecoJs(subtotalComDesconto);
+        freteConteudo.innerHTML = '<p class="text-secundario mb-0"><i class="bi bi-hourglass-split"></i> ' + escaparHtml(mensagem) + '</p>';
+    }
+
+    function estadoErro(mensagem) {
+        btnConfirmar.disabled = true;
+        freteConteudo.innerHTML = '<p class="text-secundario mb-0"><i class="bi bi-exclamation-triangle text-danger"></i> ' + escaparHtml(mensagem) + '</p>';
+    }
+
+    function selecionarOpcao(opcao) {
+        atualizarResumo(opcao.preco, opcao.transportadora + (opcao.servico ? ' — ' + opcao.servico : ''));
+        btnConfirmar.disabled = false;
+    }
+
+    function renderOpcoes(opcoes) {
+        var html = '<div class="d-flex flex-column gap-2">';
+        opcoes.forEach(function (op, indice) {
+            html += '<label class="card p-3 mb-0" style="cursor: pointer;">' +
+                '<div class="d-flex justify-content-between align-items-center gap-3">' +
+                '<div class="d-flex gap-2 align-items-start">' +
+                '<input type="radio" name="frete_servico" value="' + escaparHtml(op.id) + '" class="form-check-input mt-1"' + (indice === 0 ? ' checked' : '') + '>' +
+                '<div><div class="fw-semibold">' + escaparHtml(op.transportadora) + (op.servico ? ' — ' + escaparHtml(op.servico) : '') + '</div>' +
+                '<span class="text-secundario small">' + (op.prazo_dias > 0 ? 'Chega em até ' + op.prazo_dias + ' dia(s) útil(eis)' : 'Prazo a confirmar') + '</span></div>' +
+                '</div>' +
+                '<span class="fw-semibold text-nowrap">' + formatarPrecoJs(op.preco) + '</span>' +
+                '</div></label>';
+        });
+        html += '</div>';
+        freteConteudo.innerHTML = html;
+
+        freteConteudo.querySelectorAll('input[name="frete_servico"]').forEach(function (radio, indice) {
+            radio.addEventListener('change', function () { selecionarOpcao(opcoes[indice]); });
+        });
+        selecionarOpcao(opcoes[0]);
+    }
+
+    function coletarDadosEndereco() {
+        var dados = new FormData();
+        var enderecoIdRadio = document.querySelector('input[name="endereco_id"]:checked');
+        dados.append('endereco_id', enderecoIdRadio ? enderecoIdRadio.value : '');
+        ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'uf', 'cidade'].forEach(function (campo) {
+            var el = document.querySelector('#camposNovoEndereco [name="' + campo + '"]');
+            if (el) { dados.append(campo, el.value); }
+        });
+        return dados;
+    }
+
+    function buscarFrete() {
+        estadoEsperando('Calculando frete...');
+        btnCalcularFrete.disabled = true;
+        fetch('<?= URL_BASE ?>/checkout_frete.php', { method: 'POST', body: coletarDadosEndereco() })
+            .then(function (resp) { return resp.json(); })
+            .then(function (data) {
+                btnCalcularFrete.disabled = false;
+                if (!data.sucesso) {
+                    estadoErro(data.erro || 'Não foi possível calcular o frete.');
+                    return;
+                }
+                if (data.gratis) {
+                    freteConteudo.innerHTML = '<p class="text-sucesso fw-semibold mb-0"><i class="bi bi-check-circle-fill"></i> Frete grátis nessa compra!</p>';
+                    atualizarResumo(0, '');
+                    return;
+                }
+                if (data.opcoes && data.opcoes.length) {
+                    renderOpcoes(data.opcoes);
+                    return;
+                }
+                if (data.fallback) {
+                    freteConteudo.innerHTML = '<p class="mb-0">Frete: <strong>' + formatarPrecoJs(data.valor_fallback) + '</strong></p>' +
+                        '<p class="text-secundario small mb-0 mt-1">Não foi possível consultar as transportadoras agora — usando valor padrão.</p>';
+                    atualizarResumo(data.valor_fallback, '');
+                    btnConfirmar.disabled = false;
+                    return;
+                }
+                estadoErro('Não foi possível calcular o frete agora.');
+            })
+            .catch(function () {
+                btnCalcularFrete.disabled = false;
+                estadoErro('Falha de conexão ao calcular o frete. Tente de novo.');
+            });
+    }
+
+    function resetarFrete() {
+        estadoEsperando('Endereço alterado — clique em "Calcular frete" pra ver as opções.');
+    }
+
+    document.querySelectorAll('input[name="endereco_id"]').forEach(function (radio) {
+        radio.addEventListener('change', resetarFrete);
+    });
+    var camposNovo = document.getElementById('camposNovoEndereco');
+    camposNovo.addEventListener('input', resetarFrete);
+    camposNovo.addEventListener('change', resetarFrete);
+
+    btnCalcularFrete.addEventListener('click', buscarFrete);
+})();
+</script>
+<?php endif; ?>
+
 <?php require __DIR__ . '/geral/footer.php'; ?>
