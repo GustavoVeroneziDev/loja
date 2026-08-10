@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../config/funcoes.php';
+require_once __DIR__ . '/../../config/marca.php';
 require_once __DIR__ . '/../../config/chaves.php';
 exigirLoginAdmin();
 garantirTabelaConfiguracaoSistema();
