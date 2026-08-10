@@ -1233,6 +1233,9 @@ function _melhorEnvioMontarEnvio($idPedido) {
     if (!$pedido['FreteServicoId']) {
         return ['erro' => 'Esse pedido não tem um serviço de frete cotado (caiu no frete fixo, ou é anterior a essa funcionalidade) — não dá pra comprar etiqueta automaticamente.'];
     }
+    if (!defined('MELHOR_ENVIO_REMETENTE_NOME') || MELHOR_ENVIO_REMETENTE_NOME === '') {
+        return ['erro' => 'Dados do remetente não configurados em config/chaves.php (nome, CPF, endereço) — preenche isso antes de gerar etiqueta.'];
+    }
 
     $stmtCliente = $pdo->prepare("SELECT Nome, Email, Telefone, CPF FROM Usuario WHERE IDUsuario = :id");
     $stmtCliente->execute(['id' => $pedido['FKUsuario']]);
