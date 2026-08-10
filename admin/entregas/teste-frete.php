@@ -10,15 +10,19 @@ require_once __DIR__ . '/../../config/chaves.php';
 exigirLoginAdmin();
 garantirTabelaProduto();
 garantirTabelaCaixaEnvio();
+garantirTabelaUsuario();
+garantirTabelaConfiguracaoSistema();
 
 header('Content-Type: text/plain; charset=utf-8');
 
 $cepDestino = preg_replace('/\D/', '', $_GET['cep_destino'] ?? '01310100');
+$configEnvio = obterConfigEnvio();
 
-echo "=== TESTE 1: constantes carregadas ===\n";
+echo "=== TESTE 1: config carregada ===\n";
 echo "MELHOR_ENVIO_AMBIENTE: " . (defined('MELHOR_ENVIO_AMBIENTE') ? MELHOR_ENVIO_AMBIENTE : 'NAO DEFINIDA') . "\n";
 echo "MELHOR_ENVIO_TOKEN: " . (defined('MELHOR_ENVIO_TOKEN') && MELHOR_ENVIO_TOKEN !== '' ? substr(MELHOR_ENVIO_TOKEN, 0, 20) . '... (' . strlen(MELHOR_ENVIO_TOKEN) . ' chars)' : 'VAZIO') . "\n";
-echo "MELHOR_ENVIO_CEP_ORIGEM: " . (defined('MELHOR_ENVIO_CEP_ORIGEM') ? MELHOR_ENVIO_CEP_ORIGEM : 'NAO DEFINIDA') . "\n";
+echo "CEP de origem (banco, Admin > Entregas): " . ($configEnvio['cep_origem'] !== '' ? $configEnvio['cep_origem'] : 'NAO CONFIGURADO') . "\n";
+echo "Remetente completo? " . (configEnvioCompleta($configEnvio) ? 'sim' : 'NAO — falta preencher em Admin > Entregas') . "\n";
 echo "\n";
 
 echo "=== TESTE 2: melhorEnvioConectado() ===\n";
@@ -51,13 +55,13 @@ if ($comCaixa < $totalProdutos) {
 echo "\n";
 
 echo "=== TESTE 5: chamada crua na API de cotação (POST /api/v2/me/shipment/calculate) ===\n";
-echo "De (origem): " . MELHOR_ENVIO_CEP_ORIGEM . "\n";
+echo "De (origem): " . $configEnvio['cep_origem'] . "\n";
 echo "Para (destino): $cepDestino  [troque com ?cep_destino=00000000 na URL]\n";
 echo "URL base: " . melhorEnvioUrlBase() . "\n\n";
 
 $inicio = microtime(true);
 $dados = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/api/v2/me/shipment/calculate', [
-    'from' => ['postal_code' => MELHOR_ENVIO_CEP_ORIGEM],
+    'from' => ['postal_code' => $configEnvio['cep_origem']],
     'to' => ['postal_code' => $cepDestino],
     'products' => [[
         'id' => 'teste-1',
@@ -102,7 +106,7 @@ if ($comCaixa === 0) {
         $itemFake = [[
             'IDVariacao' => $produtoComCaixa['IDVariacao'],
             'Quantidade' => 1,
-            'variacao' => ['IDProduto' => $produtoComCaixa['IDProduto']],
+            'variacao' => ['IDProduto' => $produtoComCaixa['IDProduto'], 'Preco' => (float) $produtoComCaixa['Preco']],
             'subtotal' => (float) $produtoComCaixa['Preco'],
         ]];
         $opcoes = obterOpcoesFrete($cepDestino, $itemFake);

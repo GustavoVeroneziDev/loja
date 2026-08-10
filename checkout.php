@@ -8,6 +8,7 @@ exigirLoginCliente();
 garantirTabelaUsuario();
 garantirTabelaEndereco();
 garantirTabelaCupom();
+garantirTabelaConfiguracaoSistema();
 garantirTabelaPedido();
 garantirTabelaMovimentoEstoque();
 garantirTabelaItemPedido();

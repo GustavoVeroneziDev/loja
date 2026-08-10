@@ -10,6 +10,7 @@ garantirTabelaMovimentoEstoque();
 garantirTabelaItemPedido();
 garantirTabelaHistoricoStatusPedido();
 garantirTabelaUsuario();
+garantirTabelaConfiguracaoSistema();
 
 global $pdo;
 

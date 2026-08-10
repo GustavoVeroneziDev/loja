@@ -62,6 +62,36 @@ function aplicarMascaraDecimal(seletor, casas) {
 aplicarMascaraDecimal('.mascara-peso', 3);
 aplicarMascaraDecimal('.mascara-dimensao', 1);
 
+// Telefone, CPF e CEP — mesma máscara do site público (geral/footer.php), só que aqui é usada na
+// config de remetente do admin em vez de formulário de cliente.
+document.querySelectorAll('.mascara-telefone').forEach(function (campo) {
+    campo.addEventListener('input', function () {
+        var d = campo.value.replace(/\D/g, '').slice(0, 11);
+        if (d.length === 0) campo.value = '';
+        else if (d.length <= 2) campo.value = '(' + d;
+        else if (d.length <= 6) campo.value = '(' + d.slice(0, 2) + ') ' + d.slice(2);
+        else if (d.length <= 10) campo.value = '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+        else campo.value = '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+    });
+});
+
+document.querySelectorAll('.mascara-cpf').forEach(function (campo) {
+    campo.addEventListener('input', function () {
+        var d = campo.value.replace(/\D/g, '').slice(0, 11);
+        if (d.length <= 3) campo.value = d;
+        else if (d.length <= 6) campo.value = d.slice(0, 3) + '.' + d.slice(3);
+        else if (d.length <= 9) campo.value = d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
+        else campo.value = d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+    });
+});
+
+document.querySelectorAll('.campo-cep').forEach(function (campo) {
+    campo.addEventListener('input', function () {
+        var d = campo.value.replace(/\D/g, '').slice(0, 8);
+        campo.value = d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d;
+    });
+});
+
 document.querySelectorAll('.btn-toggle-senha').forEach(function (botao) {
     botao.addEventListener('click', function () {
         var campo = document.getElementById(this.dataset.alvo);

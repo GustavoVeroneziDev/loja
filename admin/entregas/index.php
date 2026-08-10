@@ -5,12 +5,32 @@ require_once __DIR__ . '/../../config/funcoes.php';
 require_once __DIR__ . '/../../config/chaves.php';
 exigirLoginAdmin();
 garantirTabelaCaixaEnvio();
+garantirTabelaUsuario();
+garantirTabelaConfiguracaoSistema();
 
 global $pdo;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $sucesso = null;
+
+    if ($action === 'salvar_config_envio') {
+        $uf = strtoupper(trim($_POST['remetente_uf'] ?? ''));
+        definirConfigEnvio([
+            'cep_origem' => preg_replace('/\D/', '', $_POST['cep_origem'] ?? ''),
+            'remetente_nome' => trim($_POST['remetente_nome'] ?? ''),
+            'remetente_documento' => preg_replace('/\D/', '', $_POST['remetente_documento'] ?? ''),
+            'remetente_telefone' => preg_replace('/\D/', '', $_POST['remetente_telefone'] ?? ''),
+            'remetente_email' => trim($_POST['remetente_email'] ?? ''),
+            'remetente_logradouro' => trim($_POST['remetente_logradouro'] ?? ''),
+            'remetente_numero' => trim($_POST['remetente_numero'] ?? ''),
+            'remetente_complemento' => trim($_POST['remetente_complemento'] ?? ''),
+            'remetente_bairro' => trim($_POST['remetente_bairro'] ?? ''),
+            'remetente_cidade' => trim($_POST['remetente_cidade'] ?? ''),
+            'remetente_uf' => array_key_exists($uf, listaUfsBrasil()) ? $uf : '',
+        ]);
+        $sucesso = true;
+    }
 
     if ($action === 'criar' || $action === 'editar') {
         $id = $_POST['id'] ?? '';
@@ -57,6 +77,8 @@ $sucesso = isset($_GET['ok']) ? 'Operação realizada com sucesso.' : null;
 $erro = isset($_GET['erro']) ? 'Preencha nome, peso e as 3 dimensões (todos maiores que zero).' : null;
 $caixas = obterCaixasEnvio();
 $melhorEnvioConectado = melhorEnvioConectado();
+$configEnvio = obterConfigEnvio();
+$ufs = listaUfsBrasil();
 
 require __DIR__ . '/../_topo.php';
 ?>
@@ -78,11 +100,74 @@ require __DIR__ . '/../_topo.php';
         <?php if ($expiraEm): ?>
             <p class="text-secundario small mb-0 mt-2">Token válido até <?= date('d/m/Y', $expiraEm) ?> — quando expirar, gera um novo no painel do Melhor Envio e atualiza <code>config/chaves.php</code> no servidor.</p>
         <?php endif; ?>
-    <?php elseif (MELHOR_ENVIO_CEP_ORIGEM === ''): ?>
-        <p class="mb-0"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-exclamation-triangle"></i> Não configurado</span> — falta preencher o token e o CEP de origem em <code>config/chaves.php</code>.</p>
     <?php else: ?>
         <p class="mb-0"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-exclamation-triangle"></i> Não configurado</span> — falta o token em <code>config/chaves.php</code> (gera em Melhor Envio &gt; Integrações &gt; Tokens de Acesso). Até lá, o checkout usa o frete fixo de reserva (<code>config/marca.php</code>).</p>
     <?php endif; ?>
+</div>
+
+<div class="card p-4 mb-4">
+    <h2 class="h5 mb-3">CEP de origem e remetente</h2>
+    <p class="text-secundario small">Endereço de onde os pedidos saem e quem aparece como remetente na etiqueta — mesma ideia dos dados que o cliente preenche em "Minha conta", só que da loja. Sem isso, a cotação e a geração de etiqueta não funcionam.</p>
+    <?php if (!configEnvioCompleta($configEnvio)): ?>
+        <p class="mb-3"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-exclamation-triangle"></i> Incompleto</span></p>
+    <?php else: ?>
+        <p class="mb-3"><span class="badge-sucesso px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-check-circle-fill"></i> Configurado</span></p>
+    <?php endif; ?>
+    <form method="post">
+        <input type="hidden" name="action" value="salvar_config_envio">
+        <div class="row g-3">
+            <div class="col-sm-4">
+                <label class="form-label">CEP de origem</label>
+                <input type="text" name="cep_origem" class="form-control campo-cep" inputmode="numeric" maxlength="9" placeholder="00000-000" value="<?= htmlspecialchars($configEnvio['cep_origem']) ?>" required>
+            </div>
+            <div class="col-sm-8">
+                <label class="form-label">Nome do remetente</label>
+                <input type="text" name="remetente_nome" class="form-control" value="<?= htmlspecialchars($configEnvio['remetente_nome']) ?>" required>
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label">CPF ou CNPJ</label>
+                <input type="text" name="remetente_documento" class="form-control mascara-cpf" inputmode="numeric" value="<?= htmlspecialchars($configEnvio['remetente_documento']) ?>" required>
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label">Telefone</label>
+                <input type="text" name="remetente_telefone" class="form-control mascara-telefone" inputmode="numeric" value="<?= htmlspecialchars($configEnvio['remetente_telefone']) ?>" required>
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label">Email</label>
+                <input type="email" name="remetente_email" class="form-control" value="<?= htmlspecialchars($configEnvio['remetente_email']) ?>" required>
+            </div>
+            <div class="col-sm-8">
+                <label class="form-label">Logradouro</label>
+                <input type="text" name="remetente_logradouro" class="form-control" value="<?= htmlspecialchars($configEnvio['remetente_logradouro']) ?>" required>
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label">Número</label>
+                <input type="text" name="remetente_numero" class="form-control" value="<?= htmlspecialchars($configEnvio['remetente_numero']) ?>" required>
+            </div>
+            <div class="col-sm-8">
+                <label class="form-label">Complemento</label>
+                <input type="text" name="remetente_complemento" class="form-control" placeholder="opcional" value="<?= htmlspecialchars($configEnvio['remetente_complemento']) ?>">
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label">Bairro</label>
+                <input type="text" name="remetente_bairro" class="form-control" value="<?= htmlspecialchars($configEnvio['remetente_bairro']) ?>" required>
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label">UF</label>
+                <select name="remetente_uf" class="form-select" required>
+                    <option value="">--</option>
+                    <?php foreach ($ufs as $sigla => $nome): ?>
+                        <option value="<?= $sigla ?>" <?= $configEnvio['remetente_uf'] === $sigla ? 'selected' : '' ?>><?= $sigla ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label">Cidade</label>
+                <input type="text" name="remetente_cidade" class="form-control" value="<?= htmlspecialchars($configEnvio['remetente_cidade']) ?>" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-marca rounded-pill mt-3">Salvar</button>
+    </form>
 </div>
 
 <p class="text-secundario">Peso e tamanho de embalagem, pra calcular o frete de verdade. Cadastre uma vez (ex: "Caixa P", "Caixa M") e escolha qual cada produto usa na própria tela de produto.</p>

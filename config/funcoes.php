@@ -1069,6 +1069,93 @@ function calcularFrete($cep, $subtotal) {
 }
 
 // ---------------------------------------------------------------------
+// Configuração genérica do sistema (chave/valor) — reaproveitável por qualquer flag/config nova
+// que precise persistir no banco, em vez de criar coluna em Usuario ou tabela nova toda hora.
+// ---------------------------------------------------------------------
+
+function garantirTabelaConfiguracaoSistema() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS ConfiguracaoSistema (
+        IDConfiguracao CHAR(36) PRIMARY KEY,
+        Chave VARCHAR(100) NOT NULL,
+        Valor TEXT NULL,
+        FKUsuario CHAR(36) NULL,
+        MomentoAtualizacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
+}
+
+function obterConfiguracaoSistema($chave, $idUsuario = null) {
+    global $pdo;
+    if ($idUsuario === null) {
+        $stmt = $pdo->prepare("SELECT Valor FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario IS NULL");
+        $stmt->execute(['chave' => $chave]);
+    } else {
+        $stmt = $pdo->prepare("SELECT Valor FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario = :usuario");
+        $stmt->execute(['chave' => $chave, 'usuario' => $idUsuario]);
+    }
+    $valor = $stmt->fetchColumn();
+    return $valor !== false ? $valor : null;
+}
+
+function definirConfiguracaoSistema($chave, $valor, $idUsuario = null) {
+    global $pdo;
+    // Nunca confia em ON DUPLICATE KEY UPDATE aqui — não existe UNIQUE KEY garantida cobrindo
+    // (Chave, FKUsuario) porque FKUsuario NULL não é comparável de forma confiável num UNIQUE do
+    // MySQL. SELECT pra checar se existe, UPDATE se existir, INSERT se não.
+    if ($idUsuario === null) {
+        $stmt = $pdo->prepare("SELECT IDConfiguracao FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario IS NULL");
+        $stmt->execute(['chave' => $chave]);
+    } else {
+        $stmt = $pdo->prepare("SELECT IDConfiguracao FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario = :usuario");
+        $stmt->execute(['chave' => $chave, 'usuario' => $idUsuario]);
+    }
+    $id = $stmt->fetchColumn();
+    if ($id) {
+        $pdo->prepare("UPDATE ConfiguracaoSistema SET Valor = :valor WHERE IDConfiguracao = :id")->execute(['valor' => $valor, 'id' => $id]);
+    } else {
+        $pdo->prepare("INSERT INTO ConfiguracaoSistema (IDConfiguracao, Chave, Valor, FKUsuario) VALUES (:id, :chave, :valor, :usuario)")
+            ->execute(['id' => gerarUuid(), 'chave' => $chave, 'valor' => $valor, 'usuario' => $idUsuario]);
+    }
+}
+
+// CEP de origem + dados do remetente pra cotação/etiqueta do Melhor Envio — fica no banco (editável
+// em Admin > Entregas), não em config/chaves.php, porque é dado operacional que muda com mais
+// frequência que credencial/token e é o mesmo tipo de informação que o cliente já edita em "Minha
+// conta" (nome, documento, endereço), só que da loja.
+function obterConfigEnvio() {
+    global $pdo;
+    $linhas = $pdo->query("SELECT Chave, Valor FROM ConfiguracaoSistema WHERE FKUsuario IS NULL AND Chave LIKE 'envio\\_%'")->fetchAll(PDO::FETCH_KEY_PAIR);
+    $campos = ['cep_origem', 'remetente_nome', 'remetente_documento', 'remetente_telefone', 'remetente_email',
+        'remetente_logradouro', 'remetente_numero', 'remetente_complemento', 'remetente_bairro', 'remetente_cidade', 'remetente_uf'];
+    $config = [];
+    foreach ($campos as $campo) {
+        $config[$campo] = $linhas['envio_' . $campo] ?? '';
+    }
+    return $config;
+}
+
+function definirConfigEnvio($dados) {
+    foreach ($dados as $campo => $valor) {
+        definirConfiguracaoSistema('envio_' . $campo, $valor);
+    }
+}
+
+function configEnvioCompleta($config) {
+    foreach (['cep_origem', 'remetente_nome', 'remetente_documento', 'remetente_telefone', 'remetente_logradouro', 'remetente_numero', 'remetente_bairro', 'remetente_cidade', 'remetente_uf'] as $campo) {
+        if (($config[$campo] ?? '') === '') {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ---------------------------------------------------------------------
 // Melhor Envio — cotação de frete real via API v2, autenticada com token direto (gerado no painel
 // deles, sem OAuth). Escopo só de cotação (não compra etiqueta, não gera rastreio automático).
 // ---------------------------------------------------------------------
@@ -1142,7 +1229,8 @@ function _melhorEnvioRequisicao($metodo, $url, $corpo = null, $token = null, $re
 // caixa definida). Quem chama cai no calcularFrete() fixo como reserva, checkout nunca trava por
 // causa disso.
 function obterOpcoesFrete($cepDestino, $itens) {
-    if (!defined('MELHOR_ENVIO_CEP_ORIGEM') || MELHOR_ENVIO_CEP_ORIGEM === '' || !melhorEnvioConectado()) {
+    $configEnvio = obterConfigEnvio();
+    if ($configEnvio['cep_origem'] === '' || !melhorEnvioConectado()) {
         return null;
     }
     $token = MELHOR_ENVIO_TOKEN;
@@ -1183,7 +1271,7 @@ function obterOpcoesFrete($cepDestino, $itens) {
     }
 
     $dados = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/api/v2/me/shipment/calculate', [
-        'from' => ['postal_code' => preg_replace('/\D/', '', MELHOR_ENVIO_CEP_ORIGEM)],
+        'from' => ['postal_code' => preg_replace('/\D/', '', $configEnvio['cep_origem'])],
         'to' => ['postal_code' => preg_replace('/\D/', '', $cepDestino)],
         'products' => $produtos,
     ], $token);
@@ -1233,8 +1321,9 @@ function _melhorEnvioMontarEnvio($idPedido) {
     if (!$pedido['FreteServicoId']) {
         return ['erro' => 'Esse pedido não tem um serviço de frete cotado (caiu no frete fixo, ou é anterior a essa funcionalidade) — não dá pra comprar etiqueta automaticamente.'];
     }
-    if (!defined('MELHOR_ENVIO_REMETENTE_NOME') || MELHOR_ENVIO_REMETENTE_NOME === '') {
-        return ['erro' => 'Dados do remetente não configurados em config/chaves.php (nome, CPF, endereço) — preenche isso antes de gerar etiqueta.'];
+    $configEnvio = obterConfigEnvio();
+    if (!configEnvioCompleta($configEnvio)) {
+        return ['erro' => 'Dados do remetente não configurados — preencha em Admin > Entregas antes de gerar etiqueta.'];
     }
 
     $stmtCliente = $pdo->prepare("SELECT Nome, Email, Telefone, CPF FROM Usuario WHERE IDUsuario = :id");
@@ -1281,17 +1370,17 @@ function _melhorEnvioMontarEnvio($idPedido) {
     return ['erro' => null, 'payload' => [
         'service' => (int) $pedido['FreteServicoId'],
         'from' => [
-            'name' => MELHOR_ENVIO_REMETENTE_NOME,
-            'phone' => MELHOR_ENVIO_REMETENTE_TELEFONE,
-            'email' => MELHOR_ENVIO_REMETENTE_EMAIL,
-            'document' => MELHOR_ENVIO_REMETENTE_DOCUMENTO,
-            'address' => MELHOR_ENVIO_REMETENTE_LOGRADOURO,
-            'number' => MELHOR_ENVIO_REMETENTE_NUMERO,
-            'complement' => MELHOR_ENVIO_REMETENTE_COMPLEMENTO !== '' ? MELHOR_ENVIO_REMETENTE_COMPLEMENTO : null,
-            'district' => MELHOR_ENVIO_REMETENTE_BAIRRO,
-            'city' => MELHOR_ENVIO_REMETENTE_CIDADE,
-            'state_abbr' => MELHOR_ENVIO_REMETENTE_UF,
-            'postal_code' => MELHOR_ENVIO_CEP_ORIGEM,
+            'name' => $configEnvio['remetente_nome'],
+            'phone' => preg_replace('/\D/', '', $configEnvio['remetente_telefone']),
+            'email' => $configEnvio['remetente_email'],
+            'document' => preg_replace('/\D/', '', $configEnvio['remetente_documento']),
+            'address' => $configEnvio['remetente_logradouro'],
+            'number' => $configEnvio['remetente_numero'],
+            'complement' => $configEnvio['remetente_complemento'] !== '' ? $configEnvio['remetente_complemento'] : null,
+            'district' => $configEnvio['remetente_bairro'],
+            'city' => $configEnvio['remetente_cidade'],
+            'state_abbr' => $configEnvio['remetente_uf'],
+            'postal_code' => preg_replace('/\D/', '', $configEnvio['cep_origem']),
             'country_id' => 'BR',
         ],
         'to' => [

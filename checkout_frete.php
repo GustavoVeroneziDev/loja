@@ -16,6 +16,8 @@ if (!clienteLogado() || $_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+garantirTabelaUsuario();
+garantirTabelaConfiguracaoSistema();
 garantirTabelaEndereco();
 garantirTabelaProduto();
 garantirTabelaVariacaoProduto();
