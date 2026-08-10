@@ -1046,8 +1046,8 @@ function calcularFrete($cep, $subtotal) {
 }
 
 // ---------------------------------------------------------------------
-// Configuração genérica do sistema (chave/valor) — usada aqui pra guardar o token OAuth do Melhor
-// Envio, reaproveitável por qualquer flag/config futura em vez de criar tabela nova toda hora.
+// Configuração genérica do sistema (chave/valor) — reaproveitável por qualquer flag/config nova
+// que precise persistir no banco, em vez de criar coluna em Usuario ou tabela nova toda hora.
 // ---------------------------------------------------------------------
 
 function garantirTabelaConfiguracaoSistema() {
@@ -1102,8 +1102,8 @@ function definirConfiguracaoSistema($chave, $valor, $idUsuario = null) {
 }
 
 // ---------------------------------------------------------------------
-// Melhor Envio — cotação de frete real via OAuth2 + API v2. Escopo só de cotação (não compra
-// etiqueta, não gera rastreio automático) — é o que dá pra fazer sem endereço de destino confirmado.
+// Melhor Envio — cotação de frete real via API v2, autenticada com token direto (gerado no painel
+// deles, sem OAuth). Escopo só de cotação (não compra etiqueta, não gera rastreio automático).
 // ---------------------------------------------------------------------
 
 function melhorEnvioUrlBase() {
@@ -1112,8 +1112,26 @@ function melhorEnvioUrlBase() {
         : 'https://sandbox.melhorenvio.com.br';
 }
 
+// Token gerado direto no painel do Melhor Envio (Integrações > Tokens de Acesso) — sem Client
+// ID/Secret, sem fluxo de autorização. Validade de ~1 ano; quando expirar, gera um novo token no
+// painel deles e cola em config/chaves.php, não tem renovação automática pra isso.
 function melhorEnvioConectado() {
-    return obterConfiguracaoSistema('melhor_envio_refresh_token') !== null;
+    return defined('MELHOR_ENVIO_TOKEN') && MELHOR_ENVIO_TOKEN !== '';
+}
+
+// Lê o "exp" (data de expiração) de dentro do próprio token, só pra exibir no admin — não valida
+// assinatura nem autentica nada com isso, é puramente informativo (JWT é só base64, não é secreto
+// decodificar a leitura, só a chave privada de assinatura é secreta e essa a gente nem tem).
+function melhorEnvioTokenExpiraEm() {
+    if (!melhorEnvioConectado()) {
+        return null;
+    }
+    $partes = explode('.', MELHOR_ENVIO_TOKEN);
+    if (count($partes) !== 3) {
+        return null;
+    }
+    $payload = json_decode(base64_decode(strtr($partes[1], '-_', '+/')), true);
+    return isset($payload['exp']) ? (int) $payload['exp'] : null;
 }
 
 // User-Agent identificando a aplicação não é boa prática opcional aqui — o Melhor Envio rejeita
@@ -1149,77 +1167,14 @@ function _melhorEnvioRequisicao($metodo, $url, $corpo = null, $token = null) {
     return json_decode($resposta, true);
 }
 
-function _melhorEnvioSalvarToken($dados) {
-    definirConfiguracaoSistema('melhor_envio_access_token', $dados['access_token']);
-    definirConfiguracaoSistema('melhor_envio_expira_em', (string) (time() + (int) ($dados['expires_in'] ?? 0)));
-    if (!empty($dados['refresh_token'])) {
-        definirConfiguracaoSistema('melhor_envio_refresh_token', $dados['refresh_token']);
-    }
-}
-
-function melhorEnvioTrocarCodigoPorToken($code) {
-    $dados = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/oauth/token', [
-        'grant_type' => 'authorization_code',
-        'client_id' => MELHOR_ENVIO_CLIENT_ID,
-        'client_secret' => MELHOR_ENVIO_CLIENT_SECRET,
-        'redirect_uri' => MELHOR_ENVIO_REDIRECT_URI,
-        'code' => $code,
-    ]);
-    if (!$dados || empty($dados['access_token'])) {
-        return false;
-    }
-    _melhorEnvioSalvarToken($dados);
-    return true;
-}
-
-function melhorEnvioRenovarToken() {
-    $refreshToken = obterConfiguracaoSistema('melhor_envio_refresh_token');
-    if (!$refreshToken) {
-        return false;
-    }
-    $dados = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/oauth/token', [
-        'grant_type' => 'refresh_token',
-        'client_id' => MELHOR_ENVIO_CLIENT_ID,
-        'client_secret' => MELHOR_ENVIO_CLIENT_SECRET,
-        'refresh_token' => $refreshToken,
-    ]);
-    if (!$dados || empty($dados['access_token'])) {
-        return false;
-    }
-    _melhorEnvioSalvarToken($dados);
-    return true;
-}
-
-function melhorEnvioObterAccessToken() {
-    $token = obterConfiguracaoSistema('melhor_envio_access_token');
-    $expiraEm = (int) obterConfiguracaoSistema('melhor_envio_expira_em');
-    // Renova com 1 dia de folga em vez de esperar expirar de verdade — evita a cotação falhar bem
-    // na hora que o cliente tá fechando o checkout.
-    if (!$token || $expiraEm - time() < 86400) {
-        if (!melhorEnvioRenovarToken()) {
-            return null;
-        }
-        $token = obterConfiguracaoSistema('melhor_envio_access_token');
-    }
-    return $token;
-}
-
-function melhorEnvioDesconectar() {
-    global $pdo;
-    $pdo->prepare("DELETE FROM ConfiguracaoSistema WHERE Chave LIKE 'melhor\\_envio\\_%' AND FKUsuario IS NULL")->execute();
-}
-
-// Cotação real — retorna null se não dá pra cotar (não conectado, API fora, produto sem caixa
-// definida). Quem chama cai no calcularFrete() fixo como reserva, checkout nunca trava por causa
-// disso.
+// Cotação real — retorna null se não dá pra cotar (token não configurado, API fora, produto sem
+// caixa definida). Quem chama cai no calcularFrete() fixo como reserva, checkout nunca trava por
+// causa disso.
 function obterOpcoesFrete($cepDestino, $itens) {
-    if (!defined('MELHOR_ENVIO_CEP_ORIGEM') || MELHOR_ENVIO_CEP_ORIGEM === '') {
+    if (!defined('MELHOR_ENVIO_CEP_ORIGEM') || MELHOR_ENVIO_CEP_ORIGEM === '' || !melhorEnvioConectado()) {
         return null;
     }
-    $token = melhorEnvioObterAccessToken();
-    if (!$token) {
-        return null;
-    }
+    $token = MELHOR_ENVIO_TOKEN;
 
     global $pdo;
     $produtos = [];

@@ -5,18 +5,12 @@ require_once __DIR__ . '/../../config/funcoes.php';
 require_once __DIR__ . '/../../config/chaves.php';
 exigirLoginAdmin();
 garantirTabelaCaixaEnvio();
-garantirTabelaConfiguracaoSistema();
 
 global $pdo;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $sucesso = null;
-
-    if ($action === 'desconectar_melhor_envio') {
-        melhorEnvioDesconectar();
-        $sucesso = true;
-    }
 
     if ($action === 'criar' || $action === 'editar') {
         $id = $_POST['id'] ?? '';
@@ -79,16 +73,15 @@ require __DIR__ . '/../_topo.php';
 <div class="card p-4 mb-4">
     <h2 class="h5 mb-3">Integração Melhor Envio</h2>
     <?php if ($melhorEnvioConectado): ?>
-        <p class="mb-3"><span class="badge-sucesso px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-check-circle-fill"></i> Conectado</span> — o frete no checkout já usa cotação real (ambiente: <strong><?= MELHOR_ENVIO_AMBIENTE === 'producao' ? 'produção' : 'sandbox (teste)' ?></strong>).</p>
-        <form method="post" data-confirmar="Desconectar o Melhor Envio? O checkout volta a usar o frete fixo até reconectar.">
-            <input type="hidden" name="action" value="desconectar_melhor_envio">
-            <button type="submit" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-plug"></i> Desconectar</button>
-        </form>
-    <?php elseif (MELHOR_ENVIO_CLIENT_ID === '' || MELHOR_ENVIO_CEP_ORIGEM === ''): ?>
-        <p class="mb-0"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-exclamation-triangle"></i> Não configurado</span> — falta preencher Client ID/Secret e o CEP de origem em <code>config/chaves.php</code> antes de conectar.</p>
+        <?php $expiraEm = melhorEnvioTokenExpiraEm(); ?>
+        <p class="mb-0"><span class="badge-sucesso px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-check-circle-fill"></i> Token configurado</span> — o frete no checkout já usa cotação real (ambiente: <strong><?= MELHOR_ENVIO_AMBIENTE === 'producao' ? 'produção' : 'sandbox (teste)' ?></strong>).</p>
+        <?php if ($expiraEm): ?>
+            <p class="text-secundario small mb-0 mt-2">Token válido até <?= date('d/m/Y', $expiraEm) ?> — quando expirar, gera um novo no painel do Melhor Envio e atualiza <code>config/chaves.php</code> no servidor.</p>
+        <?php endif; ?>
+    <?php elseif (MELHOR_ENVIO_CEP_ORIGEM === ''): ?>
+        <p class="mb-0"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-exclamation-triangle"></i> Não configurado</span> — falta preencher o token e o CEP de origem em <code>config/chaves.php</code>.</p>
     <?php else: ?>
-        <p class="mb-3"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-exclamation-triangle"></i> Não conectado</span> — o checkout está usando o frete fixo de reserva (config/marca.php) até conectar.</p>
-        <a href="<?= URL_BASE ?>/admin/entregas/melhor-envio-conectar.php" class="btn btn-marca rounded-pill"><i class="bi bi-plug"></i> Conectar com Melhor Envio</a>
+        <p class="mb-0"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-exclamation-triangle"></i> Não configurado</span> — falta o token em <code>config/chaves.php</code> (gera em Melhor Envio &gt; Integrações &gt; Tokens de Acesso). Até lá, o checkout usa o frete fixo de reserva (<code>config/marca.php</code>).</p>
     <?php endif; ?>
 </div>
 
