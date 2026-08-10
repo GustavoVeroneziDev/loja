@@ -1321,6 +1321,9 @@ function _melhorEnvioMontarEnvio($idPedido) {
     if (!$pedido['FreteServicoId']) {
         return ['erro' => 'Esse pedido não tem um serviço de frete cotado (caiu no frete fixo, ou é anterior a essa funcionalidade) — não dá pra comprar etiqueta automaticamente.'];
     }
+    if (!$pedido['EtiquetaPeso'] || !$pedido['EtiquetaAltura'] || !$pedido['EtiquetaLargura'] || !$pedido['EtiquetaComprimento']) {
+        return ['erro' => 'Defina a caixa usada pra embalar esse pedido antes de adicionar ao carrinho do Melhor Envio.'];
+    }
     $configEnvio = obterConfigEnvio();
     if (!configEnvioCompleta($configEnvio)) {
         return ['erro' => 'Dados do remetente não configurados — preencha em Admin > Entregas antes de gerar etiqueta.'];
@@ -1333,39 +1336,32 @@ function _melhorEnvioMontarEnvio($idPedido) {
         return ['erro' => 'Cliente sem CPF ou telefone cadastrado — peça pra completar o cadastro em "Minha conta" antes de gerar a etiqueta (o Melhor Envio exige os dois).'];
     }
 
-    $stmtItens = $pdo->prepare("SELECT ip.NomeProduto, ip.Quantidade, ip.PrecoUnitario, v.FKProduto
-        FROM ItemPedido ip LEFT JOIN VariacaoProduto v ON v.IDVariacao = ip.FKVariacao WHERE ip.FKPedido = :id");
+    $stmtItens = $pdo->prepare("SELECT NomeProduto, Quantidade, PrecoUnitario FROM ItemPedido WHERE FKPedido = :id");
     $stmtItens->execute(['id' => $idPedido]);
     $itens = $stmtItens->fetchAll();
     if (!$itens) {
         return ['erro' => 'Pedido sem itens.'];
     }
 
+    // "products" é só a lista de mercadoria (declaração, não afeta quantos pacotes existem).
+    // "volumes" é o pacote físico de verdade — sempre 1 aqui, com a caixa que o admin escolheu pra
+    // esse pedido especificamente, nunca 1 por produto (várias transportadoras rejeitam envio com
+    // mais de 1 volume; as CaixaEnvio dos produtos são só uma referência pra cotação, não a
+    // embalagem final real).
     $produtos = [];
-    $volumes = [];
     foreach ($itens as $item) {
-        if (!$item['FKProduto']) {
-            return ['erro' => 'Item "' . $item['NomeProduto'] . '" não tem mais a variação original (foi excluída do catálogo) — não dá pra saber peso/dimensão pra gerar a etiqueta.'];
-        }
-        $stmtCaixa = $pdo->prepare("SELECT c.Peso, c.Altura, c.Largura, c.Comprimento FROM Produto p
-            JOIN CaixaEnvio c ON c.IDCaixaEnvio = p.FKCaixaEnvio WHERE p.IDProduto = :id");
-        $stmtCaixa->execute(['id' => $item['FKProduto']]);
-        $caixa = $stmtCaixa->fetch();
-        if (!$caixa) {
-            return ['erro' => 'Produto "' . $item['NomeProduto'] . '" está sem caixa de envio definida agora — defina uma em Admin > Produtos antes de gerar a etiqueta.'];
-        }
         $produtos[] = [
             'name' => mb_substr($item['NomeProduto'], 0, 100),
             'quantity' => (string) (int) $item['Quantidade'],
             'unitary_value' => (float) $item['PrecoUnitario'],
         ];
-        $volumes[] = [
-            'height' => (float) $caixa['Altura'],
-            'width' => (float) $caixa['Largura'],
-            'length' => (float) $caixa['Comprimento'],
-            'weight' => (float) $caixa['Peso'],
-        ];
     }
+    $volumes = [[
+        'height' => (float) $pedido['EtiquetaAltura'],
+        'width' => (float) $pedido['EtiquetaLargura'],
+        'length' => (float) $pedido['EtiquetaComprimento'],
+        'weight' => (float) $pedido['EtiquetaPeso'],
+    ]];
 
     return ['erro' => null, 'payload' => [
         'service' => (int) $pedido['FreteServicoId'],
@@ -1645,6 +1641,19 @@ function garantirTabelaPedido() {
         $pdo->exec("ALTER TABLE Pedido ADD COLUMN MelhorEnvioOrderId VARCHAR(100) NULL AFTER FreteServicoId");
         $pdo->exec("ALTER TABLE Pedido ADD COLUMN EtiquetaComprada TINYINT(1) NOT NULL DEFAULT 0 AFTER MelhorEnvioOrderId");
         $pdo->exec("ALTER TABLE Pedido ADD COLUMN EtiquetaUrl VARCHAR(255) NULL AFTER EtiquetaComprada");
+    }
+
+    // Caixa REAL usada pra embalar esse pedido específico, decidida na hora de gerar a etiqueta —
+    // as CaixaEnvio cadastradas são só uma referência/estimativa pra cotação; o pedido pode sair
+    // numa caixa diferente (às vezes até mais barata que a soma das caixas individuais, se vários
+    // itens couberem juntos). Manda como 1 volume só pra transportadora, não 1 por produto — várias
+    // transportadoras nem aceitam múltiplos volumes na mesma etiqueta.
+    $temEtiquetaPeso = (bool) $pdo->query("SHOW COLUMNS FROM Pedido LIKE 'EtiquetaPeso'")->fetchColumn();
+    if (!$temEtiquetaPeso) {
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN EtiquetaPeso DECIMAL(6,3) NULL AFTER EtiquetaUrl");
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN EtiquetaAltura DECIMAL(6,2) NULL AFTER EtiquetaPeso");
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN EtiquetaLargura DECIMAL(6,2) NULL AFTER EtiquetaAltura");
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN EtiquetaComprimento DECIMAL(6,2) NULL AFTER EtiquetaLargura");
     }
 
     $jaVerificado = true;

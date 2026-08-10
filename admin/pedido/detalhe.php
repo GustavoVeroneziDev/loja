@@ -11,6 +11,7 @@ garantirTabelaItemPedido();
 garantirTabelaHistoricoStatusPedido();
 garantirTabelaUsuario();
 garantirTabelaConfiguracaoSistema();
+garantirTabelaCaixaEnvio();
 
 global $pdo;
 
@@ -54,10 +55,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['flash_erro_etiqueta'] = 'Esse pedido está "' . statusPedidoInfo($pedido['Status'])['label'] . '" — só dá pra gerar etiqueta de pedido pago (ou em status posterior), nunca aguardando pagamento ou cancelado.';
         $sucesso = false;
     } elseif ($action === 'etiqueta_adicionar_carrinho') {
-        $resultado = melhorEnvioAdicionarAoCarrinho($idPedido);
-        $sucesso = $resultado['sucesso'];
-        if (!$sucesso) {
-            $_SESSION['flash_erro_etiqueta'] = $resultado['erro'];
+        // Caixa real desse pedido específico — sempre a caixa escolhida agora, não a soma das
+        // CaixaEnvio de cada produto (essas são só referência de cotação, não a embalagem final).
+        $peso = (float) str_replace(',', '.', $_POST['etiqueta_peso'] ?? '0');
+        $altura = (float) str_replace(',', '.', $_POST['etiqueta_altura'] ?? '0');
+        $largura = (float) str_replace(',', '.', $_POST['etiqueta_largura'] ?? '0');
+        $comprimento = (float) str_replace(',', '.', $_POST['etiqueta_comprimento'] ?? '0');
+        if ($peso <= 0 || $altura <= 0 || $largura <= 0 || $comprimento <= 0) {
+            $_SESSION['flash_erro_etiqueta'] = 'Preencha peso e as 3 dimensões da caixa (todos maiores que zero) antes de adicionar ao carrinho.';
+            $sucesso = false;
+        } else {
+            $pdo->prepare("UPDATE Pedido SET EtiquetaPeso = :peso, EtiquetaAltura = :altura, EtiquetaLargura = :largura, EtiquetaComprimento = :comprimento WHERE IDPedido = :id")
+                ->execute(['peso' => $peso, 'altura' => $altura, 'largura' => $largura, 'comprimento' => $comprimento, 'id' => $idPedido]);
+            $resultado = melhorEnvioAdicionarAoCarrinho($idPedido);
+            $sucesso = $resultado['sucesso'];
+            if (!$sucesso) {
+                $_SESSION['flash_erro_etiqueta'] = $resultado['erro'];
+            }
         }
     } elseif ($action === 'etiqueta_comprar') {
         $resultado = melhorEnvioComprarEtiqueta($idPedido);
@@ -86,6 +100,7 @@ $itens = obterItensPedido($idPedido);
 $historico = obterHistoricoPedido($idPedido);
 $info = statusPedidoInfo($pedido['Status']);
 $statusOpcoes = ['aguardando_pagamento', 'pago', 'preparando', 'enviado', 'entregue', 'cancelado'];
+$caixas = obterCaixasEnvio();
 
 require __DIR__ . '/../_topo.php';
 ?>
@@ -188,23 +203,68 @@ require __DIR__ . '/../_topo.php';
             <?php elseif (!$pedido['FreteServicoId']): ?>
                 <p class="text-secundario small mb-0">Esse pedido não tem um serviço de frete cotado pelo Melhor Envio (caiu no frete fixo, ou é de antes dessa funcionalidade) — anexe o código de rastreio manualmente ali em cima.</p>
             <?php elseif ($pedido['EtiquetaComprada']): ?>
-                <p class="mb-3"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-check-circle"></i> Comprada</span> — falta gerar e pegar o link de impressão.</p>
+                <p class="mb-2"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-check-circle"></i> Comprada</span> — falta gerar e pegar o link de impressão.</p>
+                <p class="text-secundario small mb-3">Caixa: <?= number_format($pedido['EtiquetaPeso'], 3, ',', '.') ?>kg, <?= number_format($pedido['EtiquetaAltura'], 1, ',', '.') ?>×<?= number_format($pedido['EtiquetaLargura'], 1, ',', '.') ?>×<?= number_format($pedido['EtiquetaComprimento'], 1, ',', '.') ?>cm</p>
                 <form method="post">
                     <input type="hidden" name="action" value="etiqueta_gerar_imprimir">
                     <button type="submit" class="btn btn-marca rounded-pill"><i class="bi bi-file-earmark-arrow-down"></i> Gerar etiqueta e link de impressão</button>
                 </form>
             <?php elseif ($pedido['MelhorEnvioOrderId']): ?>
-                <p class="mb-3"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-cart"></i> No carrinho do Melhor Envio</span> — falta comprar de verdade.</p>
+                <p class="mb-2"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-cart"></i> No carrinho do Melhor Envio</span> — falta comprar de verdade.</p>
+                <p class="text-secundario small mb-3">Caixa: <?= number_format($pedido['EtiquetaPeso'], 3, ',', '.') ?>kg, <?= number_format($pedido['EtiquetaAltura'], 1, ',', '.') ?>×<?= number_format($pedido['EtiquetaLargura'], 1, ',', '.') ?>×<?= number_format($pedido['EtiquetaComprimento'], 1, ',', '.') ?>cm</p>
                 <form method="post" data-confirmar="Comprar essa etiqueta agora vai descontar <?= formatarPreco($pedido['ValorFrete']) ?> do saldo da sua conta no Melhor Envio. Confirma?">
                     <input type="hidden" name="action" value="etiqueta_comprar">
                     <button type="submit" class="btn btn-marca rounded-pill"><i class="bi bi-wallet2"></i> Comprar etiqueta (<?= formatarPreco($pedido['ValorFrete']) ?>)</button>
                 </form>
             <?php else: ?>
-                <p class="text-secundario small mb-3">Ainda não iniciado. Primeiro passo é só reservar no Melhor Envio — não custa nada ainda.</p>
+                <p class="text-secundario small mb-3">Ainda não iniciado. Escolha a caixa real usada pra embalar esse pedido (as caixas cadastradas são só uma referência pra preencher rápido — ajuste os números se for embalar diferente) e reserve no Melhor Envio — esse passo não custa nada ainda.</p>
                 <form method="post">
                     <input type="hidden" name="action" value="etiqueta_adicionar_carrinho">
+                    <div class="mb-2">
+                        <label class="form-label">Caixa usada</label>
+                        <select class="form-select" id="selectCaixaEtiqueta<?= $idPedido ?>">
+                            <option value="">-- Preencher manualmente --</option>
+                            <?php foreach ($caixas as $caixa): ?>
+                                <option value="<?= $caixa['IDCaixaEnvio'] ?>" data-peso="<?= number_format($caixa['Peso'], 3, '.', '') ?>" data-altura="<?= number_format($caixa['Altura'], 2, '.', '') ?>" data-largura="<?= number_format($caixa['Largura'], 2, '.', '') ?>" data-comprimento="<?= number_format($caixa['Comprimento'], 2, '.', '') ?>">
+                                    <?= htmlspecialchars($caixa['Nome']) ?> (<?= number_format($caixa['Peso'], 3, ',', '.') ?>kg, <?= number_format($caixa['Altura'], 1, ',', '.') ?>×<?= number_format($caixa['Largura'], 1, ',', '.') ?>×<?= number_format($caixa['Comprimento'], 1, ',', '.') ?>cm)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-3">
+                            <label class="form-label small">Peso (kg)</label>
+                            <input type="text" name="etiqueta_peso" class="form-control mascara-peso" data-campo-caixa="peso" inputmode="decimal" required>
+                        </div>
+                        <div class="col-3">
+                            <label class="form-label small">Altura (cm)</label>
+                            <input type="text" name="etiqueta_altura" class="form-control mascara-dimensao" data-campo-caixa="altura" inputmode="decimal" required>
+                        </div>
+                        <div class="col-3">
+                            <label class="form-label small">Largura (cm)</label>
+                            <input type="text" name="etiqueta_largura" class="form-control mascara-dimensao" data-campo-caixa="largura" inputmode="decimal" required>
+                        </div>
+                        <div class="col-3">
+                            <label class="form-label small">Comp. (cm)</label>
+                            <input type="text" name="etiqueta_comprimento" class="form-control mascara-dimensao" data-campo-caixa="comprimento" inputmode="decimal" required>
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-cart-plus"></i> Adicionar ao carrinho do Melhor Envio</button>
                 </form>
+                <script>
+                    (function () {
+                        var select = document.getElementById('selectCaixaEtiqueta<?= $idPedido ?>');
+                        select.addEventListener('change', function () {
+                            var opcao = select.options[select.selectedIndex];
+                            if (!opcao.value) { return; }
+                            ['peso', 'altura', 'largura', 'comprimento'].forEach(function (campo) {
+                                var input = select.closest('form').querySelector('[data-campo-caixa="' + campo + '"]');
+                                var casas = campo === 'peso' ? 3 : 1;
+                                input.value = parseFloat(opcao.dataset[campo]).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+                            });
+                        });
+                    })();
+                </script>
             <?php endif; ?>
         </div>
 
