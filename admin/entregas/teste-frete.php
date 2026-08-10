@@ -40,6 +40,11 @@ $comCaixa = (int) $pdo->query("SELECT COUNT(*) FROM Produto WHERE FKCaixaEnvio I
 echo "$comCaixa de $totalProdutos produtos com caixa definida\n";
 if ($comCaixa < $totalProdutos) {
     echo "ATENÇÃO: produto sem caixa faz a cotação do carrinho inteiro cair no frete fixo.\n";
+    echo "Sem caixa:\n";
+    $semCaixa = $pdo->query("SELECT IDProduto, Nome FROM Produto WHERE FKCaixaEnvio IS NULL")->fetchAll();
+    foreach ($semCaixa as $p) {
+        echo "- [{$p['IDProduto']}] {$p['Nome']}\n";
+    }
 }
 echo "\n";
 
