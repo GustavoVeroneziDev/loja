@@ -204,6 +204,18 @@ body {
     white-space: nowrap;
 }
 
+/* Nome do produto no card da grade — trava em 2 linhas com "..." em vez de deixar o card esticar
+   conforme o nome. min-height reserva o espaço das 2 linhas mesmo pra nome de 1 linha só, pra todo
+   card da fileira ficar com a mesma altura de conteúdo abaixo (imagem/preço/botão sempre alinhados). */
+.nome-produto-card {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.3rem;
+    min-height: 2.6rem;
+}
+
 /* Contador no botão de carrinho da navbar */
 .badge-carrinho {
     position: absolute;

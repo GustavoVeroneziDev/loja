@@ -34,7 +34,7 @@
                              class="card-img-top" style="aspect-ratio: 1; object-fit: cover; border-radius: 16px 16px 0 0;"
                              alt="<?= htmlspecialchars($produto['Nome']) ?>">
                         <div class="card-body pb-1">
-                            <h2 class="h6 mb-1"><?= htmlspecialchars($produto['Nome']) ?></h2>
+                            <h2 class="h6 mb-1 nome-produto-card" title="<?= htmlspecialchars($produto['Nome']) ?>"><?= htmlspecialchars($produto['Nome']) ?></h2>
                             <p class="text-marca fw-semibold mb-0">
                                 <?= $produto['PrecoMinimo'] !== null ? formatarPreco($produto['PrecoMinimo']) : 'Consulte' ?>
                             </p>
