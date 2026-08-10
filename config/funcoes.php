@@ -1202,7 +1202,9 @@ function obterOpcoesFrete($cepDestino, $itens) {
             'id' => (string) $opcao['id'],
             'transportadora' => $opcao['company']['name'] ?? '',
             'servico' => $opcao['name'] ?? '',
-            'preco' => (float) $preco,
+            // round() além do cast — sem isso, dependendo do serialize_precision do PHP do host,
+            // o JSON sai com lixo de ponto flutuante tipo 21.870000000000000994... em vez de 21.87.
+            'preco' => round((float) $preco, 2),
             'prazo_dias' => (int) ($opcao['custom_delivery_time'] ?? $opcao['delivery_time'] ?? 0),
         ];
     }
