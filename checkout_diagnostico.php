@@ -196,6 +196,45 @@ if ($rCupom['resposta'] !== false) {
 }
 echo "\n";
 
+echo "=== TESTE 7B: GET real pro checkout.php (simula só ABRIR a página no navegador) ===\n";
+echo "POST normalmente não passa por cache de página — GET é o que o navegador faz ao abrir a\n";
+echo "URL, e é o que um cache (LiteSpeed LSCache, CDN etc.) intercepta. Se o HTML/JS aqui embaixo\n";
+echo "estiver desatualizado (versão de antes da correção), achamos o problema.\n";
+function buscarGetComoNavegador($url, $cookieNome, $cookieValor) {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'],
+        CURLOPT_COOKIE => $cookieNome . '=' . $cookieValor,
+        CURLOPT_TIMEOUT => 20,
+        CURLOPT_HEADER => true,
+    ]);
+    $t0 = microtime(true);
+    $resposta = curl_exec($ch);
+    $duracao = tempo($t0);
+    $info = curl_getinfo($ch);
+    curl_close($ch);
+    return compact('resposta', 'duracao', 'info');
+}
+$rGet = buscarGetComoNavegador($urlBaseAbsoluta . '/checkout.php', session_name(), session_id());
+$headersGet = substr($rGet['resposta'], 0, $rGet['info']['header_size']);
+$corpoGet = substr($rGet['resposta'], $rGet['info']['header_size']);
+echo "Tempo: {$rGet['duracao']}\n";
+echo "HTTP status: {$rGet['info']['http_code']}\n";
+echo "\n--- TODOS os headers de resposta (procurando sinal de cache) ---\n" . trim($headersGet) . "\n";
+$temSinalCache = preg_match('/x-litespeed-cache|x-cache|age:|x-lscache/i', $headersGet);
+echo "\nSinal de cache nos headers? " . ($temSinalCache ? 'SIM — ver linha marcada acima' : 'não vi header de cache conhecido') . "\n";
+echo "\n--- Esse HTML tem o JS novo (fetch/checkout_frete)? ---\n";
+echo "Contém 'checkout_frete.php' no HTML: " . (str_contains($corpoGet, 'checkout_frete.php') ? 'SIM — JS novo presente' : 'NÃO — JS antigo/ausente, é isso') . "\n";
+echo "Contém 'btnCalcularFrete': " . (str_contains($corpoGet, 'btnCalcularFrete') ? 'sim' : 'NÃO') . "\n";
+echo "Contém o auto-submit antigo ('requestSubmit'): " . (str_contains($corpoGet, 'requestSubmit') ? 'SIM — isso é código VELHO, página está desatualizada' : 'não, ok') . "\n";
+echo "\n--- Rodando de novo, 3 segundos depois, pra comparar ---\n";
+sleep(3);
+$rGet2 = buscarGetComoNavegador($urlBaseAbsoluta . '/checkout.php', session_name(), session_id());
+$corpoGet2 = substr($rGet2['resposta'], $rGet2['info']['header_size']);
+echo "Segunda resposta é byte-a-byte igual a primeira? " . ($corpoGet === $corpoGet2 ? 'sim (esperado, é dinâmico mas conteúdo estável)' : 'não, mudou') . "\n";
+echo "\n";
+
 echo "=== TESTE 8: mensagens de erro registradas (error_log do PHP) ===\n";
 $logPhp = ini_get('error_log');
 echo "Caminho configurado do error_log: " . ($logPhp ?: '(não configurado / vai pro log padrão do servidor, não acessível aqui)') . "\n";
