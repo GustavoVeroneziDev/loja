@@ -175,7 +175,7 @@ require __DIR__ . '/geral/header.php';
                         <?php foreach ($enderecos as $e): ?>
                             <label class="card p-3 mb-0" style="cursor: pointer;">
                                 <div class="d-flex gap-2 align-items-start">
-                                    <input type="radio" name="endereco_id" value="<?= htmlspecialchars($e['IDEndereco']) ?>" class="form-check-input mt-1" <?= $enderecoSelecionadoId === $e['IDEndereco'] ? 'checked' : '' ?> onchange="document.getElementById('camposNovoEndereco').classList.add('d-none')">
+                                    <input type="radio" name="endereco_id" value="<?= htmlspecialchars($e['IDEndereco']) ?>" class="form-check-input mt-1" <?= $enderecoSelecionadoId === $e['IDEndereco'] ? 'checked' : '' ?> onchange="alternarCamposNovoEndereco(false)">
                                     <div>
                                         <?= htmlspecialchars($e['Logradouro']) ?>, <?= htmlspecialchars($e['Numero']) ?><?= $e['Complemento'] ? ' — ' . htmlspecialchars($e['Complemento']) : '' ?><br>
                                         <span class="text-secundario small"><?= htmlspecialchars($e['Cidade']) ?>/<?= htmlspecialchars($e['UF']) ?> — CEP <?= htmlspecialchars($e['CEP']) ?></span>
@@ -185,7 +185,7 @@ require __DIR__ . '/geral/header.php';
                         <?php endforeach; ?>
                         <label class="card p-3 mb-0" style="cursor: pointer;">
                             <div class="d-flex gap-2 align-items-center">
-                                <input type="radio" name="endereco_id" value="novo" class="form-check-input" <?= !$enderecoVeioDeSelecao ? 'checked' : '' ?> onchange="document.getElementById('camposNovoEndereco').classList.remove('d-none')">
+                                <input type="radio" name="endereco_id" value="novo" class="form-check-input" <?= !$enderecoVeioDeSelecao ? 'checked' : '' ?> onchange="alternarCamposNovoEndereco(true)">
                                 <span>Usar um novo endereço</span>
                             </div>
                         </label>
@@ -194,6 +194,21 @@ require __DIR__ . '/geral/header.php';
                 <div id="camposNovoEndereco" class="form-endereco <?= ($enderecos && $enderecoVeioDeSelecao) ? 'd-none' : '' ?>">
                     <?php require __DIR__ . '/usuario/_campos-endereco.php'; ?>
                 </div>
+                <script>
+                    // Campo obrigatório escondido (display:none) não devia travar o envio do
+                    // formulário — mas no navegador real ele trava mesmo assim ("is not focusable").
+                    // Tira o "required" de verdade quando esconde, em vez de confiar que o navegador
+                    // vai ignorar sozinho.
+                    function alternarCamposNovoEndereco(mostrar) {
+                        var container = document.getElementById('camposNovoEndereco');
+                        container.classList.toggle('d-none', !mostrar);
+                        ['cep', 'logradouro', 'numero', 'uf', 'cidade'].forEach(function (nome) {
+                            var campo = container.querySelector('[name="' + nome + '"]');
+                            if (campo) { campo.required = mostrar; }
+                        });
+                    }
+                    alternarCamposNovoEndereco(!document.getElementById('camposNovoEndereco').classList.contains('d-none'));
+                </script>
                 <?php if (!$freteGratis): ?>
                     <button type="button" id="btnCalcularFrete" class="btn btn-outline-secondary rounded-pill mt-3">
                         <i class="bi bi-truck"></i> Calcular frete
@@ -312,17 +327,51 @@ require __DIR__ . '/geral/header.php';
     }
 
     function selecionarOpcao(opcao) {
+        idSelecionadoAtual = opcao.id;
         atualizarResumo(opcao.preco, opcao.transportadora + (opcao.servico ? ' — ' + opcao.servico : ''));
         btnConfirmar.disabled = false;
     }
 
+    // Mais barata primeiro por padrão (já é "melhor custo-benefício" na ausência de outro critério
+    // explícito) — os 2 botões deixam escolher preço ou prazo, cada um alternando crescente/decrescente.
+    var opcoesAtuais = [];
+    var idSelecionadoAtual = null;
+    var ordenacao = { campo: 'preco', direcao: 'asc' };
+
+    function ordenarOpcoes(opcoes) {
+        var copia = opcoes.slice();
+        copia.sort(function (a, b) {
+            var diff = a[ordenacao.campo] - b[ordenacao.campo];
+            return ordenacao.direcao === 'asc' ? diff : -diff;
+        });
+        return copia;
+    }
+
     function renderOpcoes(opcoes) {
-        var html = '<div class="d-flex flex-column gap-2">';
-        opcoes.forEach(function (op, indice) {
+        opcoesAtuais = opcoes;
+        // Preserva a escolha atual ao reordenar — só cai na mais barata na primeira vez (ou se a
+        // opção escolhida deixou de existir numa cotação nova).
+        if (idSelecionadoAtual === null || !opcoes.some(function (o) { return o.id === idSelecionadoAtual; })) {
+            idSelecionadoAtual = opcoes.length ? opcoes[0].id : null;
+        }
+        var ordenadas = ordenarOpcoes(opcoes);
+
+        function rotuloBotao(campo, texto) {
+            var ativo = ordenacao.campo === campo;
+            var classe = ativo ? 'btn-marca' : 'btn-outline-secondary';
+            var icone = ativo ? (ordenacao.direcao === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down') : 'bi-arrow-down-up';
+            return '<button type="button" class="btn btn-sm rounded-pill ' + classe + '" data-campo="' + campo + '"><i class="bi ' + icone + '"></i> ' + texto + '</button>';
+        }
+
+        var html = '<div class="d-flex gap-2 mb-3">' +
+            '<span class="text-secundario small align-self-center">Ordenar por:</span>' +
+            rotuloBotao('preco', 'Preço') + rotuloBotao('prazo_dias', 'Prazo') +
+            '</div><div class="d-flex flex-column gap-2">';
+        ordenadas.forEach(function (op) {
             html += '<label class="card p-3 mb-0" style="cursor: pointer;">' +
                 '<div class="d-flex justify-content-between align-items-center gap-3">' +
                 '<div class="d-flex gap-2 align-items-start">' +
-                '<input type="radio" name="frete_servico" value="' + escaparHtml(op.id) + '" class="form-check-input mt-1"' + (indice === 0 ? ' checked' : '') + '>' +
+                '<input type="radio" name="frete_servico" value="' + escaparHtml(op.id) + '" class="form-check-input mt-1"' + (op.id === idSelecionadoAtual ? ' checked' : '') + '>' +
                 '<div><div class="fw-semibold">' + escaparHtml(op.transportadora) + (op.servico ? ' — ' + escaparHtml(op.servico) : '') + '</div>' +
                 '<span class="text-secundario small">' + (op.prazo_dias > 0 ? 'Chega em até ' + op.prazo_dias + ' dia(s) útil(eis)' : 'Prazo a confirmar') + '</span></div>' +
                 '</div>' +
@@ -332,10 +381,24 @@ require __DIR__ . '/geral/header.php';
         html += '</div>';
         freteConteudo.innerHTML = html;
 
-        freteConteudo.querySelectorAll('input[name="frete_servico"]').forEach(function (radio, indice) {
-            radio.addEventListener('change', function () { selecionarOpcao(opcoes[indice]); });
+        freteConteudo.querySelectorAll('button[data-campo]').forEach(function (botao) {
+            botao.addEventListener('click', function () {
+                var campo = botao.dataset.campo;
+                if (ordenacao.campo === campo) {
+                    ordenacao.direcao = ordenacao.direcao === 'asc' ? 'desc' : 'asc';
+                } else {
+                    ordenacao.campo = campo;
+                    ordenacao.direcao = 'asc';
+                }
+                renderOpcoes(opcoesAtuais);
+            });
         });
-        selecionarOpcao(opcoes[0]);
+        freteConteudo.querySelectorAll('input[name="frete_servico"]').forEach(function (radio, indice) {
+            radio.addEventListener('change', function () { selecionarOpcao(ordenadas[indice]); });
+        });
+
+        var opcaoSelecionada = opcoes.find(function (o) { return o.id === idSelecionadoAtual; });
+        selecionarOpcao(opcaoSelecionada);
     }
 
     function coletarDadosEndereco() {
@@ -350,6 +413,7 @@ require __DIR__ . '/geral/header.php';
     }
 
     function buscarFrete() {
+        idSelecionadoAtual = null; // cotação nova — não herda seleção de um endereço/busca anterior
         estadoEsperando('Calculando frete...');
         btnCalcularFrete.disabled = true;
         fetch('<?= URL_BASE ?>/checkout_frete.php', { method: 'POST', body: coletarDadosEndereco() })
@@ -385,6 +449,8 @@ require __DIR__ . '/geral/header.php';
     }
 
     function resetarFrete() {
+        idSelecionadoAtual = null;
+        opcoesAtuais = [];
         estadoEsperando('Endereço alterado — clique em "Calcular frete" pra ver as opções.');
     }
 
