@@ -1035,14 +1035,247 @@ function obterEnderecosPorUsuario($idUsuario) {
     return $stmt->fetchAll();
 }
 
-// Placeholder isolado nesta função só — fixo, grátis acima de um valor (config/marca.php). Trocar
-// por um provedor de verdade (Melhor Envio etc.) depois é só reescrever o corpo daqui, ninguém
-// que chama calcularFrete() precisa mudar.
+// Reserva pra quando obterOpcoesFrete() não consegue cotar de verdade (Melhor Envio desconectado,
+// API fora do ar, produto sem CaixaEnvio definida) — fixo, grátis acima de um valor (config/marca.php).
+// Checkout nunca trava por causa de uma integração externa fora do ar.
 function calcularFrete($cep, $subtotal) {
     if ($subtotal >= FRETE_GRATIS_ACIMA_DE) {
         return 0.0;
     }
     return FRETE_VALOR_PADRAO;
+}
+
+// ---------------------------------------------------------------------
+// Configuração genérica do sistema (chave/valor) — usada aqui pra guardar o token OAuth do Melhor
+// Envio, reaproveitável por qualquer flag/config futura em vez de criar tabela nova toda hora.
+// ---------------------------------------------------------------------
+
+function garantirTabelaConfiguracaoSistema() {
+    static $jaVerificado = false;
+    if ($jaVerificado) {
+        return;
+    }
+    global $pdo;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS ConfiguracaoSistema (
+        IDConfiguracao CHAR(36) PRIMARY KEY,
+        Chave VARCHAR(100) NOT NULL,
+        Valor TEXT NULL,
+        FKUsuario CHAR(36) NULL,
+        MomentoAtualizacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (FKUsuario) REFERENCES Usuario(IDUsuario) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $jaVerificado = true;
+}
+
+function obterConfiguracaoSistema($chave, $idUsuario = null) {
+    global $pdo;
+    if ($idUsuario === null) {
+        $stmt = $pdo->prepare("SELECT Valor FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario IS NULL");
+        $stmt->execute(['chave' => $chave]);
+    } else {
+        $stmt = $pdo->prepare("SELECT Valor FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario = :usuario");
+        $stmt->execute(['chave' => $chave, 'usuario' => $idUsuario]);
+    }
+    $valor = $stmt->fetchColumn();
+    return $valor !== false ? $valor : null;
+}
+
+function definirConfiguracaoSistema($chave, $valor, $idUsuario = null) {
+    global $pdo;
+    // Nunca confia em ON DUPLICATE KEY UPDATE aqui — não existe UNIQUE KEY garantida cobrindo
+    // (Chave, FKUsuario) porque FKUsuario NULL não é comparável de forma confiável num UNIQUE do
+    // MySQL. SELECT pra checar se existe, UPDATE se existir, INSERT se não.
+    if ($idUsuario === null) {
+        $stmt = $pdo->prepare("SELECT IDConfiguracao FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario IS NULL");
+        $stmt->execute(['chave' => $chave]);
+    } else {
+        $stmt = $pdo->prepare("SELECT IDConfiguracao FROM ConfiguracaoSistema WHERE Chave = :chave AND FKUsuario = :usuario");
+        $stmt->execute(['chave' => $chave, 'usuario' => $idUsuario]);
+    }
+    $id = $stmt->fetchColumn();
+    if ($id) {
+        $pdo->prepare("UPDATE ConfiguracaoSistema SET Valor = :valor WHERE IDConfiguracao = :id")->execute(['valor' => $valor, 'id' => $id]);
+    } else {
+        $pdo->prepare("INSERT INTO ConfiguracaoSistema (IDConfiguracao, Chave, Valor, FKUsuario) VALUES (:id, :chave, :valor, :usuario)")
+            ->execute(['id' => gerarUuid(), 'chave' => $chave, 'valor' => $valor, 'usuario' => $idUsuario]);
+    }
+}
+
+// ---------------------------------------------------------------------
+// Melhor Envio — cotação de frete real via OAuth2 + API v2. Escopo só de cotação (não compra
+// etiqueta, não gera rastreio automático) — é o que dá pra fazer sem endereço de destino confirmado.
+// ---------------------------------------------------------------------
+
+function melhorEnvioUrlBase() {
+    return MELHOR_ENVIO_AMBIENTE === 'producao'
+        ? 'https://melhorenvio.com.br'
+        : 'https://sandbox.melhorenvio.com.br';
+}
+
+function melhorEnvioConectado() {
+    return obterConfiguracaoSistema('melhor_envio_refresh_token') !== null;
+}
+
+// User-Agent identificando a aplicação não é boa prática opcional aqui — o Melhor Envio rejeita
+// requisição sem isso.
+function _melhorEnvioRequisicao($metodo, $url, $corpo = null, $token = null) {
+    $headers = ['Accept: application/json', 'Content-Type: application/json', 'User-Agent: ' . NOME_LOJA . ' (' . TEXTO_CONTATO . ')'];
+    if ($token) {
+        $headers[] = 'Authorization: Bearer ' . $token;
+    }
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST => $metodo,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_TIMEOUT => 10,
+    ]);
+    if ($corpo !== null) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($corpo));
+    }
+    $resposta = curl_exec($ch);
+    $codigoHttp = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $erroCurl = curl_error($ch);
+    curl_close($ch);
+
+    if ($erroCurl !== '') {
+        error_log('Melhor Envio — falha de conexão: ' . $erroCurl);
+        return null;
+    }
+    if ($codigoHttp >= 400) {
+        error_log('Melhor Envio — HTTP ' . $codigoHttp . ': ' . $resposta);
+        return null;
+    }
+    return json_decode($resposta, true);
+}
+
+function _melhorEnvioSalvarToken($dados) {
+    definirConfiguracaoSistema('melhor_envio_access_token', $dados['access_token']);
+    definirConfiguracaoSistema('melhor_envio_expira_em', (string) (time() + (int) ($dados['expires_in'] ?? 0)));
+    if (!empty($dados['refresh_token'])) {
+        definirConfiguracaoSistema('melhor_envio_refresh_token', $dados['refresh_token']);
+    }
+}
+
+function melhorEnvioTrocarCodigoPorToken($code) {
+    $dados = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/oauth/token', [
+        'grant_type' => 'authorization_code',
+        'client_id' => MELHOR_ENVIO_CLIENT_ID,
+        'client_secret' => MELHOR_ENVIO_CLIENT_SECRET,
+        'redirect_uri' => MELHOR_ENVIO_REDIRECT_URI,
+        'code' => $code,
+    ]);
+    if (!$dados || empty($dados['access_token'])) {
+        return false;
+    }
+    _melhorEnvioSalvarToken($dados);
+    return true;
+}
+
+function melhorEnvioRenovarToken() {
+    $refreshToken = obterConfiguracaoSistema('melhor_envio_refresh_token');
+    if (!$refreshToken) {
+        return false;
+    }
+    $dados = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/oauth/token', [
+        'grant_type' => 'refresh_token',
+        'client_id' => MELHOR_ENVIO_CLIENT_ID,
+        'client_secret' => MELHOR_ENVIO_CLIENT_SECRET,
+        'refresh_token' => $refreshToken,
+    ]);
+    if (!$dados || empty($dados['access_token'])) {
+        return false;
+    }
+    _melhorEnvioSalvarToken($dados);
+    return true;
+}
+
+function melhorEnvioObterAccessToken() {
+    $token = obterConfiguracaoSistema('melhor_envio_access_token');
+    $expiraEm = (int) obterConfiguracaoSistema('melhor_envio_expira_em');
+    // Renova com 1 dia de folga em vez de esperar expirar de verdade — evita a cotação falhar bem
+    // na hora que o cliente tá fechando o checkout.
+    if (!$token || $expiraEm - time() < 86400) {
+        if (!melhorEnvioRenovarToken()) {
+            return null;
+        }
+        $token = obterConfiguracaoSistema('melhor_envio_access_token');
+    }
+    return $token;
+}
+
+function melhorEnvioDesconectar() {
+    global $pdo;
+    $pdo->prepare("DELETE FROM ConfiguracaoSistema WHERE Chave LIKE 'melhor\\_envio\\_%' AND FKUsuario IS NULL")->execute();
+}
+
+// Cotação real — retorna null se não dá pra cotar (não conectado, API fora, produto sem caixa
+// definida). Quem chama cai no calcularFrete() fixo como reserva, checkout nunca trava por causa
+// disso.
+function obterOpcoesFrete($cepDestino, $itens) {
+    if (!defined('MELHOR_ENVIO_CEP_ORIGEM') || MELHOR_ENVIO_CEP_ORIGEM === '') {
+        return null;
+    }
+    $token = melhorEnvioObterAccessToken();
+    if (!$token) {
+        return null;
+    }
+
+    global $pdo;
+    $produtos = [];
+    foreach ($itens as $item) {
+        $idProduto = $item['variacao']['IDProduto'];
+        $stmt = $pdo->prepare("SELECT c.Peso, c.Altura, c.Largura, c.Comprimento FROM Produto p
+            JOIN CaixaEnvio c ON c.IDCaixaEnvio = p.FKCaixaEnvio WHERE p.IDProduto = :id");
+        $stmt->execute(['id' => $idProduto]);
+        $caixa = $stmt->fetch();
+        if (!$caixa) {
+            // Sem caixa definida pra pelo menos 1 item do carrinho — não dá pra cotar o pedido
+            // inteiro direito, melhor cair no frete fixo do que subcotar por faltar peso/dimensão.
+            error_log('Melhor Envio — produto ' . $idProduto . ' sem CaixaEnvio definida, cotação abortada.');
+            return null;
+        }
+        $produtos[] = [
+            'id' => $idProduto,
+            'width' => (float) $caixa['Largura'],
+            'height' => (float) $caixa['Altura'],
+            'length' => (float) $caixa['Comprimento'],
+            'weight' => (float) $caixa['Peso'],
+            'insurance_value' => (float) $item['subtotal'],
+            'quantity' => (int) $item['Quantidade'],
+        ];
+    }
+
+    $dados = _melhorEnvioRequisicao('POST', melhorEnvioUrlBase() . '/api/v2/me/shipment/calculate', [
+        'from' => ['postal_code' => preg_replace('/\D/', '', MELHOR_ENVIO_CEP_ORIGEM)],
+        'to' => ['postal_code' => preg_replace('/\D/', '', $cepDestino)],
+        'products' => $produtos,
+    ], $token);
+
+    if (!is_array($dados)) {
+        return null;
+    }
+
+    $opcoes = [];
+    foreach ($dados as $opcao) {
+        // Cotação parcial: serviço indisponível pra essa rota/peso vem com "error" em vez de preço.
+        if (!empty($opcao['error']) || !isset($opcao['id'])) {
+            continue;
+        }
+        $preco = $opcao['custom_price'] ?? $opcao['price'] ?? null;
+        if ($preco === null) {
+            continue;
+        }
+        $opcoes[] = [
+            'id' => (string) $opcao['id'],
+            'transportadora' => $opcao['company']['name'] ?? '',
+            'servico' => $opcao['name'] ?? '',
+            'preco' => (float) $preco,
+            'prazo_dias' => (int) ($opcao['custom_delivery_time'] ?? $opcao['delivery_time'] ?? 0),
+        ];
+    }
+    usort($opcoes, fn($a, $b) => $a['preco'] <=> $b['preco']);
+    return $opcoes ?: null;
 }
 
 function garantirTabelaCupom() {
@@ -1168,6 +1401,15 @@ function garantirTabelaPedido() {
         $pdo->exec("ALTER TABLE Pedido ADD COLUMN Simulacao TINYINT(1) NOT NULL DEFAULT 0 AFTER Status");
     }
 
+    // Transportadora/serviço/prazo escolhidos no checkout (Melhor Envio) — NULL quando o pedido
+    // caiu no frete fixo de reserva (calcularFrete()) por algum motivo.
+    $temFreteTransportadora = (bool) $pdo->query("SHOW COLUMNS FROM Pedido LIKE 'FreteTransportadora'")->fetchColumn();
+    if (!$temFreteTransportadora) {
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN FreteTransportadora VARCHAR(60) NULL AFTER ValorFrete");
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN FreteServico VARCHAR(60) NULL AFTER FreteTransportadora");
+        $pdo->exec("ALTER TABLE Pedido ADD COLUMN FretePrazoDias INT NULL AFTER FreteServico");
+    }
+
     $jaVerificado = true;
 }
 
@@ -1214,7 +1456,11 @@ function garantirTabelaHistoricoStatusPedido() {
 // retroativamente se o produto for editado depois), primeiro HistoricoStatusPedido, soma uso do
 // cupom se tiver, e limpa o carrinho só se tudo deu certo. $endereco é um array com
 // cep/logradouro/numero/complemento/bairro/cidade/uf (de um Endereco salvo ou digitado na hora).
-function criarPedido($idUsuario, $endereco, $cupomCodigo) {
+// $frete e $freteInfo vêm já decididos por quem chama (checkout.php) — não recalcula aqui de
+// propósito: o valor mostrado pro cliente na tela tem que ser exatamente o cobrado, e uma chamada
+// de rede pro Melhor Envio no meio de uma transação de banco é exatamente o tipo de coisa que
+// pode travar seguro. $freteInfo é ['transportadora','servico','prazo_dias'] ou null.
+function criarPedido($idUsuario, $endereco, $cupomCodigo, $frete, $freteInfo = null) {
     global $pdo;
 
     $itens = obterCarrinho();
@@ -1223,7 +1469,6 @@ function criarPedido($idUsuario, $endereco, $cupomCodigo) {
     }
 
     $subtotal = array_sum(array_column($itens, 'subtotal'));
-    $frete = calcularFrete($endereco['cep'], $subtotal);
 
     // Nunca confia no cupom "aplicado" antes — valida de novo aqui, pode ter expirado ou
     // esgotado o limite de uso entre a prévia do checkout e a confirmação de verdade.
@@ -1259,14 +1504,17 @@ function criarPedido($idUsuario, $endereco, $cupomCodigo) {
                 ]);
         }
 
-        $stmt = $pdo->prepare("INSERT INTO Pedido (FKUsuario, Status, Simulacao, ValorSubtotal, ValorDesconto, ValorFrete, ValorTotal, FKCupom, EnderecoCep, EnderecoLogradouro, EnderecoNumero, EnderecoComplemento, EnderecoBairro, EnderecoCidade, EnderecoUF)
-            VALUES (:usuario, 'aguardando_pagamento', :simulacao, :subtotal, :desconto, :frete, :total, :cupom, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf)");
+        $stmt = $pdo->prepare("INSERT INTO Pedido (FKUsuario, Status, Simulacao, ValorSubtotal, ValorDesconto, ValorFrete, FreteTransportadora, FreteServico, FretePrazoDias, ValorTotal, FKCupom, EnderecoCep, EnderecoLogradouro, EnderecoNumero, EnderecoComplemento, EnderecoBairro, EnderecoCidade, EnderecoUF)
+            VALUES (:usuario, 'aguardando_pagamento', :simulacao, :subtotal, :desconto, :frete, :transportadora, :servico, :prazo, :total, :cupom, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf)");
         $stmt->execute([
             'usuario' => $idUsuario,
             'simulacao' => $ehSimulacao ? 1 : 0,
             'subtotal' => $subtotal,
             'desconto' => $desconto,
             'frete' => $frete,
+            'transportadora' => $freteInfo['transportadora'] ?? null,
+            'servico' => $freteInfo['servico'] ?? null,
+            'prazo' => $freteInfo['prazo_dias'] ?? null,
             'total' => $total,
             'cupom' => $cupom['IDCupom'] ?? null,
             'cep' => $endereco['cep'],

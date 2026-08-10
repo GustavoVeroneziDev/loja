@@ -2,14 +2,21 @@
 session_start();
 require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../config/funcoes.php';
+require_once __DIR__ . '/../../config/chaves.php';
 exigirLoginAdmin();
 garantirTabelaCaixaEnvio();
+garantirTabelaConfiguracaoSistema();
 
 global $pdo;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $sucesso = null;
+
+    if ($action === 'desconectar_melhor_envio') {
+        melhorEnvioDesconectar();
+        $sucesso = true;
+    }
 
     if ($action === 'criar' || $action === 'editar') {
         $id = $_POST['id'] ?? '';
@@ -55,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $sucesso = isset($_GET['ok']) ? 'Operação realizada com sucesso.' : null;
 $erro = isset($_GET['erro']) ? 'Preencha nome, peso e as 3 dimensões (todos maiores que zero).' : null;
 $caixas = obterCaixasEnvio();
+$melhorEnvioConectado = melhorEnvioConectado();
 
 require __DIR__ . '/../_topo.php';
 ?>
@@ -64,10 +72,27 @@ require __DIR__ . '/../_topo.php';
         <i class="bi bi-plus-lg"></i> Nova caixa
     </button>
 </div>
-<p class="text-secundario">Peso e tamanho de embalagem, pra calcular o frete de verdade. Cadastre uma vez (ex: "Caixa P", "Caixa M") e escolha qual cada produto usa na própria tela de produto.</p>
 
 <?php if ($sucesso): ?><script>document.addEventListener('DOMContentLoaded', function () { mostrarToastSucesso(<?= json_encode($sucesso) ?>); });</script><?php endif; ?>
 <?php if ($erro): ?><div class="alert alert-danger"><?= $erro ?></div><?php endif; ?>
+
+<div class="card p-4 mb-4">
+    <h2 class="h5 mb-3">Integração Melhor Envio</h2>
+    <?php if ($melhorEnvioConectado): ?>
+        <p class="mb-3"><span class="badge-sucesso px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-check-circle-fill"></i> Conectado</span> — o frete no checkout já usa cotação real (ambiente: <strong><?= MELHOR_ENVIO_AMBIENTE === 'producao' ? 'produção' : 'sandbox (teste)' ?></strong>).</p>
+        <form method="post" data-confirmar="Desconectar o Melhor Envio? O checkout volta a usar o frete fixo até reconectar.">
+            <input type="hidden" name="action" value="desconectar_melhor_envio">
+            <button type="submit" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-plug"></i> Desconectar</button>
+        </form>
+    <?php elseif (MELHOR_ENVIO_CLIENT_ID === '' || MELHOR_ENVIO_CEP_ORIGEM === ''): ?>
+        <p class="mb-0"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-exclamation-triangle"></i> Não configurado</span> — falta preencher Client ID/Secret e o CEP de origem em <code>config/chaves.php</code> antes de conectar.</p>
+    <?php else: ?>
+        <p class="mb-3"><span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-exclamation-triangle"></i> Não conectado</span> — o checkout está usando o frete fixo de reserva (config/marca.php) até conectar.</p>
+        <a href="<?= URL_BASE ?>/admin/entregas/melhor-envio-conectar.php" class="btn btn-marca rounded-pill"><i class="bi bi-plug"></i> Conectar com Melhor Envio</a>
+    <?php endif; ?>
+</div>
+
+<p class="text-secundario">Peso e tamanho de embalagem, pra calcular o frete de verdade. Cadastre uma vez (ex: "Caixa P", "Caixa M") e escolha qual cada produto usa na própria tela de produto.</p>
 
 <div class="card">
     <table class="table table-hover align-middle mb-0">

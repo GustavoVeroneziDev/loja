@@ -90,7 +90,12 @@ require __DIR__ . '/../_topo.php';
                 </div>
             <?php endif; ?>
             <div class="d-flex justify-content-between mb-2">
-                <span class="text-secundario">Frete</span>
+                <span class="text-secundario">
+                    Frete
+                    <?php if ($pedido['FreteTransportadora']): ?>
+                        <span class="d-block text-secundario small"><?= htmlspecialchars($pedido['FreteTransportadora']) ?> — <?= htmlspecialchars($pedido['FreteServico']) ?><?= $pedido['FretePrazoDias'] ? ' · ' . (int) $pedido['FretePrazoDias'] . ' dia(s) útil(eis)' : '' ?></span>
+                    <?php endif; ?>
+                </span>
                 <span><?= $pedido['ValorFrete'] > 0 ? formatarPreco($pedido['ValorFrete']) : 'Grátis' ?></span>
             </div>
             <div class="d-flex justify-content-between">
