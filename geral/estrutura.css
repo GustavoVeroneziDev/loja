@@ -86,6 +86,29 @@ body {
     }
 }
 
+.icone-expandir {
+    transition: transform .2s ease;
+}
+
+.linha-expandivel.expandida .icone-expandir {
+    transform: rotate(180deg);
+}
+
+/* Conteúdo da linha de detalhe anima altura ao abrir/fechar — display:none (d-none) não dá pra fazer
+   transition, então o toggle real é essa classe .aberto, com max-height generoso o bastante pra
+   caber qualquer conteúdo real das linhas de detalhe do admin. */
+.linha-detalhe-expandida {
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 1rem;
+    transition: max-height .3s ease, padding .3s ease;
+}
+
+.linha-detalhe-expandida.aberto {
+    max-height: 32rem;
+    padding: 1rem;
+}
+
 /* Respiro mínimo acima dos cards estreitos e centralizados (login/cadastro, recuperar/redefinir senha) */
 .col-md-5.mx-auto {
     margin-top: 10vh;

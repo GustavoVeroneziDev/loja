@@ -99,15 +99,17 @@ require __DIR__ . '/_topo.php';
                                 </button>
                             </td>
                         </tr>
-                        <tr id="detalhesEstoque<?= $v['IDVariacao'] ?>" class="d-none d-md-none">
-                            <td colspan="3" class="bg-light-subtle">
-                                <div class="d-flex justify-content-between small mb-3">
-                                    <span class="text-secundario">SKU</span>
-                                    <span><?= htmlspecialchars($v['SKU']) ?></span>
+                        <tr class="d-md-none">
+                            <td colspan="3" class="p-0">
+                                <div id="detalhesEstoque<?= $v['IDVariacao'] ?>" class="linha-detalhe-expandida">
+                                    <div class="d-flex justify-content-between small mb-3">
+                                        <span class="text-secundario">SKU</span>
+                                        <span><?= htmlspecialchars($v['SKU']) ?></span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalMovimentar<?= $v['IDVariacao'] ?>">
+                                        <i class="bi bi-arrow-left-right"></i> Movimentar
+                                    </button>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalMovimentar<?= $v['IDVariacao'] ?>">
-                                    <i class="bi bi-arrow-left-right"></i> Movimentar
-                                </button>
                             </td>
                         </tr>
                     <?php endforeach; ?>

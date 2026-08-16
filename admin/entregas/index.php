@@ -204,25 +204,27 @@ require __DIR__ . '/../_topo.php';
                         </form>
                     </td>
                 </tr>
-                <tr id="detalhesCaixa<?= $caixa['IDCaixaEnvio'] ?>" class="d-none d-md-none">
-                    <td colspan="1" class="bg-light-subtle">
-                        <div class="d-flex justify-content-between small mb-2">
-                            <span class="text-secundario">Peso</span>
-                            <span><?= number_format($caixa['Peso'], 3, ',', '.') ?> kg</span>
-                        </div>
-                        <div class="d-flex justify-content-between small mb-3">
-                            <span class="text-secundario">Dimensões (A×L×C)</span>
-                            <span><?= number_format($caixa['Altura'], 1, ',', '.') ?> × <?= number_format($caixa['Largura'], 1, ',', '.') ?> × <?= number_format($caixa['Comprimento'], 1, ',', '.') ?> cm</span>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $caixa['IDCaixaEnvio'] ?>">
-                                <i class="bi bi-pencil"></i> Editar
-                            </button>
-                            <form method="post" data-confirmar="Excluir a <?= htmlspecialchars($caixa['Nome']) ?>? Produtos que usam ela ficam sem caixa definida.">
-                                <input type="hidden" name="action" value="excluir">
-                                <input type="hidden" name="id" value="<?= htmlspecialchars($caixa['IDCaixaEnvio']) ?>">
-                                <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i> Excluir</button>
-                            </form>
+                <tr class="d-md-none">
+                    <td colspan="1" class="p-0">
+                        <div id="detalhesCaixa<?= $caixa['IDCaixaEnvio'] ?>" class="linha-detalhe-expandida">
+                            <div class="d-flex justify-content-between small mb-2">
+                                <span class="text-secundario">Peso</span>
+                                <span><?= number_format($caixa['Peso'], 3, ',', '.') ?> kg</span>
+                            </div>
+                            <div class="d-flex justify-content-between small mb-3">
+                                <span class="text-secundario">Dimensões (A×L×C)</span>
+                                <span><?= number_format($caixa['Altura'], 1, ',', '.') ?> × <?= number_format($caixa['Largura'], 1, ',', '.') ?> × <?= number_format($caixa['Comprimento'], 1, ',', '.') ?> cm</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $caixa['IDCaixaEnvio'] ?>">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </button>
+                                <form method="post" data-confirmar="Excluir a <?= htmlspecialchars($caixa['Nome']) ?>? Produtos que usam ela ficam sem caixa definida.">
+                                    <input type="hidden" name="action" value="excluir">
+                                    <input type="hidden" name="id" value="<?= htmlspecialchars($caixa['IDCaixaEnvio']) ?>">
+                                    <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i> Excluir</button>
+                                </form>
+                            </div>
                         </div>
                     </td>
                 </tr>

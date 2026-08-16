@@ -82,19 +82,21 @@ require __DIR__ . '/../_topo.php';
                         </a>
                     </td>
                 </tr>
-                <tr id="detalhesPedido<?= $pedido['IDPedido'] ?>" class="d-none d-md-none">
-                    <td colspan="4" class="bg-light-subtle">
-                        <div class="d-flex justify-content-between small mb-2">
-                            <span class="text-secundario">Cliente</span>
-                            <span><?= htmlspecialchars($pedido['NomeCliente']) ?></span>
+                <tr class="d-md-none">
+                    <td colspan="4" class="p-0">
+                        <div id="detalhesPedido<?= $pedido['IDPedido'] ?>" class="linha-detalhe-expandida">
+                            <div class="d-flex justify-content-between small mb-2">
+                                <span class="text-secundario">Cliente</span>
+                                <span><?= htmlspecialchars($pedido['NomeCliente']) ?></span>
+                            </div>
+                            <div class="d-flex justify-content-between small mb-3">
+                                <span class="text-secundario">Data</span>
+                                <span><?= date('d/m/Y H:i', strtotime($pedido['MomentoCriacao'])) ?></span>
+                            </div>
+                            <a href="<?= URL_BASE ?>/admin/pedido/detalhe.php?id=<?= (int) $pedido['IDPedido'] ?>" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                <i class="bi bi-eye"></i> Ver pedido
+                            </a>
                         </div>
-                        <div class="d-flex justify-content-between small mb-3">
-                            <span class="text-secundario">Data</span>
-                            <span><?= date('d/m/Y H:i', strtotime($pedido['MomentoCriacao'])) ?></span>
-                        </div>
-                        <a href="<?= URL_BASE ?>/admin/pedido/detalhe.php?id=<?= (int) $pedido['IDPedido'] ?>" class="btn btn-sm btn-outline-secondary rounded-pill">
-                            <i class="bi bi-eye"></i> Ver pedido
-                        </a>
                     </td>
                 </tr>
             <?php endforeach; ?>

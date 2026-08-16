@@ -121,25 +121,27 @@ require __DIR__ . '/_topo.php';
                         </form>
                     </td>
                 </tr>
-                <tr id="detalhesCupom<?= $cupom['IDCupom'] ?>" class="d-none d-md-none">
-                    <td colspan="4" class="bg-light-subtle">
-                        <div class="d-flex justify-content-between small mb-2">
-                            <span class="text-secundario">Validade</span>
-                            <span><?= $cupom['DataValidade'] ? date('d/m/Y', strtotime($cupom['DataValidade'])) : 'sem validade' ?></span>
-                        </div>
-                        <div class="d-flex justify-content-between small mb-3">
-                            <span class="text-secundario">Uso</span>
-                            <span><?= (int) $cupom['UsosAtuais'] ?><?= $cupom['LimiteUso'] !== null ? ' / ' . (int) $cupom['LimiteUso'] : '' ?></span>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $cupom['IDCupom'] ?>">
-                                <i class="bi bi-pencil"></i> Editar
-                            </button>
-                            <form method="post" data-confirmar="Excluir o cupom <?= htmlspecialchars($cupom['Codigo']) ?>?">
-                                <input type="hidden" name="action" value="excluir">
-                                <input type="hidden" name="id" value="<?= htmlspecialchars($cupom['IDCupom']) ?>">
-                                <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i> Excluir</button>
-                            </form>
+                <tr class="d-md-none">
+                    <td colspan="4" class="p-0">
+                        <div id="detalhesCupom<?= $cupom['IDCupom'] ?>" class="linha-detalhe-expandida">
+                            <div class="d-flex justify-content-between small mb-2">
+                                <span class="text-secundario">Validade</span>
+                                <span><?= $cupom['DataValidade'] ? date('d/m/Y', strtotime($cupom['DataValidade'])) : 'sem validade' ?></span>
+                            </div>
+                            <div class="d-flex justify-content-between small mb-3">
+                                <span class="text-secundario">Uso</span>
+                                <span><?= (int) $cupom['UsosAtuais'] ?><?= $cupom['LimiteUso'] !== null ? ' / ' . (int) $cupom['LimiteUso'] : '' ?></span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $cupom['IDCupom'] ?>">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </button>
+                                <form method="post" data-confirmar="Excluir o cupom <?= htmlspecialchars($cupom['Codigo']) ?>?">
+                                    <input type="hidden" name="action" value="excluir">
+                                    <input type="hidden" name="id" value="<?= htmlspecialchars($cupom['IDCupom']) ?>">
+                                    <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i> Excluir</button>
+                                </form>
+                            </div>
                         </div>
                     </td>
                 </tr>
