@@ -86,7 +86,17 @@ body {
    texto quando aberta — preferência lembrada via localStorage (ver admin/_rodape.php). */
 .admin-shell {
     display: flex;
+    flex-direction: column;
     min-height: 100vh;
+}
+
+/* Só vira linha (sidebar + conteúdo lado a lado) a partir do lg — abaixo disso a sidebar já é
+   d-none, mas sem essa regra o menu hambúrguer e o conteúdo continuavam competindo numa linha só em
+   vez de empilhar, espremendo tudo numa coluna estreitíssima. */
+@media (min-width: 992px) {
+    .admin-shell {
+        flex-direction: row;
+    }
 }
 
 .admin-sidebar {
