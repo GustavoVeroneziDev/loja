@@ -430,20 +430,25 @@ require __DIR__ . '/../_topo.php';
                     <thead>
                         <tr>
                             <th><?= htmlspecialchars(implode(' / ', array_filter([$produto['NomeAtributo1'] ?? null, $produto['NomeAtributo2'] ?? null])) ?: 'Variação') ?></th>
-                            <th>SKU</th>
+                            <th class="d-none d-md-table-cell">SKU</th>
                             <th>Preço</th>
-                            <th>Estoque</th>
-                            <th style="width: 110px; min-width: 110px; max-width: 110px;">Ações</th>
+                            <th class="d-none d-md-table-cell">Estoque</th>
+                            <th class="d-none d-md-table-cell" style="width: 110px; min-width: 110px; max-width: 110px;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($variacoes as $variacao): ?>
-                            <tr>
+                            <tr class="linha-expandivel" data-alvo-expandir="detalhesVariacao<?= $variacao['IDVariacao'] ?>">
                                 <td><?= htmlspecialchars(descricaoVariacao($variacao) ?? 'Padrão') ?></td>
-                                <td class="text-secundario"><?= htmlspecialchars($variacao['SKU']) ?></td>
-                                <td><?= formatarPreco($variacao['Preco']) ?></td>
-                                <td><?= $variacao['Estoque'] == 0 ? '<span class="badge-perigo px-2 py-1">0</span>' : (int) $variacao['Estoque'] ?></td>
-                                <td style="width: 110px; min-width: 110px; max-width: 110px;">
+                                <td class="d-none d-md-table-cell text-secundario"><?= htmlspecialchars($variacao['SKU']) ?></td>
+                                <td>
+                                    <div class="d-flex align-items-center justify-content-between gap-2">
+                                        <span><?= formatarPreco($variacao['Preco']) ?></span>
+                                        <i class="bi bi-chevron-down icone-expandir d-md-none text-secundario"></i>
+                                    </div>
+                                </td>
+                                <td class="d-none d-md-table-cell"><?= $variacao['Estoque'] == 0 ? '<span class="badge-perigo px-2 py-1">0</span>' : (int) $variacao['Estoque'] ?></td>
+                                <td class="d-none d-md-table-cell" style="width: 110px; min-width: 110px; max-width: 110px;">
                                     <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditarVariacao<?= $variacao['IDVariacao'] ?>">
                                         <i class="bi bi-pencil"></i>
                                     </button>
@@ -452,6 +457,30 @@ require __DIR__ . '/../_topo.php';
                                         <input type="hidden" name="id_variacao" value="<?= htmlspecialchars($variacao['IDVariacao']) ?>">
                                         <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>
                                     </form>
+                                </td>
+                            </tr>
+                            <tr class="d-md-none">
+                                <td colspan="2" class="p-0">
+                                    <div id="detalhesVariacao<?= $variacao['IDVariacao'] ?>" class="linha-detalhe-expandida">
+                                        <div class="d-flex justify-content-between small mb-2">
+                                            <span class="text-secundario">SKU</span>
+                                            <span><?= htmlspecialchars($variacao['SKU']) ?></span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center small mb-3">
+                                            <span class="text-secundario">Estoque</span>
+                                            <span><?= $variacao['Estoque'] == 0 ? '<span class="badge-perigo px-2 py-1">0</span>' : (int) $variacao['Estoque'] ?></span>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditarVariacao<?= $variacao['IDVariacao'] ?>">
+                                                <i class="bi bi-pencil"></i> Editar
+                                            </button>
+                                            <form method="post" data-confirmar="Excluir esta variação?">
+                                                <input type="hidden" name="action" value="excluir_variacao">
+                                                <input type="hidden" name="id_variacao" value="<?= htmlspecialchars($variacao['IDVariacao']) ?>">
+                                                <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i> Excluir</button>
+                                            </form>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
