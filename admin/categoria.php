@@ -14,7 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'criar') {
         $nome = trim($_POST['nome'] ?? '');
         $fkPai = $_POST['fk_categoria_pai'] ?? '';
-        if ($nome !== '') {
+        // Nunca confia só na tela pra impedir subcategoria dentro de subcategoria — o próprio
+        // dropdown já só lista categoria principal, mas um POST direto poderia burlar isso.
+        $fkPaiValido = $fkPai === '' || verificarCategoriaEhPrincipal($fkPai);
+        if ($nome !== '' && $fkPaiValido) {
             $stmt = $pdo->prepare("INSERT INTO Categoria (IDCategoria, Nome, FKCategoriaPai) VALUES (:id, :nome, :pai)");
             $stmt->execute([
                 'id' => gerarUuid(),
@@ -29,7 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = $_POST['id'] ?? '';
         $nome = trim($_POST['nome'] ?? '');
         $fkPai = $_POST['fk_categoria_pai'] ?? '';
-        if ($id !== '' && $nome !== '' && $fkPai !== $id) {
+        $fkPaiValido = $fkPai === '' || verificarCategoriaEhPrincipal($fkPai);
+        // Categoria com filho não pode virar subcategoria de ninguém — os filhos virariam neto
+        // (3 níveis), a mesma bagunça de hierarquia que o passo acima impede do outro lado.
+        $podeVirarSub = $fkPai === '' || !verificarCategoriaTemFilhos($id);
+        if ($id !== '' && $nome !== '' && $fkPai !== $id && $fkPaiValido && $podeVirarSub) {
             $stmt = $pdo->prepare("UPDATE Categoria SET Nome = :nome, FKCategoriaPai = :pai WHERE IDCategoria = :id");
             $stmt->execute([
                 'nome' => $nome,
@@ -108,6 +115,7 @@ require __DIR__ . '/_topo.php';
 </div>
 
 <?php foreach ($categorias as $categoria): ?>
+    <?php $temFilhos = verificarCategoriaTemFilhos($categoria['IDCategoria']); $ehSub = $categoria['FKCategoriaPai'] !== null; ?>
     <div class="modal fade" id="modalEditar<?= $categoria['IDCategoria'] ?>" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -123,20 +131,31 @@ require __DIR__ . '/_topo.php';
                             <label class="form-label">Nome</label>
                             <input type="text" name="nome" class="form-control" value="<?= htmlspecialchars($categoria['Nome']) ?>" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Essa categoria é subcategoria de:</label>
-                            <select name="fk_categoria_pai" class="form-select">
-                                <option value="" class="opcao-titulo">Nenhuma — é uma categoria principal</option>
-                                <?php foreach ($categorias as $opcao): ?>
-                                    <?php if ($opcao['IDCategoria'] !== $categoria['IDCategoria']): ?>
-                                        <option value="<?= htmlspecialchars($opcao['IDCategoria']) ?>" <?= $opcao['IDCategoria'] === $categoria['FKCategoriaPai'] ? 'selected' : '' ?>>
-                                            <?= str_repeat('— ', $opcao['Nivel']) ?><?= htmlspecialchars($opcao['Nome']) ?>
-                                        </option>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </select>
-                            <div class="form-text">Deixe em "Nenhuma" pra categorias principais (ex: Óculos, Relógios). Escolha uma pai quando esta for um grupo dentro de outra (ex: "Smartwatches" dentro de "Relógios").</div>
-                        </div>
+                        <?php if ($temFilhos): ?>
+                            <p class="text-secundario small mb-0"><i class="bi bi-info-circle"></i> Essa categoria tem subcategoria dentro dela, por isso ela sempre fica como categoria principal.</p>
+                        <?php else: ?>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="ehSub<?= $categoria['IDCategoria'] ?>" <?= $ehSub ? 'checked' : '' ?>
+                                           onchange="document.getElementById('campoPai<?= $categoria['IDCategoria'] ?>').classList.toggle('d-none', !this.checked)">
+                                    <label class="form-check-label" for="ehSub<?= $categoria['IDCategoria'] ?>">É uma subcategoria</label>
+                                </div>
+                            </div>
+                            <div class="mb-3 <?= $ehSub ? '' : 'd-none' ?>" id="campoPai<?= $categoria['IDCategoria'] ?>">
+                                <label class="form-label">Categoria principal</label>
+                                <select name="fk_categoria_pai" class="form-select">
+                                    <option value="">Selecione...</option>
+                                    <?php foreach ($categorias as $opcao): ?>
+                                        <?php if ($opcao['Nivel'] === 0 && $opcao['IDCategoria'] !== $categoria['IDCategoria']): ?>
+                                            <option value="<?= htmlspecialchars($opcao['IDCategoria']) ?>" <?= $opcao['IDCategoria'] === $categoria['FKCategoriaPai'] ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($opcao['Nome']) ?>
+                                            </option>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-text">Subcategoria só pode ficar dentro de uma categoria principal — nunca dentro de outra subcategoria.</div>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-marca rounded-pill">Salvar</button>
@@ -162,16 +181,23 @@ require __DIR__ . '/_topo.php';
                         <input type="text" name="nome" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Essa categoria é subcategoria de:</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="ehSubNova"
+                                   onchange="document.getElementById('campoPaiNova').classList.toggle('d-none', !this.checked)">
+                            <label class="form-check-label" for="ehSubNova">É uma subcategoria</label>
+                        </div>
+                    </div>
+                    <div class="mb-3 d-none" id="campoPaiNova">
+                        <label class="form-label">Categoria principal</label>
                         <select name="fk_categoria_pai" class="form-select">
-                            <option value="" class="opcao-titulo">Nenhuma — é uma categoria principal</option>
+                            <option value="">Selecione...</option>
                             <?php foreach ($categorias as $opcao): ?>
-                                <option value="<?= htmlspecialchars($opcao['IDCategoria']) ?>">
-                                    <?= str_repeat('— ', $opcao['Nivel']) ?><?= htmlspecialchars($opcao['Nome']) ?>
-                                </option>
+                                <?php if ($opcao['Nivel'] === 0): ?>
+                                    <option value="<?= htmlspecialchars($opcao['IDCategoria']) ?>"><?= htmlspecialchars($opcao['Nome']) ?></option>
+                                <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
-                        <div class="form-text">Deixe em "Nenhuma" pra categorias principais (ex: Óculos, Relógios). Escolha uma pai quando esta for um grupo dentro de outra (ex: "Smartwatches" dentro de "Relógios").</div>
+                        <div class="form-text">Subcategoria só pode ficar dentro de uma categoria principal — nunca dentro de outra subcategoria.</div>
                     </div>
                 </div>
                 <div class="modal-footer">

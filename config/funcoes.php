@@ -601,6 +601,24 @@ function obterCategoriasArvore() {
     return $resultado;
 }
 
+// Hierarquia é só 2 níveis por design (2.3 do CLAUDE.md) — subcategoria só pode ter categoria
+// principal como pai, nunca outra subcategoria (senão vira categoria dentro de categoria dentro de
+// categoria, sem fim). As duas funções abaixo garantem essa regra tanto na tela quanto no servidor.
+function verificarCategoriaEhPrincipal($idCategoria) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT FKCategoriaPai FROM Categoria WHERE IDCategoria = :id");
+    $stmt->execute(['id' => $idCategoria]);
+    $fkPai = $stmt->fetchColumn();
+    return $fkPai === false ? false : $fkPai === null;
+}
+
+function verificarCategoriaTemFilhos($idCategoria) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT 1 FROM Categoria WHERE FKCategoriaPai = :id LIMIT 1");
+    $stmt->execute(['id' => $idCategoria]);
+    return (bool) $stmt->fetchColumn();
+}
+
 // Retorna o próprio ID + todo descendente (filho, neto, ...), pra categoria-mãe poder somar
 // produto de subcategoria sem precisar herdar categoria de verdade no banco.
 function obterDescendentesCategoria($idCategoria) {
