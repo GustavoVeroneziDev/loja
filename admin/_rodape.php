@@ -1,5 +1,9 @@
 </main>
 <div class="text-center text-secundario small opacity-50 pb-3">v<?= htmlspecialchars(obterVersaoSistema()) ?></div>
+<?php if (adminLogado()): ?>
+    </div><!-- .admin-conteudo -->
+</div><!-- .admin-shell -->
+<?php endif; ?>
 
 <div class="modal fade" id="modalConfirmar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -109,6 +113,27 @@ document.querySelectorAll('.linha-expandivel').forEach(function (linha) {
         alvo.classList.toggle('aberto');
     });
 });
+
+// Sidebar recolhível (desktop) — só ícone quando recolhida (inclusive a logo, sem o texto da marca),
+// ícone + texto quando expandida. Preferência salva no navegador pra não perder a cada página.
+(function () {
+    var sidebar = document.getElementById('adminSidebar');
+    var botao = document.getElementById('botaoAlternarSidebar');
+    if (!sidebar || !botao) return;
+
+    function atualizarBotao() {
+        var recolhida = sidebar.classList.contains('recolhida');
+        botao.querySelector('i').className = 'bi ' + (recolhida ? 'bi-chevron-right' : 'bi-chevron-left');
+        botao.setAttribute('aria-label', recolhida ? 'Expandir menu' : 'Recolher menu');
+    }
+    atualizarBotao();
+
+    botao.addEventListener('click', function () {
+        sidebar.classList.toggle('recolhida');
+        localStorage.setItem('adminSidebarRecolhida', sidebar.classList.contains('recolhida') ? '1' : '0');
+        atualizarBotao();
+    });
+})();
 
 document.querySelectorAll('.btn-toggle-senha').forEach(function (botao) {
     botao.addEventListener('click', function () {

@@ -80,6 +80,135 @@ body {
     width: auto;
 }
 
+/* Sidebar do admin — aparece a partir do lg (992px), onde tem espaço de sobra pra ela; abaixo disso
+   volta pro menu hambúrguer de sempre (8 itens não cabem legíveis numa tela pequena, sidebar fixa
+   também não). Recolhível: só ícone quando fechada (inclusive a logo, sem o texto da marca), ícone +
+   texto quando aberta — preferência lembrada via localStorage (ver admin/_rodape.php). */
+.admin-shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+.admin-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: width .2s ease;
+}
+
+.admin-sidebar.recolhida {
+    width: 72px;
+}
+
+.admin-sidebar-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: 1.1rem 1rem;
+    transition: flex-direction .2s ease;
+}
+
+.admin-sidebar.recolhida .admin-sidebar-topo {
+    flex-direction: column;
+}
+
+.admin-sidebar-marca {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    text-decoration: none;
+}
+
+.admin-sidebar-toggle {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border-width: 1px;
+    border-style: solid;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+}
+
+.admin-sidebar-nav {
+    padding: .5rem .75rem;
+}
+
+.admin-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .6rem .75rem;
+    margin-bottom: .15rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: .93rem;
+    white-space: nowrap;
+}
+
+.admin-sidebar.recolhida .admin-sidebar-link {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.admin-sidebar-link-texto,
+.admin-sidebar-marca-texto {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-sidebar.recolhida .admin-sidebar-link-texto,
+.admin-sidebar.recolhida .admin-sidebar-marca-texto,
+.admin-sidebar.recolhida .admin-sidebar-titulo-grupo {
+    display: none;
+}
+
+.admin-sidebar-grupo {
+    margin-top: 1rem;
+}
+
+.admin-sidebar.recolhida .admin-sidebar-grupo {
+    margin-top: .75rem;
+    padding-top: .75rem;
+    border-top-width: 1px;
+    border-top-style: solid;
+}
+
+.admin-sidebar-titulo-grupo {
+    display: block;
+    padding: 0 .75rem;
+    margin-bottom: .35rem;
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.admin-sidebar-rodape {
+    padding: .75rem;
+    border-top-width: 1px;
+    border-top-style: solid;
+}
+
+.admin-conteudo {
+    flex: 1;
+    min-width: 0;
+}
+
+.main-conteudo {
+    max-width: 1600px;
+}
+
 /* Ícones de contato no rodapé (e-mail, WhatsApp, redes sociais) */
 .icone-contato {
     width: 2rem;

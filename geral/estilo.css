@@ -51,9 +51,11 @@
     }
 }
 
-/* Navbar escura/rústica — mesmo visual pro site público e pro admin (só muda o menu por dentro).
-   Base café escuro com listras bem sutis simulando ripa de madeira + trim de bronze embaixo. */
-.navbar-loja {
+/* Navbar escura/rústica — mesmo visual pro menu mobile (site público e admin) e pra sidebar do admin
+   desktop, só muda o menu por dentro. Base café escuro com listras bem sutis simulando ripa de
+   madeira + trim de bronze (embaixo na navbar horizontal, na lateral na sidebar vertical). */
+.navbar-loja,
+.admin-sidebar {
     background-color: var(--cor-primaria);
     background-image: repeating-linear-gradient(
         90deg,
@@ -66,7 +68,56 @@
         transparent 8px,
         transparent 14px
     );
+}
+
+.navbar-loja {
     border-bottom: 3px solid var(--cor-destaque);
+}
+
+.admin-sidebar {
+    border-right: 3px solid var(--cor-destaque);
+}
+
+.admin-sidebar-marca-texto {
+    color: var(--cor-fundo);
+}
+
+.admin-sidebar-toggle {
+    color: rgba(255, 255, 255, .75);
+    border-color: rgba(255, 255, 255, .3);
+}
+
+.admin-sidebar-toggle:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, .1);
+}
+
+.admin-sidebar-titulo-grupo {
+    color: rgba(255, 255, 255, .4);
+}
+
+.admin-sidebar.recolhida .admin-sidebar-grupo {
+    border-top-color: rgba(255, 255, 255, .12);
+}
+
+.admin-sidebar-link {
+    color: rgba(255, 255, 255, .75);
+}
+
+.admin-sidebar-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, .08);
+}
+
+/* Mesmo roxo de "navegação ativa" já usado no resto do admin (badge-admin, navbar-marca) */
+.admin-sidebar-link.active {
+    color: #a78bfa;
+    background-color: rgba(167, 139, 250, .15);
+    font-weight: 600;
+}
+
+.admin-sidebar-rodape {
+    border-top-color: rgba(255, 255, 255, .12);
 }
 
 .btn-marca {
