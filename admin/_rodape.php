@@ -92,6 +92,27 @@ document.querySelectorAll('.campo-cep').forEach(function (campo) {
     });
 });
 
+// Linha de tabela expansível — mobile esconde coluna menos essencial (d-none d-md-table-cell) e
+// mostra elas + as ações numa linha de detalhe escondida embaixo, que abre ao tocar na linha
+// resumida. Reaproveitado em qualquer tabela do admin: só precisa da linha ter
+// class="linha-expandivel" + data-alvo-expandir="idDaLinhaDeDetalhe", e opcionalmente um
+// <i class="icone-expandir"> pra girar a setinha.
+document.querySelectorAll('.linha-expandivel').forEach(function (linha) {
+    linha.addEventListener('click', function (e) {
+        if (e.target.closest('a, button, input, form')) {
+            return; // deixa o próprio controle agir normal, não expande por cima
+        }
+        var alvo = document.getElementById(linha.dataset.alvoExpandir);
+        if (!alvo) return;
+        alvo.classList.toggle('d-none');
+        var icone = linha.querySelector('.icone-expandir');
+        if (icone) {
+            icone.classList.toggle('bi-chevron-down');
+            icone.classList.toggle('bi-chevron-up');
+        }
+    });
+});
+
 document.querySelectorAll('.btn-toggle-senha').forEach(function (botao) {
     botao.addEventListener('click', function () {
         var campo = document.getElementById(this.dataset.alvo);

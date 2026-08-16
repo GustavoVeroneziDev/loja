@@ -87,27 +87,30 @@ require __DIR__ . '/_topo.php';
             <tr>
                 <th>Código</th>
                 <th>Desconto</th>
-                <th>Validade</th>
-                <th>Uso</th>
+                <th class="d-none d-md-table-cell">Validade</th>
+                <th class="d-none d-md-table-cell">Uso</th>
                 <th>Status</th>
-                <th style="width: 110px; min-width: 110px; max-width: 110px;">Ações</th>
+                <th class="d-none d-md-table-cell" style="width: 110px; min-width: 110px; max-width: 110px;">Ações</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($cupons as $cupom): ?>
-                <tr>
+                <tr class="linha-expandivel" data-alvo-expandir="detalhesCupom<?= $cupom['IDCupom'] ?>">
                     <td class="fw-semibold"><?= htmlspecialchars($cupom['Codigo']) ?></td>
                     <td><?= $cupom['TipoDesconto'] === 'percentual' ? ((int) $cupom['ValorDesconto']) . '%' : formatarPreco($cupom['ValorDesconto']) ?></td>
-                    <td class="text-secundario"><?= $cupom['DataValidade'] ? date('d/m/Y', strtotime($cupom['DataValidade'])) : 'sem validade' ?></td>
-                    <td class="text-secundario"><?= (int) $cupom['UsosAtuais'] ?><?= $cupom['LimiteUso'] !== null ? ' / ' . (int) $cupom['LimiteUso'] : '' ?></td>
+                    <td class="d-none d-md-table-cell text-secundario"><?= $cupom['DataValidade'] ? date('d/m/Y', strtotime($cupom['DataValidade'])) : 'sem validade' ?></td>
+                    <td class="d-none d-md-table-cell text-secundario"><?= (int) $cupom['UsosAtuais'] ?><?= $cupom['LimiteUso'] !== null ? ' / ' . (int) $cupom['LimiteUso'] : '' ?></td>
                     <td>
-                        <?php if ($cupom['Ativo']): ?>
-                            <span class="badge-sucesso px-2 py-1">Ativo</span>
-                        <?php else: ?>
-                            <span class="badge-perigo px-2 py-1">Inativo</span>
-                        <?php endif; ?>
+                        <div class="d-flex align-items-center justify-content-between gap-2">
+                            <?php if ($cupom['Ativo']): ?>
+                                <span class="badge-sucesso px-2 py-1">Ativo</span>
+                            <?php else: ?>
+                                <span class="badge-perigo px-2 py-1">Inativo</span>
+                            <?php endif; ?>
+                            <i class="bi bi-chevron-down icone-expandir d-md-none text-secundario"></i>
+                        </div>
                     </td>
-                    <td style="width: 110px; min-width: 110px; max-width: 110px;">
+                    <td class="d-none d-md-table-cell" style="width: 110px; min-width: 110px; max-width: 110px;">
                         <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $cupom['IDCupom'] ?>">
                             <i class="bi bi-pencil"></i>
                         </button>
@@ -116,6 +119,28 @@ require __DIR__ . '/_topo.php';
                             <input type="hidden" name="id" value="<?= htmlspecialchars($cupom['IDCupom']) ?>">
                             <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>
                         </form>
+                    </td>
+                </tr>
+                <tr id="detalhesCupom<?= $cupom['IDCupom'] ?>" class="d-none d-md-none">
+                    <td colspan="4" class="bg-light-subtle">
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span class="text-secundario">Validade</span>
+                            <span><?= $cupom['DataValidade'] ? date('d/m/Y', strtotime($cupom['DataValidade'])) : 'sem validade' ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-3">
+                            <span class="text-secundario">Uso</span>
+                            <span><?= (int) $cupom['UsosAtuais'] ?><?= $cupom['LimiteUso'] !== null ? ' / ' . (int) $cupom['LimiteUso'] : '' ?></span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $cupom['IDCupom'] ?>">
+                                <i class="bi bi-pencil"></i> Editar
+                            </button>
+                            <form method="post" data-confirmar="Excluir o cupom <?= htmlspecialchars($cupom['Codigo']) ?>?">
+                                <input type="hidden" name="action" value="excluir">
+                                <input type="hidden" name="id" value="<?= htmlspecialchars($cupom['IDCupom']) ?>">
+                                <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i> Excluir</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>

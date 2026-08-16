@@ -177,18 +177,23 @@ require __DIR__ . '/../_topo.php';
         <thead>
             <tr>
                 <th>Nome</th>
-                <th>Peso</th>
-                <th>Dimensões (A×L×C)</th>
-                <th style="width: 100px; min-width: 100px; max-width: 100px;">Ações</th>
+                <th class="d-none d-md-table-cell">Peso</th>
+                <th class="d-none d-md-table-cell">Dimensões (A×L×C)</th>
+                <th class="d-none d-md-table-cell" style="width: 100px; min-width: 100px; max-width: 100px;">Ações</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($caixas as $caixa): ?>
-                <tr>
-                    <td class="fw-semibold"><?= htmlspecialchars($caixa['Nome']) ?></td>
-                    <td><?= number_format($caixa['Peso'], 3, ',', '.') ?> kg</td>
-                    <td class="text-secundario"><?= number_format($caixa['Altura'], 1, ',', '.') ?> × <?= number_format($caixa['Largura'], 1, ',', '.') ?> × <?= number_format($caixa['Comprimento'], 1, ',', '.') ?> cm</td>
-                    <td style="width: 100px; min-width: 100px; max-width: 100px;">
+                <tr class="linha-expandivel" data-alvo-expandir="detalhesCaixa<?= $caixa['IDCaixaEnvio'] ?>">
+                    <td class="fw-semibold">
+                        <div class="d-flex align-items-center justify-content-between gap-2">
+                            <span><?= htmlspecialchars($caixa['Nome']) ?></span>
+                            <i class="bi bi-chevron-down icone-expandir d-md-none text-secundario"></i>
+                        </div>
+                    </td>
+                    <td class="d-none d-md-table-cell"><?= number_format($caixa['Peso'], 3, ',', '.') ?> kg</td>
+                    <td class="d-none d-md-table-cell text-secundario"><?= number_format($caixa['Altura'], 1, ',', '.') ?> × <?= number_format($caixa['Largura'], 1, ',', '.') ?> × <?= number_format($caixa['Comprimento'], 1, ',', '.') ?> cm</td>
+                    <td class="d-none d-md-table-cell" style="width: 100px; min-width: 100px; max-width: 100px;">
                         <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $caixa['IDCaixaEnvio'] ?>">
                             <i class="bi bi-pencil"></i>
                         </button>
@@ -197,6 +202,28 @@ require __DIR__ . '/../_topo.php';
                             <input type="hidden" name="id" value="<?= htmlspecialchars($caixa['IDCaixaEnvio']) ?>">
                             <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>
                         </form>
+                    </td>
+                </tr>
+                <tr id="detalhesCaixa<?= $caixa['IDCaixaEnvio'] ?>" class="d-none d-md-none">
+                    <td colspan="1" class="bg-light-subtle">
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span class="text-secundario">Peso</span>
+                            <span><?= number_format($caixa['Peso'], 3, ',', '.') ?> kg</span>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-3">
+                            <span class="text-secundario">Dimensões (A×L×C)</span>
+                            <span><?= number_format($caixa['Altura'], 1, ',', '.') ?> × <?= number_format($caixa['Largura'], 1, ',', '.') ?> × <?= number_format($caixa['Comprimento'], 1, ',', '.') ?> cm</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $caixa['IDCaixaEnvio'] ?>">
+                                <i class="bi bi-pencil"></i> Editar
+                            </button>
+                            <form method="post" data-confirmar="Excluir a <?= htmlspecialchars($caixa['Nome']) ?>? Produtos que usam ela ficam sem caixa definida.">
+                                <input type="hidden" name="action" value="excluir">
+                                <input type="hidden" name="id" value="<?= htmlspecialchars($caixa['IDCaixaEnvio']) ?>">
+                                <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i> Excluir</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>

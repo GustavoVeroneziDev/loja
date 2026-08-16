@@ -61,10 +61,10 @@ require __DIR__ . '/_topo.php';
                 <thead>
                     <tr>
                         <th>Produto</th>
-                        <th>SKU</th>
+                        <th class="d-none d-md-table-cell">SKU</th>
                         <th>Estoque</th>
                         <th>Status</th>
-                        <th style="width: 90px; min-width: 90px; max-width: 90px;">Ação</th>
+                        <th class="d-none d-md-table-cell" style="width: 90px; min-width: 90px; max-width: 90px;">Ação</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -74,25 +74,39 @@ require __DIR__ . '/_topo.php';
                             $baixo = (int) $v['Estoque'] <= (int) $v['EstoqueMinimoEfetivo'];
                             $zerado = (int) $v['Estoque'] === 0;
                         ?>
-                        <tr>
+                        <tr class="linha-expandivel" data-alvo-expandir="detalhesEstoque<?= $v['IDVariacao'] ?>">
                             <td>
                                 <?= htmlspecialchars($v['NomeProduto']) ?>
                                 <?php if ($desc): ?><div class="text-secundario small"><?= htmlspecialchars($desc) ?></div><?php endif; ?>
                             </td>
-                            <td class="text-secundario"><?= htmlspecialchars($v['SKU']) ?></td>
+                            <td class="d-none d-md-table-cell text-secundario"><?= htmlspecialchars($v['SKU']) ?></td>
                             <td class="fw-semibold"><?= (int) $v['Estoque'] ?></td>
                             <td>
-                                <?php if ($zerado): ?>
-                                    <span class="badge-perigo px-2 py-1 d-inline-flex align-items-center gap-1">Esgotado</span>
-                                <?php elseif ($baixo): ?>
-                                    <span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-fire"></i> Baixo</span>
-                                <?php else: ?>
-                                    <span class="badge-sucesso px-2 py-1 d-inline-flex align-items-center gap-1">OK</span>
-                                <?php endif; ?>
+                                <div class="d-flex align-items-center justify-content-between gap-2">
+                                    <?php if ($zerado): ?>
+                                        <span class="badge-perigo px-2 py-1 d-inline-flex align-items-center gap-1">Esgotado</span>
+                                    <?php elseif ($baixo): ?>
+                                        <span class="badge-atencao px-2 py-1 d-inline-flex align-items-center gap-1"><i class="bi bi-fire"></i> Baixo</span>
+                                    <?php else: ?>
+                                        <span class="badge-sucesso px-2 py-1 d-inline-flex align-items-center gap-1">OK</span>
+                                    <?php endif; ?>
+                                    <i class="bi bi-chevron-down icone-expandir d-md-none text-secundario"></i>
+                                </div>
                             </td>
-                            <td style="width: 90px; min-width: 90px; max-width: 90px;">
+                            <td class="d-none d-md-table-cell" style="width: 90px; min-width: 90px; max-width: 90px;">
                                 <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalMovimentar<?= $v['IDVariacao'] ?>">
                                     <i class="bi bi-arrow-left-right"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="detalhesEstoque<?= $v['IDVariacao'] ?>" class="d-none d-md-none">
+                            <td colspan="3" class="bg-light-subtle">
+                                <div class="d-flex justify-content-between small mb-3">
+                                    <span class="text-secundario">SKU</span>
+                                    <span><?= htmlspecialchars($v['SKU']) ?></span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalMovimentar<?= $v['IDVariacao'] ?>">
+                                    <i class="bi bi-arrow-left-right"></i> Movimentar
                                 </button>
                             </td>
                         </tr>

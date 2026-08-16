@@ -78,6 +78,14 @@ body {
     min-width: 0;
 }
 
+/* Linha de tabela expansível (ver admin/_rodape.php) — só parece clicável no mobile, que é onde
+   ela de fato faz algo; no desktop a linha de detalhe nem existe (d-md-none), cursor normal ali. */
+@media (max-width: 767.98px) {
+    .linha-expandivel {
+        cursor: pointer;
+    }
+}
+
 /* Respiro mínimo acima dos cards estreitos e centralizados (login/cadastro, recuperar/redefinir senha) */
 .col-md-5.mx-auto {
     margin-top: 10vh;

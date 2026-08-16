@@ -24,7 +24,7 @@ require __DIR__ . '/_topo.php';
 
 <h2 class="h6 text-secundario text-uppercase mb-3">Visão geral</h2>
 <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <a href="<?= URL_BASE ?>/admin/pedido/index.php?filtro=aguardando_pagamento" class="card p-4 h-100 d-block text-reset text-decoration-none stat-card-admin">
             <div class="d-flex align-items-center gap-3">
                 <div class="icone-stat-admin icone-stat-atencao"><i class="bi bi-bag-check-fill"></i></div>
@@ -35,7 +35,7 @@ require __DIR__ . '/_topo.php';
             </div>
         </a>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <a href="<?= URL_BASE ?>/admin/produto/index.php" class="card p-4 h-100 d-block text-reset text-decoration-none stat-card-admin">
             <div class="d-flex align-items-center gap-3">
                 <div class="icone-stat-admin icone-stat-sucesso"><i class="bi bi-box-seam-fill"></i></div>
@@ -46,7 +46,7 @@ require __DIR__ . '/_topo.php';
             </div>
         </a>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <a href="<?= URL_BASE ?>/admin/categoria.php" class="card p-4 h-100 d-block text-reset text-decoration-none stat-card-admin">
             <div class="d-flex align-items-center gap-3">
                 <div class="icone-stat-admin icone-stat-admin-cor"><i class="bi bi-tags-fill"></i></div>
@@ -57,7 +57,7 @@ require __DIR__ . '/_topo.php';
             </div>
         </a>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <a href="<?= URL_BASE ?>/admin/produto/index.php?filtro=rascunho" class="card p-4 h-100 d-block text-reset text-decoration-none stat-card-admin">
             <div class="d-flex align-items-center gap-3">
                 <div class="icone-stat-admin icone-stat-atencao"><i class="bi bi-eye-slash-fill"></i></div>
@@ -68,7 +68,7 @@ require __DIR__ . '/_topo.php';
             </div>
         </a>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <a href="<?= URL_BASE ?>/admin/produto/index.php?filtro=sem_estoque" class="card p-4 h-100 d-block text-reset text-decoration-none stat-card-admin">
             <div class="d-flex align-items-center gap-3">
                 <div class="icone-stat-admin icone-stat-atencao"><i class="bi bi-exclamation-triangle-fill"></i></div>
@@ -79,7 +79,7 @@ require __DIR__ . '/_topo.php';
             </div>
         </a>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <a href="<?= URL_BASE ?>/admin/estoque.php" class="card p-4 h-100 d-block text-reset text-decoration-none stat-card-admin">
             <div class="d-flex align-items-center gap-3">
                 <div class="icone-stat-admin icone-stat-atencao"><i class="bi bi-fire"></i></div>

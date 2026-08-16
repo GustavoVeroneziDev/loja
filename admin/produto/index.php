@@ -95,28 +95,33 @@ require __DIR__ . '/../_topo.php';
         <thead>
             <tr>
                 <th>Produto</th>
-                <th>Categoria</th>
+                <th class="d-none d-md-table-cell">Categoria</th>
                 <th>Preço a partir de</th>
-                <th>Estoque</th>
-                <th>Status</th>
-                <th style="width: 180px; min-width: 180px; max-width: 180px;">Ações</th>
+                <th class="d-none d-md-table-cell">Estoque</th>
+                <th class="d-none d-md-table-cell">Status</th>
+                <th class="d-none d-md-table-cell" style="width: 180px; min-width: 180px; max-width: 180px;">Ações</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($produtos as $produto): ?>
-                <tr>
+                <tr class="linha-expandivel" data-alvo-expandir="detalhesProduto<?= $produto['IDProduto'] ?>">
                     <td><?= htmlspecialchars($produto['Nome']) ?></td>
-                    <td class="text-secundario"><?= htmlspecialchars($produto['NomeCategoria'] ?? '—') ?></td>
-                    <td><?= $produto['PrecoMinimo'] !== null ? formatarPreco($produto['PrecoMinimo']) : '—' ?></td>
-                    <td><?= (int) $produto['EstoqueTotal'] ?></td>
+                    <td class="d-none d-md-table-cell text-secundario"><?= htmlspecialchars($produto['NomeCategoria'] ?? '—') ?></td>
                     <td>
+                        <div class="d-flex align-items-center justify-content-between gap-2">
+                            <span><?= $produto['PrecoMinimo'] !== null ? formatarPreco($produto['PrecoMinimo']) : '—' ?></span>
+                            <i class="bi bi-chevron-down icone-expandir d-md-none text-secundario"></i>
+                        </div>
+                    </td>
+                    <td class="d-none d-md-table-cell"><?= (int) $produto['EstoqueTotal'] ?></td>
+                    <td class="d-none d-md-table-cell">
                         <?php if ($produto['Ativo']): ?>
                             <span class="badge-sucesso px-2 py-1">Ativo</span>
                         <?php else: ?>
                             <span class="badge-atencao px-2 py-1">Rascunho</span>
                         <?php endif; ?>
                     </td>
-                    <td style="width: 180px; min-width: 180px; max-width: 180px;">
+                    <td class="d-none d-md-table-cell" style="width: 180px; min-width: 180px; max-width: 180px;">
                         <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($produto['IDProduto']) ?>&preview=1" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill" aria-label="Pré-visualizar">
                             <i class="bi bi-eye"></i>
                         </a>
@@ -128,6 +133,39 @@ require __DIR__ . '/../_topo.php';
                             <input type="hidden" name="id" value="<?= htmlspecialchars($produto['IDProduto']) ?>">
                             <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>
                         </form>
+                    </td>
+                </tr>
+                <tr id="detalhesProduto<?= $produto['IDProduto'] ?>" class="d-none d-md-none">
+                    <td colspan="3" class="bg-light-subtle">
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span class="text-secundario">Categoria</span>
+                            <span><?= htmlspecialchars($produto['NomeCategoria'] ?? '—') ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span class="text-secundario">Estoque</span>
+                            <span><?= (int) $produto['EstoqueTotal'] ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-3">
+                            <span class="text-secundario">Status</span>
+                            <?php if ($produto['Ativo']): ?>
+                                <span class="badge-sucesso px-2 py-1">Ativo</span>
+                            <?php else: ?>
+                                <span class="badge-atencao px-2 py-1">Rascunho</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="<?= URL_BASE ?>/produto.php?id=<?= urlencode($produto['IDProduto']) ?>&preview=1" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill" aria-label="Pré-visualizar">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="<?= URL_BASE ?>/admin/produto/editar.php?id=<?= urlencode($produto['IDProduto']) ?>" class="btn btn-sm btn-outline-secondary rounded-pill" aria-label="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="post" data-confirmar="Excluir este produto e todas as suas variações/imagens?">
+                                <input type="hidden" name="action" value="excluir">
+                                <input type="hidden" name="id" value="<?= htmlspecialchars($produto['IDProduto']) ?>">
+                                <button type="submit" class="btn btn-sm btn-perigo rounded-pill"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>

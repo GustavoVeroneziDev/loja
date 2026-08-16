@@ -53,27 +53,47 @@ require __DIR__ . '/../_topo.php';
         <thead>
             <tr>
                 <th>Pedido</th>
-                <th>Cliente</th>
-                <th>Data</th>
+                <th class="d-none d-md-table-cell">Cliente</th>
+                <th class="d-none d-md-table-cell">Data</th>
                 <th>Total</th>
                 <th>Status</th>
-                <th style="width: 100px; min-width: 100px; max-width: 100px;">Ações</th>
+                <th class="d-none d-md-table-cell" style="width: 100px; min-width: 100px; max-width: 100px;">Ações</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($pedidos as $pedido): $info = statusPedidoInfo($pedido['Status']); ?>
-                <tr>
+                <tr class="linha-expandivel" data-alvo-expandir="detalhesPedido<?= $pedido['IDPedido'] ?>">
                     <td class="fw-semibold">
                         #<?= str_pad($pedido['IDPedido'], 5, '0', STR_PAD_LEFT) ?>
                         <?php if ($pedido['Simulacao']): ?><span class="badge-destaque px-2 py-1 small"><i class="bi bi-flask"></i> teste</span><?php endif; ?>
                     </td>
-                    <td><?= htmlspecialchars($pedido['NomeCliente']) ?></td>
-                    <td class="text-secundario"><?= date('d/m/Y H:i', strtotime($pedido['MomentoCriacao'])) ?></td>
+                    <td class="d-none d-md-table-cell"><?= htmlspecialchars($pedido['NomeCliente']) ?></td>
+                    <td class="d-none d-md-table-cell text-secundario"><?= date('d/m/Y H:i', strtotime($pedido['MomentoCriacao'])) ?></td>
                     <td><?= formatarPreco($pedido['ValorTotal']) ?></td>
-                    <td><span class="<?= $info['badge'] ?> px-2 py-1"><i class="bi <?= $info['icone'] ?>"></i> <?= $info['label'] ?></span></td>
-                    <td style="width: 100px; min-width: 100px; max-width: 100px;">
+                    <td>
+                        <div class="d-flex align-items-center justify-content-between gap-2">
+                            <span class="<?= $info['badge'] ?> px-2 py-1"><i class="bi <?= $info['icone'] ?>"></i> <?= $info['label'] ?></span>
+                            <i class="bi bi-chevron-down icone-expandir d-md-none text-secundario"></i>
+                        </div>
+                    </td>
+                    <td class="d-none d-md-table-cell" style="width: 100px; min-width: 100px; max-width: 100px;">
                         <a href="<?= URL_BASE ?>/admin/pedido/detalhe.php?id=<?= (int) $pedido['IDPedido'] ?>" class="btn btn-sm btn-outline-secondary rounded-pill">
                             <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                <tr id="detalhesPedido<?= $pedido['IDPedido'] ?>" class="d-none d-md-none">
+                    <td colspan="4" class="bg-light-subtle">
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span class="text-secundario">Cliente</span>
+                            <span><?= htmlspecialchars($pedido['NomeCliente']) ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-3">
+                            <span class="text-secundario">Data</span>
+                            <span><?= date('d/m/Y H:i', strtotime($pedido['MomentoCriacao'])) ?></span>
+                        </div>
+                        <a href="<?= URL_BASE ?>/admin/pedido/detalhe.php?id=<?= (int) $pedido['IDPedido'] ?>" class="btn btn-sm btn-outline-secondary rounded-pill">
+                            <i class="bi bi-eye"></i> Ver pedido
                         </a>
                     </td>
                 </tr>
