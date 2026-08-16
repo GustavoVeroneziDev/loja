@@ -32,6 +32,49 @@ body {
     padding-bottom: .6rem;
 }
 
+/* Menu mobile da navbar da loja (as 3 barras) — sem isso os 2 grupos (categorias e carrinho/conta)
+   só empilhavam um embaixo do outro sem separação nenhuma, virando uma lista só confusa. Só entra
+   abaixo do breakpoint lg (992px), que é onde o Bootstrap já colapsa a navbar pro menu hambúrguer —
+   no desktop os 2 grupos já ficam visualmente separados um de cada lado pelo próprio layout flex. */
+@media (max-width: 991.98px) {
+    .navbar-loja .navbar-collapse {
+        padding: .5rem 0 .25rem;
+    }
+
+    .navbar-loja .navbar-nav .nav-link {
+        padding: .65rem .25rem;
+    }
+
+    .navbar-loja .nav-categorias-loja .nav-item {
+        border-bottom-width: 1px;
+        border-bottom-style: solid;
+    }
+
+    .navbar-loja .nav-conta-loja {
+        margin-top: .5rem;
+        padding-top: 1rem;
+        border-top-width: 1px;
+        border-top-style: solid;
+    }
+
+    .navbar-loja .nav-conta-loja > li + li {
+        margin-top: .5rem;
+    }
+
+    /* Carrinho/Entrar/conta viram pílulas de largura cheia, texto centralizado — mesmo visual pros
+       dois, em vez de um botão e um link de texto solto lado a lado quando empilham. */
+    .navbar-loja .nav-conta-loja .btn,
+    .navbar-loja .nav-conta-loja .nav-link {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: .55rem 1rem;
+        border-width: 1px;
+        border-style: solid;
+        border-radius: 999px;
+    }
+}
+
 .logo-admin {
     height: 36px;
     width: auto;

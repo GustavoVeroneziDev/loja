@@ -30,6 +30,27 @@
     font-weight: 600;
 }
 
+/* Cor da divisória/pílula do menu mobile da loja (ver estrutura.css pro forma/espaçamento) */
+@media (max-width: 991.98px) {
+    .navbar-loja .nav-categorias-loja .nav-item {
+        border-bottom-color: rgba(255, 255, 255, .08);
+    }
+
+    .navbar-loja .nav-conta-loja {
+        border-top-color: rgba(255, 255, 255, .15);
+    }
+
+    .navbar-loja .nav-conta-loja .btn,
+    .navbar-loja .nav-conta-loja .nav-link {
+        border-color: rgba(255, 255, 255, .3);
+    }
+
+    .navbar-loja .nav-conta-loja .btn:hover,
+    .navbar-loja .nav-conta-loja .nav-link:hover {
+        background-color: rgba(255, 255, 255, .08);
+    }
+}
+
 /* Navbar escura/rústica — mesmo visual pro site público e pro admin (só muda o menu por dentro).
    Base café escuro com listras bem sutis simulando ripa de madeira + trim de bronze embaixo. */
 .navbar-loja {

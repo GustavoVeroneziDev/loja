@@ -61,7 +61,7 @@ $totalCarrinho = contarItensCarrinho();
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navLoja">
-            <ul class="navbar-nav me-auto">
+            <ul class="navbar-nav me-auto nav-categorias-loja">
                 <?php foreach ($categoriasNav as $categoriaNav): ?>
                     <li class="nav-item">
                         <a class="nav-link" href="<?= URL_BASE ?>/categoria.php?id=<?= urlencode($categoriaNav['IDCategoria']) ?>">
@@ -70,7 +70,7 @@ $totalCarrinho = contarItensCarrinho();
                     </li>
                 <?php endforeach; ?>
             </ul>
-            <ul class="navbar-nav align-items-lg-center gap-lg-2">
+            <ul class="navbar-nav align-items-lg-center gap-lg-2 nav-conta-loja">
                 <li class="nav-item">
                     <a class="btn btn-sm btn-outline-secondary rounded-pill position-relative" href="<?= URL_BASE ?>/carrinho.php">
                         <i class="bi bi-cart"></i> Carrinho
