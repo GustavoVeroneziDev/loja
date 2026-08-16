@@ -164,12 +164,14 @@ require __DIR__ . '/_topo.php';
                         <input type="hidden" name="id_variacao" value="<?= htmlspecialchars($v['IDVariacao']) ?>">
                         <div class="mb-3">
                             <label class="form-label d-block">Tipo</label>
-                            <input type="radio" class="btn-check" name="tipo" value="entrada" id="entrada<?= $v['IDVariacao'] ?>" checked>
-                            <label class="btn btn-outline-secondary btn-sm" for="entrada<?= $v['IDVariacao'] ?>">Entrada</label>
-                            <input type="radio" class="btn-check" name="tipo" value="saida" id="saida<?= $v['IDVariacao'] ?>">
-                            <label class="btn btn-outline-secondary btn-sm" for="saida<?= $v['IDVariacao'] ?>">Saída</label>
-                            <input type="radio" class="btn-check" name="tipo" value="ajuste" id="ajuste<?= $v['IDVariacao'] ?>">
-                            <label class="btn btn-outline-secondary btn-sm" for="ajuste<?= $v['IDVariacao'] ?>">Ajustar pra um número exato</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <input type="radio" class="btn-check" name="tipo" value="entrada" id="entrada<?= $v['IDVariacao'] ?>" checked>
+                                <label class="btn btn-outline-secondary btn-sm" for="entrada<?= $v['IDVariacao'] ?>">Entrada</label>
+                                <input type="radio" class="btn-check" name="tipo" value="saida" id="saida<?= $v['IDVariacao'] ?>">
+                                <label class="btn btn-outline-secondary btn-sm" for="saida<?= $v['IDVariacao'] ?>">Saída</label>
+                                <input type="radio" class="btn-check" name="tipo" value="ajuste" id="ajuste<?= $v['IDVariacao'] ?>">
+                                <label class="btn btn-outline-secondary btn-sm" for="ajuste<?= $v['IDVariacao'] ?>">Ajustar pra um número exato</label>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Quantidade</label>

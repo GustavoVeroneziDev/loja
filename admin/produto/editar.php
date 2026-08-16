@@ -308,10 +308,12 @@ require __DIR__ . '/../_topo.php';
                 </div>
                 <div class="mb-3">
                     <label class="form-label d-block">Tipo de produto</label>
-                    <input type="radio" class="btn-check" name="tipo_produto" id="tipoSimples" value="simples" <?= $modoSimples ? 'checked' : '' ?> onchange="document.getElementById('camposEixos').classList.add('d-none')">
-                    <label class="btn btn-outline-secondary" for="tipoSimples">Produto simples</label>
-                    <input type="radio" class="btn-check" name="tipo_produto" id="tipoVariavel" value="variavel" <?= !$modoSimples ? 'checked' : '' ?> onchange="document.getElementById('camposEixos').classList.remove('d-none')">
-                    <label class="btn btn-outline-secondary" for="tipoVariavel">Com variações (cor, tamanho...)</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <input type="radio" class="btn-check" name="tipo_produto" id="tipoSimples" value="simples" <?= $modoSimples ? 'checked' : '' ?> onchange="document.getElementById('camposEixos').classList.add('d-none')">
+                        <label class="btn btn-outline-secondary" for="tipoSimples">Produto simples</label>
+                        <input type="radio" class="btn-check" name="tipo_produto" id="tipoVariavel" value="variavel" <?= !$modoSimples ? 'checked' : '' ?> onchange="document.getElementById('camposEixos').classList.remove('d-none')">
+                        <label class="btn btn-outline-secondary" for="tipoVariavel">Com variações (cor, tamanho...)</label>
+                    </div>
                 </div>
                 <div class="mb-3 <?= $modoSimples ? 'd-none' : '' ?>" id="camposEixos">
                     <label class="form-label">Esse produto varia por</label>
