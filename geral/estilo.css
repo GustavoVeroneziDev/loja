@@ -242,7 +242,7 @@ body {
 
 .linha-detalhe-expandida.aberto {
     background-color: rgba(124, 58, 237, .05);
-    border-left: 3px solid rgba(124, 58, 237, .35);
+    border-left-color: rgba(124, 58, 237, .35);
 }
 
 .stat-card-admin:hover {

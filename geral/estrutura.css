@@ -66,12 +66,18 @@ body {
     border-radius: 16px;
 }
 
+/* inline-block (não inline puro) + texto centralizado — badge de status que quebra linha em coluna
+   estreita (ex: "Aguardando pagamento" no admin de pedidos no mobile) precisa disso pra continuar
+   sendo UMA pílula só; um <span> inline que quebra linha vira dois fragmentos arredondados soltos,
+   cada um do tamanho da própria linha, em vez de uma forma única com texto equilibrado. */
 .badge-sucesso,
 .badge-perigo,
 .badge-atencao,
 .badge-destaque,
 .badge-admin {
+    display: inline-block;
     border-radius: 999px;
+    text-align: center;
 }
 
 .flex-truncate {
@@ -96,12 +102,17 @@ body {
 
 /* Conteúdo da linha de detalhe anima altura ao abrir/fechar — display:none (d-none) não dá pra fazer
    transition, então o toggle real é essa classe .aberto, com max-height generoso o bastante pra
-   caber qualquer conteúdo real das linhas de detalhe do admin. */
+   caber qualquer conteúdo real das linhas de detalhe do admin. Fundo e borda esquerda começam
+   transparentes (cor real entra via estilo.css) e SEMPRE com a mesma largura de 3px — só a cor
+   transiciona junto com a altura, senão fecha com a cor sumindo de vez no meio do caminho (pisca
+   branco) e o conteúdo "pula" de lado quando a borda de 3px desaparece de repente. */
 .linha-detalhe-expandida {
     max-height: 0;
     overflow: hidden;
     padding: 0 1rem;
-    transition: max-height .3s ease, padding .3s ease;
+    background-color: transparent;
+    border-left: 3px solid transparent;
+    transition: max-height .3s ease, padding .3s ease, background-color .3s ease, border-left-color .3s ease;
 }
 
 .linha-detalhe-expandida.aberto {
